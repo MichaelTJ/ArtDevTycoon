@@ -1,0 +1,8 @@
+# Normalise line endings so parallel agents on different tools never produce
+# whole-file CRLF diffs that mask the real change.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
