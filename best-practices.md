@@ -10,16 +10,21 @@ Rules use RFC-2119 language: **MUST**, **MUST NOT**, **SHOULD**, **MAY**.
 
 ## 1. Orientation: read these, in this order
 
-| Order | File | Why |
-| ----- | ---- | --- |
-| 1 | `best-practices.md` (this file) | Rules of engagement |
-| 2 | `docs/architecture.md` | How the system fits together and why |
-| 3 | `src/lib/types/contracts.ts` | The frozen data contract every layer shares |
-| 4 | `docs/agent-log.md` | What other agents already built |
-| 5 | The `README.md` inside the directory you own | Local detail for your slice |
+| Order | File                                         | Why                                              |
+| ----- | -------------------------------------------- | ------------------------------------------------ |
+| 1     | `best-practices.md` (this file)              | Rules of engagement                              |
+| 2     | `docs/architecture.md`                       | How the system fits together and why             |
+| 3     | `src/lib/types/contracts.ts`                 | The frozen data contract every layer shares      |
+| 4     | `docs/tasks/<your spec>.md`                  | Your exact assignment — files, signatures, tests |
+| 5     | `docs/agent-log.md`                          | What other agents already built                  |
+| 6     | The `README.md` inside the directory you own | Local detail for your slice                      |
 
 You **MUST NOT** begin editing before completing this reading list. It takes about
 five minutes and prevents nearly every class of duplicated or conflicting work.
+
+The work is divided into five specs in `docs/tasks/`; see `docs/tasks/README.md` for
+the running order, the worktree each one uses, and the prompt to hand an implementing
+agent. Each spec is self-contained and names its own ownership zone.
 
 ---
 
@@ -93,11 +98,11 @@ Testing is not a phase at the end. A component without a test is not done.
 
 ### 3.1 The three tiers
 
-| Tier | Runs in | File name | Use for |
-| ---- | ------- | --------- | ------- |
-| Unit | Node | `foo.test.ts` | Pure logic: scoring, prompt building, validation |
-| Component | Real Chromium | `Foo.svelte.test.ts` | Anything that renders |
-| E2E | Real Chromium | `*.e2e.ts` in `e2e/` | The full loop through the UI |
+| Tier      | Runs in       | File name            | Use for                                          |
+| --------- | ------------- | -------------------- | ------------------------------------------------ |
+| Unit      | Node          | `foo.test.ts`        | Pure logic: scoring, prompt building, validation |
+| Component | Real Chromium | `Foo.svelte.test.ts` | Anything that renders                            |
+| E2E       | Real Chromium | `*.e2e.ts` in `e2e/` | The full loop through the UI                     |
 
 The `.svelte.test.ts` suffix is **not cosmetic** — `vite.config.ts` routes files by
 that exact pattern to the browser test project. Name a component test `Foo.test.ts`
@@ -140,8 +145,8 @@ The goal: **a new agent should never have to reverse-engineer intent from code.*
 
 - Every directory you create under `src/lib/` and every top-level directory **MUST**
   contain a `README.md` covering: what lives here, the public surface others may
-  import, invariants that must hold, and anything deliberately *not* done yet.
-- Every exported symbol **MUST** carry a TSDoc comment explaining *why* it exists and
+  import, invariants that must hold, and anything deliberately _not_ done yet.
+- Every exported symbol **MUST** carry a TSDoc comment explaining _why_ it exists and
   any non-obvious constraint. Skip the ones that merely restate the signature.
 - When you finish, you **MUST** append a handoff entry to `docs/agent-log.md` using
   the template in §6. This is how the next agent inherits your context.
@@ -150,7 +155,7 @@ The goal: **a new agent should never have to reverse-engineer intent from code.*
 
 ### 4.1 Code comments
 
-Comment the *why*, never the *what*. `// increment the counter` is noise. A note that
+Comment the _why_, never the _what_. `// increment the counter` is noise. A note that
 SDXL-Turbo requires `guidance_scale=0.0` or it produces garbage is genuinely valuable,
 because the code cannot express that constraint on its own. Never leave comments that
 narrate your edit ("changed this to fix the bug") — they are addressed to a reviewer

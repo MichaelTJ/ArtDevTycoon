@@ -72,12 +72,12 @@ active. If a component branches on provider name, the abstraction has leaked.
 The original brief suggested Janus 1B for image generation. We split the roles
 differently, and the reasoning matters:
 
-| Job | Model | Why this one |
-| --- | ----- | ------------ |
-| Image generation | **SDXL-Turbo** via OpenVINO | Single-step generation, ~2-3s on this iGPU, 512px output. Purpose-built for real-time use. |
-| Art critique | **Janus-Pro-1B** | It is a *vision*-language model. It can look at the finished image through its SigLIP encoder and judge it. |
+| Job              | Model                       | Why this one                                                                                                |
+| ---------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Image generation | **SDXL-Turbo** via OpenVINO | Single-step generation, ~2-3s on this iGPU, 512px output. Purpose-built for real-time use.                  |
+| Art critique     | **Janus-Pro-1B**            | It is a _vision_-language model. It can look at the finished image through its SigLIP encoder and judge it. |
 
-Janus-Pro-1B *can* generate images, but only at 384×384 and at noticeably lower
+Janus-Pro-1B _can_ generate images, but only at 384×384 and at noticeably lower
 fidelity than SDXL-Turbo. Meanwhile its understanding side is the only local model here
 capable of actually seeing a picture. Using it as the critic means the score reflects
 the artwork that was really produced, rather than string-matching the player's prompt —
@@ -107,8 +107,10 @@ with the GPU**, so:
    calls `buildLevel1Prompt()` to append the hidden modifiers, and hands the result to
    the active `ImageGenerator`. Returns an `Artwork`.
 3. `POST /api/evaluate { brief, playerPrompt, imageUrl }`. The active `ArtCritic`
-   returns a raw judgement; the domain layer clamps the payout to the brief's budget
-   and the response is validated with `critiqueSchema` before it leaves the server.
+   judges the picture and returns an accuracy score plus prose. Creativity is derived
+   from the player's prompt and the payout from the brief's budget, both in the domain
+   layer — the model never decides money. The response is validated with
+   `critiqueSchema` before it leaves the server.
 4. UI moves to `results` and shows the image, the critique and the payout.
 5. **Collect Cash** applies the payout via a tweened counter, pushes a `GalleryEntry`
    into the portfolio strip, increments the commission count, and returns to `idle` —
@@ -121,18 +123,18 @@ retry affordance. The player never loses their typed prompt.
 
 ## 6. Directory ownership
 
-| Path | Contents | Owner |
-| ---- | -------- | ----- |
-| `src/lib/types/**` | Frozen shared contract | Orchestrator |
-| `src/lib/game/**` | Pure rules: prompt pipeline, scoring, payout, win check | Domain agent |
-| `src/lib/data/**` | Level 1 client brief pool | Domain agent |
-| `src/lib/server/ai/**` | Provider interfaces, mock impl, sidecar client | Backend agent |
-| `src/routes/api/**` | HTTP endpoints | Backend agent |
-| `src/lib/components/**` | Presentational components | UI agent |
-| `src/lib/stores/**` | `gameState.svelte.ts` runes store | UI agent |
-| `src/routes/+page.svelte` | Screen assembly | UI agent |
-| `sidecar/**` | Python FastAPI + OpenVINO service | Sidecar agent |
-| `e2e/**` | Playwright end-to-end specs | Integration agent |
+| Path                      | Contents                                                | Owner             |
+| ------------------------- | ------------------------------------------------------- | ----------------- |
+| `src/lib/types/**`        | Frozen shared contract                                  | Orchestrator      |
+| `src/lib/game/**`         | Pure rules: prompt pipeline, scoring, payout, win check | Domain agent      |
+| `src/lib/data/**`         | Level 1 client brief pool                               | Domain agent      |
+| `src/lib/server/ai/**`    | Provider interfaces, mock impl, sidecar client          | Backend agent     |
+| `src/routes/api/**`       | HTTP endpoints                                          | Backend agent     |
+| `src/lib/components/**`   | Presentational components                               | UI agent          |
+| `src/lib/stores/**`       | `gameState.svelte.ts` runes store                       | UI agent          |
+| `src/routes/+page.svelte` | Screen assembly                                         | UI agent          |
+| `sidecar/**`              | Python FastAPI + OpenVINO service                       | Sidecar agent     |
+| `e2e/**`                  | Playwright end-to-end specs                             | Integration agent |
 
 ---
 
