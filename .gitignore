@@ -1,0 +1,42 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+# Playwright
+test-results
+playwright-report
+
+# Python sidecar
+sidecar/.venv
+sidecar/__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+
+# AI model weights and OpenVINO IR exports (multi-GB, never commit)
+sidecar/models
+models
+
+# Runtime-generated artwork
+static/generated
+.tmp
