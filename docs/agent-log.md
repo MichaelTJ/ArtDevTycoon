@@ -215,3 +215,35 @@ contract and doc change.
 
 **Known gaps:** Same as the previous entry — specs 02–06 are still unimplemented. This
 entry only corrects the specs themselves before that work starts.
+
+---
+
+## 2026-07-29 — Cursor agent (studio operations)
+
+**Zone:** `src/lib/game/**`, `src/lib/components/OperationsPanel.svelte` and its tests
+
+**Built:** Operational search/filter and display for studio management:
+
+- `src/lib/game/operations.ts` — `filterGalleryEntries`, `identifyOperationalNeeds`,
+  `buildOperationsSummary`, `buildOperationalSnapshot`
+- `src/lib/game/levelRules.ts` — minimal `levelProgress` / `isLevelComplete` helpers
+  used by the operations layer (full spec-01 domain still pending elsewhere)
+- `src/lib/components/OperationsPanel.svelte` — search box, preset filters, urgent
+  needs alert, summary cards, progress bars, and a commission records table
+
+**Public surface:** `$lib/game` exports the operations functions and types;
+`OperationsPanel` accepts a snapshot plus bindable `query`.
+
+**Tests:** 16 unit/component tests green via `npm run test:unit -- --run`.
+
+**Decisions:**
+
+- Urgent items are derived from live game phase (failed commission, waiting payment,
+  client waiting), engine errors, and win-condition gaps — not from gallery history alone.
+- Filtering is pure domain logic so spec 04 can recompute snapshots whenever `query` or
+  game state changes.
+
+**Requests:** Wire `OperationsPanel` into `+page.svelte` during spec 04 integration.
+
+**Known gaps:** Not yet mounted on the game screen; remaining spec-01/03 components still
+unimplemented.
