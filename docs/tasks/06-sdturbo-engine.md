@@ -91,19 +91,31 @@ export class SdTurboEngine implements ArtEngine {
 	readonly requirements = {
 		webgpu: true,
 		approxDownloadMb: 1536,
-		minStorageBufferMb: 1024,
+		minStorageBufferMb: 1536,
 		desktopOnly: true
 	};
 	readonly capabilities = { generate: true, critique: true };
 }
 ```
 
+`minStorageBufferMb` is raised from SD-Turbo's own 1024 to 1536 as a safety margin, but
+the real fix for the combined footprint is architectural, not a bigger number: **SD-Turbo's
+three ORT sessions and Janus must not knowingly be resident at once.** Two 1 GB+ WebGPU
+models stacked on top of each other is exactly the crash this project keeps gating
+against elsewhere, and no `minStorageBufferMb` value is a substitute for actually
+freeing memory.
+
 - `generate` uses the SD-Turbo worker and returns an `Artwork` with `width: 512`,
-  `height: 512`, `engineId: 'sdturbo-webgpu'`.
+  `height: 512`, `engineId: 'sdturbo-webgpu'`, and `playerPrompt` set to the input
+  `playerPrompt` argument verbatim (never the built `prompt`) — same rule as every
+  other engine.
 - `critique` **delegates to an internally-composed `JanusEngine`**, loading it lazily on
-  the first critique rather than up front. Generation finishes before the critic is
-  needed, so staggering the two loads keeps peak memory lower and gets the player their
-  picture sooner. Return the delegate's `CritiqueDraft` unchanged apart from the
+  the first critique rather than up front. Before that load, **dispose the SD-Turbo
+  worker's three ORT sessions** (text encoder, UNet, VAE) — none of them are needed
+  again until the next `generate()` call, and holding them resident while Janus loads is
+  the one thing this file must not do. Re-create the SD-Turbo sessions lazily the next
+  time `generate()` is called; accept the one-time recompilation cost as the price of
+  not crashing the tab. Return the delegate's `CritiqueDraft` unchanged apart from the
   `engineId` on the artwork, which stays `'sdturbo-webgpu'`.
 - `probe` fails fast on mobile via `meetsRequirements`, which already enforces
   `desktopOnly`.
@@ -116,9 +128,11 @@ Same discipline as spec 05: an injected fake worker client, and **no test may do
 model**.
 
 Cover: `probe` returns unavailable when `capability.isMobile` is true; `generate`
-returns a schema-valid `Artwork` at 512×512 with the right `engineId`; `critique`
-delegates to the composed engine and returns its draft; `unload` tears down both the
-worker and the delegate.
+returns a schema-valid `Artwork` at 512×512 with the right `engineId` and a
+`playerPrompt` matching the input `playerPrompt` (not `prompt`); `critique` disposes the
+SD-Turbo sessions before the composed engine loads (assert the fake worker client's
+`dispose`/`unload` was called before the fake Janus load), delegates to it, and returns
+its draft; `unload` tears down both the worker and the delegate.
 
 ## Manual verification
 
@@ -136,6 +150,8 @@ Record the observed generation time and peak memory in your handoff.
 - [ ] The UNet runs exactly once with no classifier-free guidance.
 - [ ] The engine is unavailable on mobile.
 - [ ] Critique delegates to Janus, loaded lazily and unloaded properly.
+- [ ] SD-Turbo's own ORT sessions are disposed before Janus loads for critique, and
+      recreated lazily on the next `generate()` call.
 - [ ] The model repository and file names were verified and are recorded in the handoff.
 - [ ] No test downloads a model.
 - [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` all green.

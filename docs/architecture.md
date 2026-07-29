@@ -79,6 +79,14 @@ Selection rules:
 active, except the one component that displays it. If a game rule depends on the
 engine, the abstraction has leaked.
 
+**What persists across a reload and what doesn't, deliberately:** the engine choice
+(`localStorage`) and the downloaded model weights (Cache API) persist, because losing
+either means re-downloading a gigabyte. `GameState` — cash, gallery, the current
+commission — does **not** persist. Level 1 starts fresh every session by design; it
+is a short, self-contained loop, and re-testing it from a clean slate is more valuable
+right now than carrying progress between visits. Do not add `GameState` persistence
+without an explicit product decision to do so — it is not an oversight.
+
 ### Why Janus does both jobs
 
 Janus-Pro-1B is a _unified_ multimodal model — the same weights handle text-to-image
@@ -138,19 +146,27 @@ share of players will never load a model, and the game must be complete for them
 
 ## 6. Request flow for one commission
 
-1. Player clicks **Create Art**. UI moves to `generating`.
-2. `buildLevel1Prompt()` appends the hidden modifiers. The player never sees the
-   result; it goes straight to the active engine.
+1. Player clicks **Create Art**. UI moves to `generating`; the engine menu is disabled
+   for the duration of steps 1–5 so the active engine cannot be unloaded mid-flight.
+2. `buildLevel1Prompt()` appends the hidden modifiers to the player's raw text. The
+   player never sees the result. `ArtEngine.generate()` receives **both** strings —
+   `playerPrompt` (raw) and `prompt` (with modifiers) — as separate fields; it sends
+   only `prompt` to the model and echoes `playerPrompt` back into the returned
+   `Artwork` untouched. The two are never allowed to merge into one field anywhere in
+   the pipeline, because the moment they do there is no way to recover the raw prompt
+   for display, and the whole Level 1 joke depends on the player only ever seeing what
+   they typed.
 3. The engine generates. For WebGPU engines this happens in a Web Worker and the
    result comes back as a transferred `ImageBitmap` — inference on the main thread
    would freeze the UI for the entire generation and get the tab killed on mobile.
 4. UI moves to `critiquing`. The engine is asked one yes/no question per brief keyword
    plus one request for prose.
 5. The domain layer converts the hit rate into `accuracyScore`, derives
-   `creativityScore` from the prompt, and computes `finalPayout`.
+   `creativityScore` from the player's prompt, and computes `finalPayout`.
 6. UI moves to `results`. **Collect Cash** applies the payout via a tweened counter,
-   pushes a `GalleryEntry` into the portfolio strip, and returns to `idle` — or to
-   `levelComplete` if both win conditions are met.
+   pushes a `GalleryEntry` (tagged with the brief's `id` as `briefId`, so a future
+   `inviteClient()` call can exclude it correctly) into the portfolio strip, and
+   returns to `idle` — or to `levelComplete` if both win conditions are met.
 
 Any failure moves the UI to `failed` with a player-safe message and a retry. The
 player never loses their typed prompt.
@@ -159,15 +175,15 @@ player never loses their typed prompt.
 
 ## 7. Directory ownership
 
-| Path                                           | Contents                                   | Spec         |
-| ---------------------------------------------- | ------------------------------------------ | ------------ |
-| `src/lib/types/**`                             | Frozen shared contract                     | Orchestrator |
-| `src/lib/game/**`, `src/lib/data/**`           | Pure rules and the brief pool              | 01           |
-| `src/lib/engines/**` (except model subdirs)    | Interface, manager, capability probe, mock | 02           |
-| `src/lib/components/**`, `static/avatars/**`   | Presentational components                  | 03           |
-| `src/lib/stores/**`, `src/routes/**`, `e2e/**` | State machine, screen, end-to-end          | 04           |
-| `src/lib/engines/janus/**`                     | Janus-Pro-1B worker engine                 | 05           |
-| `src/lib/engines/sdturbo/**`                   | SD-Turbo desktop engine                    | 06           |
+| Path                                                                 | Contents                                   | Spec         |
+| -------------------------------------------------------------------- | ------------------------------------------ | ------------ |
+| `src/lib/types/**`                                                   | Frozen shared contract                     | Orchestrator |
+| `src/lib/game/**`, `src/lib/data/**`                                 | Pure rules and the brief pool              | 01           |
+| `src/lib/engines/**` (except model subdirs)                          | Interface, manager, capability probe, mock | 02           |
+| `src/lib/components/**`, `static/avatars/**`                         | Presentational components                  | 03           |
+| `src/lib/stores/**`, `src/routes/**` (except `+layout.ts`), `e2e/**` | State machine, screen, end-to-end          | 04           |
+| `src/lib/engines/janus/**`                                           | Janus-Pro-1B worker engine                 | 05           |
+| `src/lib/engines/sdturbo/**`                                         | SD-Turbo desktop engine                    | 06           |
 
 ---
 
@@ -187,3 +203,25 @@ Upgrades, staff, gallery customisation, complex client types and extra art mediu
 out of scope. Leave seams — `LEVEL_1` is a config object so a `LEVEL_2` can slot in
 beside it, and `ArtEngine` already accommodates the `remote` tier — but implement none
 of it.
+
+`GameState.reputation` is tracked from Level 1 onward (the domain layer already
+computes a `reputationGain` per commission) but is not surfaced in any UI and gates
+nothing. It is there so Level 2 — where reputation is expected to unlock better
+clients — has a running total to build on instead of a retrofit. Do not wire it into
+any Level 1 UI or win condition.
+
+---
+
+## 10. Deployment: secure context requirements
+
+WebGPU and the Cache API both require a
+[secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) —
+HTTPS in production, or `localhost` in development. Any static host serving over HTTPS
+(GitHub Pages, Netlify, Vercel, Cloudflare Pages) satisfies this by default; nothing
+extra is needed. `SharedArrayBuffer`-based threading is not used by either
+`@huggingface/transformers` or `onnxruntime-web` in their default WebGPU/WASM-SIMD
+configuration here, so **COOP/COEP headers are not required** for this project. If a
+future change enables multi-threaded WASM (a different execution path in
+`onnxruntime-web`), revisit this — that mode does need
+`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy:
+require-corp`, which static hosts typically need custom configuration to send.

@@ -165,6 +165,22 @@ export interface LoadProgress {
 export type EngineState = 'idle' | 'probing' | 'loading' | 'ready' | 'error' | 'unsupported';
 
 /**
+ * The flattened, UI-ready shape of one engine choice. `EngineStore` (spec 04) produces
+ * these from `EngineManager.options` plus its own descriptors; `EnginePicker` (spec 03)
+ * renders them. Naming this once here means the store and the component agree on the
+ * shape without either spec having to invent or duplicate it.
+ */
+export interface EngineOption {
+	id: EngineId;
+	displayName: string;
+	description: string;
+	available: boolean;
+	unavailableReason?: string;
+	requiresDownload: boolean;
+	approxDownloadMb: number;
+}
+
+/**
  * The single interface every AI backend implements. The game depends only on this,
  * which is what lets it run with no models installed, lets engines be swapped at
  * runtime, and leaves a clean seam for user-supplied APIs in a later phase.
@@ -186,7 +202,20 @@ export interface ArtEngine {
 		signal?: AbortSignal;
 	}): Promise<void>;
 
-	generate(input: { prompt: string; seed?: number; signal?: AbortSignal }): Promise<Artwork>;
+	/**
+	 * `playerPrompt` is exactly what the player typed and is never sent to the model —
+	 * it exists only so the engine can echo it, untouched, into the returned
+	 * `Artwork`. `prompt` is the real generation input, already carrying the hidden
+	 * Level 1 modifiers. Keeping them separate is deliberate: an engine that only ever
+	 * sees one merged string has no way to report back which part the player wrote,
+	 * and the whole Level 1 joke depends on that distinction never blurring.
+	 */
+	generate(input: {
+		playerPrompt: string;
+		prompt: string;
+		seed?: number;
+		signal?: AbortSignal;
+	}): Promise<Artwork>;
 
 	critique(input: {
 		brief: ClientBrief;
@@ -207,7 +236,11 @@ export const artworkSchema = z.object({
 	id: z.string().min(1),
 	/** Displayable source: a `blob:` URL, a `data:` URL, or an HTTP path. */
 	imageUrl: z.string().min(1),
-	/** Exactly what the player typed, for the portfolio and for scoring. */
+	/**
+	 * Exactly what the player typed, echoed back by the engine unchanged. Never the
+	 * built prompt — if this ever equals `prompt` from a `generate()` call, the hidden
+	 * modifiers have leaked and something is wrong.
+	 */
 	playerPrompt: z.string(),
 	width: z.number().int().positive(),
 	height: z.number().int().positive(),
@@ -228,6 +261,12 @@ export const galleryEntrySchema = z.object({
 	/** Mean of accuracy and creativity — the single headline number. */
 	score: z.number().min(0).max(LEVEL_1.maxScore),
 	clientName: z.string().min(1),
+	/**
+	 * The brief's `id` (e.g. `'c1'`), not just its display name. `inviteClient()` needs
+	 * this to exclude already-served clients — matching on `clientName` would be
+	 * fragile the moment two briefs ever share a display name.
+	 */
+	briefId: z.string().min(1),
 	completedAt: z.number().int().nonnegative()
 });
 
@@ -253,6 +292,12 @@ export type GamePhase =
 export interface GameState {
 	phase: GamePhase;
 	cash: number;
+	/**
+	 * Tracked from Level 1 onward but deliberately unused by any win condition or UI
+	 * in this level — it exists so `reputationGain` has somewhere to accumulate ahead
+	 * of Level 2, where it is expected to unlock better clients. Do not surface it or
+	 * gate anything on it in Level 1; that is out of scope here.
+	 */
 	reputation: number;
 	commissionsCompleted: number;
 	currentClient: ClientBrief | null;

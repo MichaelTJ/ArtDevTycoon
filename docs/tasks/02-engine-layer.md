@@ -239,10 +239,14 @@ export class MockEngine implements ArtEngine {
 
 - `probe()` always returns `{ available: true, requiresDownload: false, approxDownloadMb: 0 }`.
 - `load()` resolves immediately.
-- `generate({ prompt, seed })` → `seed ?? hashString(prompt)`, paint, and return an
-  `Artwork` with `width: 512`, `height: 512`, `engineId: 'mock'`, a measured
-  `generationMs`, and `id` of `` `mock-${seed.toString(36)}` ``. Add **no** artificial
-  delay; the UI owns pacing and a sleep here would slow every test.
+- `generate({ playerPrompt, prompt, seed })` → `seed ?? hashString(prompt)`, paint using
+  the built `prompt`, and return an `Artwork` with `width: 512`, `height: 512`,
+  `engineId: 'mock'`, a measured `generationMs`, `id` of
+  `` `mock-${seed.toString(36)}` ``, and **`playerPrompt` set to the `playerPrompt`
+  argument, verbatim** — never to `prompt`. This is not cosmetic: `prompt` carries the
+  hidden Level 1 modifiers, and `Artwork.playerPrompt` leaking them would break the
+  game's central conceit. Add **no** artificial delay; the UI owns pacing and a sleep
+  here would slow every test.
 - `critique({ brief, playerPrompt })` uses `scorePrompt` from `$lib/game` for
   `accuracyScore`, `buildTitle` for the title, and the templates below for the review.
   Return a `CritiqueDraft` validated with `critiqueDraftSchema.parse(...)`.
@@ -264,7 +268,11 @@ keyword, fallback `'the subject'`).
 **Tests:** identical input twice yields an identical `Artwork` and `CritiqueDraft`;
 results parse against their schemas; `'a cozy coffee cup on a wooden table'` against
 brief `c1` gives `accuracyScore` 10 and `'dragon'` gives 1; no `{placeholder}` survives
-into any output; an aborted signal throws `EngineError` with code `'cancelled'`.
+into any output; an aborted signal throws `EngineError` with code `'cancelled'`;
+**calling `generate({ playerPrompt: 'a dragon', prompt: 'a dragon, flat color, ...' })`
+returns an `Artwork` whose `playerPrompt` is exactly `'a dragon'`**, never containing
+the modifier text from `prompt` — this is the one test in this file that guards the
+game's central twist, so do not skip it.
 
 ## 7. `registry.ts`
 
@@ -325,7 +333,12 @@ export class EngineManager {
 	get recommendedId(): EngineId;
 
 	select(id: EngineId, onProgress?: (p: LoadProgress) => void): Promise<void>;
-	generate(input: { prompt: string; seed?: number; signal?: AbortSignal }): Promise<Artwork>;
+	generate(input: {
+		playerPrompt: string;
+		prompt: string;
+		seed?: number;
+		signal?: AbortSignal;
+	}): Promise<Artwork>;
 	critique(input: {
 		brief: ClientBrief;
 		playerPrompt: string;
@@ -372,6 +385,8 @@ Re-export `EngineManager`, `ENGINE_REGISTRY`, `detectCapability`, `meetsRequirem
 
 - [ ] Every file in the table exists, with TSDoc on every exported symbol.
 - [ ] The mock engine is deterministic and needs no network, no GPU and no download.
+- [ ] `MockEngine.generate` echoes its `playerPrompt` argument into `Artwork.playerPrompt`
+      unchanged, and never leaks the built `prompt` into it.
 - [ ] Nothing here imports Svelte or touches the DOM except `capability.ts`.
 - [ ] Every thrown error is an `EngineError` with a player-safe message.
 - [ ] Both engine stubs exist so the build stays green.

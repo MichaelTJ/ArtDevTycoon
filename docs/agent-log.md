@@ -148,3 +148,70 @@ SDXL-Turbo-plus-sidecar design, so the design had to go.
 **Known gaps:** Spec 01 is unchanged and still correct. Specs 02–06 are unimplemented.
 Spec 06 has no worktree yet. The `remote` engine tier — player-supplied API keys — is
 declared in the contract but deliberately unspecified; it is a later phase.
+
+---
+
+## 2026-07-29 — Orchestrator (review fixes)
+
+**Zone:** `src/lib/types/**`, `docs/**`, `README.md`, `best-practices.md`
+
+**Why:** A self-review of the post-re-architecture docs found three defects that would
+have broken the game if an implementing agent had followed the specs literally, plus
+several smaller gaps. Fixed all of them before any spec 02–06 agent starts building.
+
+**Built:**
+
+- **`ArtEngine.generate()` now takes `playerPrompt` and `prompt` as separate fields**
+  instead of one merged string. Every engine echoes `playerPrompt` back into
+  `Artwork.playerPrompt` verbatim and only ever sends `prompt` (the one with the hidden
+  modifiers) to the model. Without this split, nothing could reconstruct what the
+  player actually typed once the modifiers were appended — silently breaking the
+  game's central conceit the first time anyone implemented `generate()` from the old
+  signature. Updated in `contracts.ts` and specs 02, 04, 05, 06.
+- **Added `briefId` to `GalleryEntry`.** `inviteClient()`'s exclusion logic (spec 04)
+  had nothing but `clientName` to match against, which breaks the moment two briefs
+  share a display name. Updated `collectCash()` and `inviteClient()` in spec 04.
+- **Wired `GameStore` to the one real `EngineManager`.** Spec 04 previously described
+  `EngineStore` and `GameStore` as if each could default to its own engine
+  dependency, with nothing forcing them to share an instance — a player's engine
+  choice could then silently have no effect on generation. Added
+  `EngineStore.manager` and made `GameStore`'s default explicitly `engines.manager`.
+- Added a `switchingLocked` guard: the engine menu is now disabled for the duration of
+  `createArt()`, because `EngineManager.select()` unloads the active engine and doing
+  that mid-generation had no defined recovery.
+- Resolved the engine-menu placement gap: it renders in `+page.svelte` beside the
+  frozen `HudBar`, not inside it.
+- Unified the UI-facing engine-option shape into one `EngineOption` type in
+  `contracts.ts`, replacing the mismatched `EngineOptionView`/`EngineOption` names
+  across specs 03 and 04.
+- SD-Turbo's critique path (spec 06) now explicitly disposes its own ORT sessions
+  before loading Janus for critique, instead of relying on a bigger
+  `minStorageBufferMb` to paper over two 1 GB+ WebGPU models resident at once.
+- Replaced spec 05's vague Cache-API cache-detection guidance with concrete steps and
+  an explicit fail-safe (assume not cached on any error).
+- Documented that `GameState` does not persist across reloads — intentional, confirmed
+  by the user, so Level 1 stays simple to test. Engine choice and model cache still
+  persist. Marked `reputation` as tracked-but-unused, reserved for Level 2.
+- Added a secure-context/HTTPS section to `docs/architecture.md` and a matching README
+  note; confirmed COOP/COEP headers are not required for this project's WebGPU/WASM
+  configuration.
+- `best-practices.md`: corrected "five specs" to "six", and added `src/routes/+layout.ts`
+  to the orchestrator-owned file list (it's build config, not a spec-04 screen, despite
+  the path overlap with spec 04's `src/routes/**` zone).
+
+**Verified, not assumed:** `npm run check` and `npm run lint` are green after every
+contract and doc change.
+
+**Decisions:**
+
+- Kept `reputation` in `GameState` rather than removing it — cheaper to leave an unused
+  field with a clear comment than to rip it out now and re-add it for Level 2.
+- Chose to fix the SD-Turbo memory risk by disposing sessions around the critique
+  hand-off rather than only raising the memory gate — a bigger number doesn't free any
+  memory, and this is the same class of mobile-crash risk the rest of the architecture
+  is built to avoid.
+
+**Requests:** None.
+
+**Known gaps:** Same as the previous entry — specs 02–06 are still unimplemented. This
+entry only corrects the specs themselves before that work starts.

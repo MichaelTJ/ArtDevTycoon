@@ -59,6 +59,11 @@ first browser run takes 40–70 seconds while Vitest starts the browser — that
 Cloudflare Pages, Netlify, GitHub Pages, an S3 bucket. There is nothing to run
 server-side.
 
+WebGPU and the Cache API both require a secure context, so the real AI engines only
+work over **HTTPS** in production (or `localhost` in dev). Any static host serving over
+HTTPS satisfies this automatically. No COOP/COEP headers are needed — this project
+doesn't use multi-threaded WASM. See `docs/architecture.md` §10 for details.
+
 ## Tech
 
 SvelteKit 2.63 (`adapter-static`) · Svelte 5.56 (runes, forced on) · TypeScript 6 ·

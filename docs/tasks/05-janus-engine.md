@@ -239,6 +239,11 @@ export class JanusWorkerClient {
 	constructor(factory?: () => Worker);
 
 	load(onProgress?: (p: LoadProgress) => void, signal?: AbortSignal): Promise<void>;
+	/**
+	 * Takes only the already-built `prompt` — `playerPrompt` never needs to leave
+	 * `JanusEngine.generate()`, since the worker has no reason to see it and the
+	 * engine attaches it to the returned `Artwork` itself.
+	 */
 	generate(
 		prompt: string,
 		onProgress?: (fraction: number) => void,
@@ -295,14 +300,26 @@ export class JanusEngine implements ArtEngine {
 ```
 
 - `probe(capability)` delegates to `meetsRequirements` from `$lib/engines`. Report
-  `requiresDownload: true` unless the model is already in the Cache API — check with
-  `caches.has(...)` / a `caches.match` on a known model file, and treat any error as
-  "not cached" rather than throwing.
+  `requiresDownload: true` unless the model is already cached. Cache detection is
+  best-effort: `Transformers.js` stores model shards in the browser's Cache API under a
+  cache named after the model id (e.g. via `caches.open('transformers-cache')` — check
+  the installed `@huggingface/transformers` version's source for the exact name rather
+  than assuming, since this is not part of its public API and can change between
+  versions). List that cache's keys and check whether **all** expected shard filenames
+  for `onnx-community/Janus-Pro-1B-ONNX` are present, not just one — a partially cached
+  model still needs to finish downloading. Wrap the whole check in `try/catch` and
+  treat any failure (cache API unavailable, unexpected key format, version mismatch) as
+  **not cached**, i.e. `requiresDownload: true`. A false "not cached" costs the player
+  one unnecessary confirmation click; a false "cached" would leave them staring at a
+  frozen load with no download progress to explain it, which is the worse failure.
 - `load()` constructs the worker client and forwards progress.
-- `generate()` calls the client, converts the bitmap to an object URL, and returns an
-  `Artwork` with `width: 384`, `height: 384`, `engineId: 'janus-webgpu'`, a measured
-  `generationMs`, and a unique `id`. Keep the `ImageBitmap` cached against the artwork
-  id so `critique` can reuse it without decoding the URL again.
+- `generate({ playerPrompt, prompt, seed, signal })` calls `client.generate(prompt,
+...)` — the worker never receives `playerPrompt` — converts the bitmap to an object
+  URL, and returns an `Artwork` with `width: 384`, `height: 384`,
+  `engineId: 'janus-webgpu'`, a measured `generationMs`, a unique `id`, and
+  **`playerPrompt` set to the `playerPrompt` argument, verbatim, never to `prompt`**.
+  Keep the `ImageBitmap` cached against the artwork id so `critique` can reuse it
+  without decoding the URL again.
 - `critique({ brief, playerPrompt, artwork })`:
   1. Build one question per keyword with `buildKeywordQuestion`, capped at **four** to
      bound latency.
@@ -317,7 +334,8 @@ export class JanusEngine implements ArtEngine {
 
 **Tests** with an injected fake worker client: `critique` maps four `'yes'` answers to
 `accuracyScore` 10 and four `'no'` answers to 1; a rambling review falls back to the
-canned line; `generate` returns a schema-valid `Artwork` with `engineId: 'janus-webgpu'`;
+canned line; `generate` returns a schema-valid `Artwork` with `engineId: 'janus-webgpu'`
+**and `playerPrompt` equal to the input `playerPrompt`, not the input `prompt`**;
 `unload` revokes every created URL. Do **not** write a test that loads the real model —
 it would download a gigabyte in CI.
 

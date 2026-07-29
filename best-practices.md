@@ -22,7 +22,7 @@ Rules use RFC-2119 language: **MUST**, **MUST NOT**, **SHOULD**, **MAY**.
 You **MUST NOT** begin editing before completing this reading list. It takes about
 five minutes and prevents nearly every class of duplicated or conflicting work.
 
-The work is divided into five specs in `docs/tasks/`; see `docs/tasks/README.md` for
+The work is divided into six specs in `docs/tasks/`; see `docs/tasks/README.md` for
 the running order, the worktree each one uses, and the prompt to hand an implementing
 agent. Each spec is self-contained and names its own ownership zone.
 
@@ -50,7 +50,14 @@ package.json          package-lock.json     vite.config.ts
 tsconfig.json         eslint.config.js      prettier.config.js
 svelte.config.js      playwright.config.ts  .gitignore
 src/lib/types/**      best-practices.md     docs/architecture.md
+src/routes/+layout.ts
 ```
+
+`src/routes/+layout.ts` sets `prerender`/`ssr` for the whole app — it is build
+configuration, not a screen, which is why it sits with the orchestrator-owned files
+rather than under spec 04's `src/routes/**` zone despite the path overlap. Spec 04
+**MUST NOT** edit it; it may create sibling files (`+page.svelte`, `layout.css`) under
+`src/routes/**` freely.
 
 Need a new dependency or a config change? **Do not make it.** Put the request in your
 handoff report and stop. The orchestrator applies it centrally, which keeps the
