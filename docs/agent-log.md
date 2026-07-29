@@ -394,3 +394,53 @@ The screen wires phase dispatch only; all rules live in the stores and domain la
 **Known gaps:** Specs 05 (Janus) and 06 (SD-Turbo) remain optional enhancements. The
 `OperationsPanel` component still exists but is no longer mounted — spec 04 can wire
 it back as a Level 2 studio dashboard if desired.
+
+---
+
+## 2026-07-29 — Sidecar agent (spec 05)
+
+**Zone:** `src/lib/engines/janus/**`
+
+**Built:** Full Janus-Pro-1B WebGPU engine — `JanusEngine` implementing `ArtEngine`, a
+Web Worker (`janus.worker.ts`) running Transformers.js inference, promise-based RPC
+(`JanusWorkerClient`), image conversion helpers, unit/browser tests, and directory
+README. Replaced the spec-02 stub wholesale.
+
+**Public surface:** `JanusEngine`, `JanusEngineDeps`, `isModelCached` from
+`$lib/engines/janus/janusEngine`. The registry lazy-loads this module; game code
+imports via `$lib/engines` manager only.
+
+**Tests:** 15 tests in the Janus zone (12 node + 3 browser image conversion). Full
+suite: 177 green. Commands:
+
+```powershell
+npm run check
+npm run lint
+npm run test:unit -- --run
+npm run test:unit -- --run --project=node src/lib/engines/janus
+npm run test:unit -- --run --project=client src/lib/engines/janus/imageConversion.svelte.test.ts
+```
+
+**Decisions:**
+
+- Worker requests are fully serialised (queued) so concurrent `generate` calls never
+  overlap in VRAM.
+- Cache detection uses `transformers-cache` keys and checks all expected ONNX shards
+  plus tokenizer/config artifacts; any Cache API failure returns `requiresDownload: true`.
+- `playerPrompt` stays on the main thread; only the built `prompt` crosses the worker
+  boundary. Bitmaps are cached by artwork id for critique; object URLs are revoked only
+  in `unload()`.
+- Narrow Janus-specific types are asserted in the worker because `@huggingface/transformers`
+  4.2.0 typings omit `num_image_tokens` / `generate_images` on the generic classes.
+
+**Requests:** None.
+
+**Known gaps:** Manual browser verification not yet performed in this session — no
+observed wall-clock generation time recorded. Follow the steps in
+`src/lib/engines/janus/README.md` (also in spec 05): run `npm run dev`, pick Janus Pro
+1B in Chrome/Edge, accept the ~1 GB download, complete one commission, and confirm
+download progress, UI responsiveness, 384×384 output, sensible critique, and faster
+second generation when cached. Record observed timings in a follow-up handoff note.
+
+**Pre-existing failures outside zone:** None — full `npm run check`, `npm run lint`, and
+`npm run test:unit -- --run` are green after this change.
