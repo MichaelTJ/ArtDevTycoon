@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">
+<title>Fantasy Novelist</title>
+<circle cx="32" cy="32" r="32" fill="#b45309"/>
+<circle cx="32" cy="26" r="12" fill="#fde68a"/>
+<rect x="22" y="40" width="20" height="10" rx="5" fill="#fde68a"/>
+<path d="M12 20l8 4-2 10-6-2z" fill="#fef3c7"/>
+<line x1="14" y1="22" x2="18" y2="30" stroke="#78716c" stroke-width="1"/>
+</svg>

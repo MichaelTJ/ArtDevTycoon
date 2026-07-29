@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img">
+<title>Indie Band Manager</title>
+<circle cx="32" cy="32" r="32" fill="#92400e"/>
+<circle cx="32" cy="28" r="11" fill="#fde68a"/>
+<path d="M16 30c0-8 6-12 16-12s16 4 16 12" stroke="#44403c" stroke-width="3" fill="none"/>
+<rect x="24" y="42" width="16" height="8" rx="4" fill="#fde68a"/>
+</svg>
