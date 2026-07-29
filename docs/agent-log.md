@@ -284,3 +284,39 @@ Command: `npm run test:unit -- --run --project=client src/lib/components`
 
 **Known gaps:** Components are not yet mounted in `+page.svelte` — that is spec 04's job.
 No visual regression against a live game loop until integration lands.
+
+---
+
+## 2026-07-29 — Domain agent (spec 01)
+
+**Zone:** `src/lib/game/**`, `src/lib/data/**`
+
+**Built:** Full spec-01 domain layer — text utilities, prompt pipeline, scoring engine,
+level rules, Level 1 briefs with `pickBrief`, and unit tests for every module. Merged
+`main` to retain `operations.ts` from the studio-operations work; barrel in `index.ts`
+exports both spec-01 surface and operations helpers.
+
+**Public surface:** `$lib/game` — `normalize`, `stem`, `STOPWORDS`, `sanitizePlayerPrompt`,
+`buildLevel1Prompt`, `MAX_PROMPT_LENGTH`, `scorePrompt`, `calculatePayout`, `toGalleryScore`,
+`reputationGain`, `ScoreBreakdown`, `isLevelComplete`, `levelProgress`, plus operations
+exports. `$lib/data/briefs` — `LEVEL_1_BRIEFS`, `pickBrief`.
+
+**Tests:** Unit tests in `text.test.ts`, `promptPipeline.test.ts`, `scoring.test.ts`,
+`levelRules.test.ts`, `briefs.test.ts`, and existing `operations.test.ts`. Command:
+`npm run test:unit -- --run --project=node src/lib/game src/lib/data`
+
+**Decisions:**
+
+- Kept merged `operations.ts` intact; extended `index.ts` rather than replacing it.
+- `levelRules.ts` from main already matched spec 01 exactly — no changes required.
+- Scoring substring rule uses a 4-character floor on keyword stems to avoid false positives.
+
+**Requests:** None.
+
+**Known gaps:** Engines (spec 02) and game store (spec 04) still need to wire these
+functions into the live commission loop.
+
+**Pre-existing failures outside zone:** `npm run check` fails on
+`OperationsPanel.svelte.test.ts` (`Locator.locator` typing). Full `npm run lint` fails
+on pre-existing `+page.svelte` formatting. Domain zone passes scoped eslint/prettier
+and all 40 unit tests in `src/lib/game` + `src/lib/data`; full suite is 105 green.
