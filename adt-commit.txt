@@ -1,0 +1,5 @@
+feat(integration): wire game loop, stores, and e2e tests (spec 04)
+
+Connects domain, engine, and UI layers into a playable Level 1 Garage
+Gallery on the mock engine: EngineStore, GameStore, full +page.svelte
+screen, layout styles, and six Playwright e2e tests.

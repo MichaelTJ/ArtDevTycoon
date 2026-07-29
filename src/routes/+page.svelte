@@ -1,78 +1,229 @@
 <script lang="ts">
-	import { OperationsPanel } from '$lib/components';
-	import { buildOperationalSnapshot, type OperationsQuery } from '$lib/game';
-	import type { GalleryEntry } from '$lib/types/contracts';
+	import {
+		CapabilityNotice,
+		ClientCard,
+		EnginePicker,
+		ErrorPanel,
+		GeneratingPanel,
+		HudBar,
+		IdlePanel,
+		LevelCompleteOverlay,
+		ModelDownloadGate,
+		PortfolioStrip,
+		PromptComposer,
+		ResultsPanel
+	} from '$lib/components';
+	import { engines } from '$lib/stores/engineStore.svelte';
+	import { game } from '$lib/stores/gameState.svelte';
+	import { LEVEL_1, type EngineId } from '$lib/types/contracts';
 
-	const demoHistory: GalleryEntry[] = [
-		{
-			id: 'g3',
-			imageUrl:
-				'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23d6d3d1" width="96" height="96"/%3E%3C/svg%3E',
-			title: 'Regal Cat',
-			payout: 95,
-			score: 8.5,
-			clientName: 'Cat Enthusiast',
-			briefId: 'c3',
-			completedAt: Date.now() - 86_400_000
-		},
-		{
-			id: 'g2',
-			imageUrl:
-				'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23fcd34d" width="96" height="96"/%3E%3C/svg%3E',
-			title: 'Magic Sword',
-			payout: 42,
-			score: 4.2,
-			clientName: 'Fantasy Novelist',
-			briefId: 'c2',
-			completedAt: Date.now() - 172_800_000
-		},
-		{
-			id: 'g1',
-			imageUrl:
-				'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23fdba74" width="96" height="96"/%3E%3C/svg%3E',
-			title: 'Morning Coffee',
-			payout: 88,
-			score: 6.5,
-			clientName: 'Local Cafe Owner',
-			briefId: 'c1',
-			completedAt: Date.now() - 259_200_000
-		}
-	];
+	let showEngineMenu = $state(false);
+	let downloadGateOpen = $state(false);
+	let pendingEngineId = $state<EngineId | null>(null);
 
-	let operationsQuery = $state<OperationsQuery>({ search: '', filter: 'all' });
-
-	const operations = $derived(
-		buildOperationalSnapshot({
-			phase: 'results',
-			cash: 225,
-			commissionsCompleted: 3,
-			galleryHistory: demoHistory,
-			errorMessage: null,
-			currentClient: null,
-			query: operationsQuery
-		})
+	const capabilityReason = $derived(
+		engines.options.find((option) => option.id !== 'mock' && !option.available)
+			?.unavailableReason ??
+			'Real AI models need WebGPU and a one-time download from the engine menu.'
 	);
+
+	const pendingEngine = $derived(
+		pendingEngineId ? engines.options.find((option) => option.id === pendingEngineId) : null
+	);
+
+	const downloadGateState = $derived.by((): 'prompt' | 'loading' | 'error' => {
+		if (engines.loadError) {
+			return 'error';
+		}
+		if (engines.state === 'loading' || engines.loadProgress) {
+			return 'loading';
+		}
+		return 'prompt';
+	});
+
+	$effect(() => {
+		void engines.init();
+	});
+
+	function openEngineMenu(): void {
+		if (engines.switchingLocked) {
+			return;
+		}
+		showEngineMenu = true;
+	}
+
+	function closeEngineMenu(): void {
+		showEngineMenu = false;
+	}
+
+	async function handleEngineSelect(id: EngineId) {
+		const option = engines.options.find((entry) => entry.id === id);
+		if (!option?.available) {
+			return;
+		}
+
+		if (option.requiresDownload) {
+			pendingEngineId = id;
+			downloadGateOpen = true;
+			showEngineMenu = false;
+			return;
+		}
+
+		await engines.select(id);
+		showEngineMenu = false;
+	}
+
+	async function confirmDownload(): Promise<void> {
+		if (!pendingEngineId) {
+			return;
+		}
+		await engines.select(pendingEngineId);
+		if (engines.state === 'ready' && !engines.loadError) {
+			downloadGateOpen = false;
+			pendingEngineId = null;
+		}
+	}
+
+	function cancelDownload(): void {
+		engines.cancelLoad();
+		downloadGateOpen = false;
+		pendingEngineId = null;
+	}
 </script>
 
 <svelte:head>
 	<title>Art Gallery Tycoon — Garage Studio</title>
 </svelte:head>
 
-<main class="min-h-screen bg-stone-100 px-4 py-6 text-stone-800">
+<main
+	class="min-h-screen bg-stone-100 px-4 py-6 text-stone-800"
+	data-phase={game.phase}
+	data-engines-ready={engines.ready}
+>
 	<div class="mx-auto flex max-w-5xl flex-col gap-6">
-		<header>
-			<h1 class="text-2xl font-bold">Art Gallery Tycoon</h1>
-			<p class="text-sm text-stone-500">
-				Garage Studio preview — full game loop arrives with spec 04 integration.
-			</p>
-		</header>
+		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+				disabled={engines.switchingLocked ||
+					game.phase === 'generating' ||
+					game.phase === 'critiquing'}
+				title={engines.switchingLocked
+					? 'Finish the current commission before switching engines'
+					: 'Choose art engine'}
+				aria-label="Art engine"
+				onclick={openEngineMenu}
+			>
+				Art engine
+			</button>
 
-		<OperationsPanel
-			summary={operations.summary}
-			needs={operations.needs}
-			entries={operations.filteredEntries}
-			totalMatching={operations.totalMatching}
-			bind:query={operationsQuery}
-		/>
+			<div class="min-w-0 flex-1">
+				<HudBar
+					cash={game.cash}
+					levelName={LEVEL_1.name}
+					commissionsCompleted={game.commissionsCompleted}
+					targetCommissions={LEVEL_1.targetCommissions}
+					targetCash={LEVEL_1.targetCash}
+				/>
+			</div>
+		</div>
+
+		{#if !engines.realAiSupported && !engines.noticeDismissed}
+			<CapabilityNotice
+				supported={engines.realAiSupported}
+				reason={capabilityReason}
+				ondismiss={engines.dismissNotice}
+			/>
+		{/if}
+
+		<section class="flex flex-col gap-4">
+			{#if game.phase === 'idle'}
+				<IdlePanel oninvite={() => game.inviteClient()} />
+			{:else if game.phase === 'briefing'}
+				{#if game.currentClient}
+					<ClientCard brief={game.currentClient} />
+				{/if}
+				<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
+			{:else if game.phase === 'generating'}
+				{#if game.currentClient}
+					<ClientCard brief={game.currentClient} />
+				{/if}
+				<GeneratingPanel progress={game.generationProgress} stageLabel="Painting" />
+			{:else if game.phase === 'critiquing'}
+				{#if game.currentClient}
+					<ClientCard brief={game.currentClient} />
+				{/if}
+				<GeneratingPanel progress={game.generationProgress} stageLabel="Critiquing" />
+			{:else if game.phase === 'results' && game.currentArtwork && game.currentCritique && game.currentClient}
+				<ResultsPanel
+					artwork={game.currentArtwork}
+					critique={game.currentCritique}
+					clientName={game.currentClient.clientName}
+					oncollect={() => game.collectCash()}
+				/>
+			{:else if game.phase === 'failed'}
+				{#if game.currentClient}
+					<ClientCard brief={game.currentClient} />
+				{/if}
+				{#if game.errorMessage}
+					<ErrorPanel
+						message={game.errorMessage}
+						onretry={() => game.retry()}
+						ondismiss={() => game.dismissError()}
+					/>
+				{/if}
+				<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
+			{:else if game.phase === 'levelComplete'}
+				<IdlePanel disabled oninvite={() => {}} />
+			{/if}
+		</section>
+
+		<PortfolioStrip entries={game.galleryHistory} />
 	</div>
 </main>
+
+{#if showEngineMenu}
+	<div
+		class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/60 p-4"
+		role="dialog"
+		aria-modal="true"
+		aria-label="Engine settings"
+	>
+		<div class="w-full max-w-lg space-y-4">
+			<EnginePicker
+				options={engines.options}
+				activeId={engines.activeId}
+				onselect={(id) => handleEngineSelect(id as EngineId)}
+			/>
+			<button
+				type="button"
+				class="min-h-11 w-full rounded-lg bg-stone-200 px-4 py-2 font-medium text-stone-800 hover:bg-stone-300"
+				onclick={closeEngineMenu}
+			>
+				Close
+			</button>
+		</div>
+	</div>
+{/if}
+
+{#if downloadGateOpen && pendingEngine}
+	<ModelDownloadGate
+		engineName={pendingEngine.displayName}
+		approxMb={pendingEngine.approxDownloadMb}
+		state={downloadGateState}
+		progress={engines.loadProgress?.fraction ?? 0}
+		stage={engines.loadProgress?.status === 'compiling' ? 'compiling' : 'downloading'}
+		detail={engines.loadProgress?.file}
+		errorMessage={engines.loadError}
+		onconfirm={confirmDownload}
+		oncancel={cancelDownload}
+	/>
+{/if}
+
+{#if game.phase === 'levelComplete'}
+	<LevelCompleteOverlay
+		cash={game.cash}
+		commissionsCompleted={game.commissionsCompleted}
+		oncontinue={() => game.reset()}
+	/>
+{/if}

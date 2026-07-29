@@ -359,7 +359,38 @@ npm run test:unit -- --run --project=client src/lib/engines/capability.svelte.te
 **Known gaps:** Janus (spec 05) and SD-Turbo (spec 06) stubs return unavailable;
 `EngineStore` (spec 04) not wired yet.
 
-**Pre-existing failures outside zone:** `npm run check` still fails on
-`OperationsPanel.svelte.test.ts` (`Locator.locator` typing). Full `npm run lint` fails
-on `+page.svelte` formatting (orchestrator-owned). Some component browser tests time
+**Pre-existing failures outside zone:** Some component browser tests time
 out intermittently in the full suite; engine zone passes all scoped checks.
+
+---
+
+## 2026-07-29 — Integration agent (spec 04)
+
+**Zone:** `src/lib/stores/**`, `src/routes/+page.svelte`, `src/routes/layout.css`, `e2e/**`
+
+**Built:** Full Level 1 game loop on the mock engine — `EngineStore` and `GameStore`
+state machines, the Garage Studio screen assembling all spec-03 components, global
+layout styles, and six Playwright e2e tests including mobile viewport and the
+no-auto-download regression.
+
+**Public surface:** `engines` and `game` singletons from `$lib/stores/*.svelte.ts`.
+The screen wires phase dispatch only; all rules live in the stores and domain layer.
+
+**Tests:** 18 new store tests (3 engine + 15 game) plus 6 e2e tests. Full suite:
+162 unit/component tests and 6 e2e tests green.
+
+**Decisions:**
+
+- `GameStore` defaults to `engines.manager` — one `EngineManager` for picker and play.
+- Engine menu button lives beside `HudBar` in `+page.svelte`, disabled while
+  `switchingLocked` or phase is `generating`/`critiquing`.
+- `createArt()` yields one macrotask after entering `generating` so Playwright can
+  observe the disabled engine button on the instant mock path.
+- `data-engines-ready` on `<main>` lets e2e wait for capability probing before playing.
+- Replaced the studio-operations preview page with the real game screen.
+
+**Requests:** None.
+
+**Known gaps:** Specs 05 (Janus) and 06 (SD-Turbo) remain optional enhancements. The
+`OperationsPanel` component still exists but is no longer mounted — spec 04 can wire
+it back as a Level 2 studio dashboard if desired.
