@@ -2,7 +2,10 @@
 
 **Worktree:** the main checkout (`Art Dev Tycoon`), on `main`.
 **Depends on:** specs 01, 02 and 03 all merged. Verify before starting — `$lib/game`,
-`$lib/components` and `/api/generate` must all exist. If any is missing, stop.
+`$lib/components` and `$lib/engines` must all exist. If any is missing, stop.
+
+You do **not** depend on specs 05 or 06. The game must be complete and shippable on the
+mock engine alone; the real models slot in behind the interface you consume here.
 
 ## Ownership zone
 
@@ -26,63 +29,64 @@ proves a player can actually finish a commission.
 
 ## Files to create
 
-| File                                      | Contents                                     |
-| ----------------------------------------- | -------------------------------------------- |
-| `src/lib/stores/gameApi.ts`               | Typed `fetch` wrappers for the two endpoints |
-| `src/lib/stores/gameApi.test.ts`          | Unit tests with injected `fetch`             |
-| `src/lib/stores/gameState.svelte.ts`      | `GameStore` class and the shared instance    |
-| `src/lib/stores/gameState.svelte.test.ts` | State machine tests                          |
-| `src/routes/+page.svelte`                 | The game screen (replaces the placeholder)   |
-| `src/routes/layout.css`                   | Global styles (edit the existing file)       |
-| `e2e/game-loop.e2e.ts`                    | Playwright walkthrough of a full commission  |
-| `src/lib/stores/README.md`                | Per `best-practices.md` §4                   |
+| File                                        | Contents                                    |
+| ------------------------------------------- | ------------------------------------------- |
+| `src/lib/stores/engineStore.svelte.ts`      | Reactive wrapper around `EngineManager`     |
+| `src/lib/stores/engineStore.svelte.test.ts` | Engine store tests with a fake manager      |
+| `src/lib/stores/gameState.svelte.ts`        | `GameStore` class and the shared instance   |
+| `src/lib/stores/gameState.svelte.test.ts`   | State machine tests                         |
+| `src/routes/+page.svelte`                   | The game screen (replaces the placeholder)  |
+| `src/routes/layout.css`                     | Global styles (edit the existing file)      |
+| `e2e/game-loop.e2e.ts`                      | Playwright walkthrough of a full commission |
+| `src/lib/stores/README.md`                  | Per `best-practices.md` §4                  |
 
 ---
 
-## 1. `src/lib/stores/gameApi.ts`
+## 1. `src/lib/stores/engineStore.svelte.ts`
 
-Thin, typed wrappers. Every response is validated; every failure becomes a friendly
-message rather than an exception the UI has to decode.
+`EngineManager` from spec 02 is deliberately framework-free so it can be unit tested in
+Node. This file is the thin reactive skin over it — it holds the runes, and nothing
+else. Resist putting engine logic here; it belongs in the manager.
 
 ```ts
-export class GameApiError extends Error {
-	constructor(
-		readonly code: ApiErrorCode,
-		message: string
-	) {
-		super(message);
-	}
+export class EngineStore {
+	state = $state<EngineState>('idle');
+	activeId = $state<EngineId>('mock');
+	capability = $state<DeviceCapability | null>(null);
+	options = $state<EngineOptionView[]>([]);
+	/** Non-null only while a model is downloading or compiling. */
+	loadProgress = $state<LoadProgress | null>(null);
+	loadError = $state<string | null>(null);
+	/** True once the player has seen the "running in Crayon Mode" notice. */
+	noticeDismissed = $state(false);
+
+	/** True when no engine beyond `mock` could ever run on this device. */
+	realAiSupported = $derived(this.options.some((o) => o.id !== 'mock' && o.availability.available));
+
+	constructor(manager?: EngineManager);
+
+	init(): Promise<void>;
+	select(id: EngineId): Promise<void>;
+	cancelLoad(): void;
+	dismissNotice(): void;
 }
 
-export interface ApiDeps {
-	fetchFn?: typeof fetch;
-}
-
-export async function requestGeneration(prompt: string, deps?: ApiDeps): Promise<Artwork>;
-
-export async function requestEvaluation(
-	input: { brief: ClientBrief; playerPrompt: string; imageUrl: string },
-	deps?: ApiDeps
-): Promise<Critique>;
+export const engines = new EngineStore();
 ```
 
-Behaviour for both:
+- `init()` calls `manager.init()` and copies the results into the runes. It must never
+  throw: a device that cannot report its capabilities still gets to play.
+- `select(id)` sets `state` to `'loading'`, calls `manager.select(id, onProgress)`
+  writing each `LoadProgress` into `loadProgress`, and on success sets `state` to
+  `'ready'` and clears the progress. On failure it records `loadError`, sets `state` to
+  `'error'`, and leaves the manager's fallback to `mock` in place — the player keeps
+  playing regardless.
+- `cancelLoad()` aborts an in-flight download and returns to `mock`.
 
-1. `POST` JSON to the endpoint using `deps?.fetchFn ?? fetch`.
-2. If the response is not ok, try to parse the body with `apiErrorSchema`. On success
-   throw `GameApiError` with that code and message; if the body is unparseable throw
-   `GameApiError('internal', 'Something went wrong in the studio. Try again.')`.
-3. On success validate with `generateResponseSchema` / `evaluateResponseSchema` and
-   return the inner `artwork` / `critique`. A validation failure throws
-   `GameApiError('internal', ...)`.
-4. A network rejection throws `GameApiError('sidecar_unavailable', 'Could not reach the
-studio. Check your connection and try again.')`.
-
-**Tests** (injected fake `fetch`): a valid response returns a parsed `Artwork`; a `400`
-carrying an `apiErrorSchema` body throws `GameApiError` with that exact code; a `500`
-with an HTML body throws code `'internal'`; a rejecting `fetch` throws
-`'sidecar_unavailable'`; a `200` with a malformed body throws rather than returning
-undefined.
+**Tests** with an injected fake manager: `init()` populates `options` and leaves
+`activeId` as `'mock'`; `select` writes progress updates into `loadProgress` in order;
+a failing `select` sets `loadError` and `state` to `'error'` without throwing;
+`realAiSupported` is false when only `mock` is available.
 
 ---
 
@@ -93,7 +97,8 @@ runes outside a component.
 
 ```ts
 export interface GameStoreDeps {
-	fetchFn?: typeof fetch;
+	/** Defaults to the shared engine manager. Injected as a fake in tests. */
+	engine?: Pick<EngineManager, 'generate' | 'critique'>;
 	/** Injected for deterministic tests. */
 	random?: () => number;
 	/** Injected for deterministic tests. */
@@ -112,6 +117,8 @@ export class GameStore {
 	galleryHistory = $state<GalleryEntry[]>([]);
 	/** The textarea contents. Survives a failed generation on purpose. */
 	draftPrompt = $state('');
+	/** 0-1 while painting, or null when the engine reports no progress. */
+	generationProgress = $state<number | null>(null);
 
 	progress = $derived(
 		levelProgress({ cash: this.cash, commissionsCompleted: this.commissionsCompleted })
@@ -136,15 +143,15 @@ a module. A class instance sidesteps this, which is why the store is a class.
 
 ### State machine
 
-| From       | Method                  | To                        | Effects                                                                                |
-| ---------- | ----------------------- | ------------------------- | -------------------------------------------------------------------------------------- |
-| `idle`     | `inviteClient()`        | `briefing`                | Pick a brief excluding those already completed; clear `draftPrompt` and `errorMessage` |
-| `briefing` | `createArt()`           | `generating` → `results`  | Generate, then evaluate                                                                |
-| `briefing` | `createArt()` (failure) | `failed`                  | Set `errorMessage`; **keep** `draftPrompt`                                             |
-| `results`  | `collectCash()`         | `idle` or `levelComplete` | Apply payout, push gallery entry                                                       |
-| `failed`   | `retry()`               | `briefing`                | Clear `errorMessage`, keep the prompt so the player can edit and resubmit              |
-| `failed`   | `dismissError()`        | `briefing`                | Same, without implying a resubmit                                                      |
-| any        | `reset()`               | `idle`                    | Restore the initial state entirely                                                     |
+| From       | Method                  | To                                      | Effects                                                                                |
+| ---------- | ----------------------- | --------------------------------------- | -------------------------------------------------------------------------------------- |
+| `idle`     | `inviteClient()`        | `briefing`                              | Pick a brief excluding those already completed; clear `draftPrompt` and `errorMessage` |
+| `briefing` | `createArt()`           | `generating` → `critiquing` → `results` | Generate, then critique                                                                |
+| `briefing` | `createArt()` (failure) | `failed`                                | Set `errorMessage`; **keep** `draftPrompt`                                             |
+| `results`  | `collectCash()`         | `idle` or `levelComplete`               | Apply payout, push gallery entry                                                       |
+| `failed`   | `retry()`               | `briefing`                              | Clear `errorMessage`, keep the prompt so the player can edit and resubmit              |
+| `failed`   | `dismissError()`        | `briefing`                              | Same, without implying a resubmit                                                      |
+| any        | `reset()`               | `idle`                                  | Restore the initial state entirely                                                     |
 
 Every method must **guard on the current phase** and return without effect if called
 from the wrong one. A double-click on Collect Cash must not pay twice — this is the
@@ -160,12 +167,24 @@ Set `currentClient`, clear `currentArtwork`, `currentCritique`, `errorMessage` a
 
 1. Guard: phase is `briefing`, `currentClient` is non-null, `draftPrompt.trim()` is
    non-empty. Otherwise return.
-2. `phase = 'generating'`, `errorMessage = null`.
-3. `const artwork = await requestGeneration(this.draftPrompt.trim(), { fetchFn })`
-4. `const critique = await requestEvaluation({ brief: this.currentClient, playerPrompt: this.draftPrompt.trim(), imageUrl: artwork.imageUrl }, { fetchFn })`
-5. Set both, `phase = 'results'`.
-6. `catch`: set `errorMessage` to `error.message` when it is a `GameApiError`, else a
+2. `phase = 'generating'`, `errorMessage = null`, `generationProgress = null`.
+3. Build the real prompt with `buildLevel1Prompt(this.draftPrompt.trim())` from
+   `$lib/game`. **This is where the hidden modifiers are applied**, and it is the only
+   place they may be. Never store or display the result.
+4. `const artwork = await engine.generate({ prompt: <the built prompt> })`
+5. `phase = 'critiquing'`.
+6. `const draft = await engine.critique({ brief: this.currentClient, playerPrompt: this.draftPrompt.trim(), artwork })`
+7. Derive the rest in the domain layer — the engine never decides money:
+   `creativityScore` from `scorePrompt`, `finalPayout` from
+   `calculatePayout(draft.accuracyScore, creativityScore, brief.budget)`. Assemble a
+   full `Critique` and validate it with `critiqueSchema.parse`.
+8. Set both, `phase = 'results'`.
+9. `catch`: set `errorMessage` from the `EngineError` message when it is one, else a
    generic line; `phase = 'failed'`. Do not clear `draftPrompt`.
+
+Note that steps 4 and 6 can each take tens of seconds on a real engine. Guard against a
+second `createArt()` while one is already running — the phase guard in step 1 covers
+this, but test it explicitly.
 
 ### `collectCash()`
 
@@ -194,7 +213,7 @@ Set `currentClient`, clear `currentArtwork`, `currentCritique`, `errorMessage` a
 ### Tests for the store
 
 Because these use runes, the file **must** be named `gameState.svelte.test.ts`. Build a
-fake `fetch` that returns canned `Artwork` and `Critique` payloads, and inject
+fake engine returning canned `Artwork` and `CritiqueDraft` values, and inject
 `random: () => 0` and `now: () => 1_000` for determinism.
 
 Cover:
@@ -205,8 +224,13 @@ Cover:
 - `createArt()` with an empty `draftPrompt` does nothing and stays in `briefing`.
 - A happy path run ends in `results` with both `currentArtwork` and `currentCritique`
   populated.
-- A rejecting `fetch` ends in `failed`, sets `errorMessage`, and **preserves**
+- **The engine receives the modified prompt, not the raw one.** Assert that the fake
+  engine's recorded `prompt` contains `LEVEL_1.promptModifiers` while
+  `currentArtwork.playerPrompt` does not. This is the game's central conceit; test it
+  directly.
+- A rejecting engine ends in `failed`, sets `errorMessage`, and **preserves**
   `draftPrompt`.
+- Calling `createArt()` while already in `generating` does nothing.
 - `retry()` from `failed` returns to `briefing` with the prompt intact.
 - `collectCash()` adds exactly `finalPayout` to `cash` and appends one gallery entry.
 - **Calling `collectCash()` twice pays only once** and leaves one gallery entry.
@@ -224,7 +248,9 @@ from `$lib/stores/gameState.svelte`.
 
 ```
 ┌─────────────────────────────────────────────┐
-│ HudBar                                      │
+│ HudBar                        [engine menu] │
+├─────────────────────────────────────────────┤
+│ CapabilityNotice (once, if no real AI)      │
 ├─────────────────────────────────────────────┤
 │                                             │
 │   Center panel — switches on game.phase:    │
@@ -233,6 +259,9 @@ from `$lib/stores/gameState.svelte`.
 │                     + PromptComposer        │
 │     generating    → ClientCard              │
 │                     + GeneratingPanel       │
+│     critiquing    → ClientCard              │
+│                     + GeneratingPanel       │
+│                       (stageLabel="Critiquing") │
 │     results       → ResultsPanel            │
 │     failed        → ClientCard + ErrorPanel │
 │                     + PromptComposer        │
@@ -241,6 +270,9 @@ from `$lib/stores/gameState.svelte`.
 ├─────────────────────────────────────────────┤
 │ PortfolioStrip                              │
 └─────────────────────────────────────────────┘
+
+  EnginePicker + ModelDownloadGate render as an overlay
+  on top of everything, opened from the engine menu.
 ```
 
 Requirements:
@@ -251,9 +283,19 @@ Requirements:
   `oncontinue={() => game.reset()}`.
 - Use `{#if}` / `{:else if}` on `game.phase`. Every phase must render something —
   there is no fall-through blank state.
+- Call `engines.init()` in an `$effect` on mount. It is safe to call before the player
+  does anything and must not block the first paint.
+- Show `CapabilityNotice` when `!engines.realAiSupported && !engines.noticeDismissed`.
+- The engine menu opens `EnginePicker`. Choosing an engine that needs a download opens
+  `ModelDownloadGate` in its `prompt` state; confirming calls `engines.select(id)` and
+  moves the gate to `loading`, driven by `engines.loadProgress`.
+- **The game must be fully playable before, during and after any of this.** The engine
+  UI is optional surface layered on a working game, never a gate in front of it. A
+  player who ignores the engine menu entirely gets a complete Level 1 on the mock
+  engine.
 - Give the page a `<svelte:head>` title of `Art Gallery Tycoon — Garage Studio`.
-- Keep the layout responsive: single column under 768 px, comfortable max width of
-  around 1024 px above it.
+- Mobile first: single column by default, a comfortable max width of around 1024 px
+  above 768 px. Test at 360 px wide.
 - `+page.svelte` holds **no game logic**. It reads state and calls store methods, and
   that is all. Any `if` deciding game rules belongs in the store or the domain layer.
 
@@ -269,8 +311,8 @@ belt-and-braces backstop to the per-component handling.
 ## 4. `e2e/game-loop.e2e.ts`
 
 Playwright picks up `**/*.e2e.{ts,js}` and runs `npm run build && npm run preview` on
-port 4173 first. `AI_PROVIDER` is unset in that environment, so the deterministic mock
-provider serves the whole test — no models, no network.
+port 4173 first. The mock engine is always the default and nothing auto-downloads, so
+the whole test runs deterministically with no models and no network.
 
 ```ts
 import { expect, test } from '@playwright/test';
@@ -299,13 +341,20 @@ test('a player can complete a full commission', async ({ page }) => {
 });
 ```
 
-Add two more tests:
+Add three more tests:
 
 - **Empty prompt is rejected.** After inviting a client, **Create Art** is disabled
   until text is entered.
 - **The hidden modifiers never leak.** After completing a commission, assert that
   `page.getByText('crayon texture')` has count `0`. This is the guard on the game's
   central conceit, and it is worth an explicit test.
+- **Nothing downloads on its own.** Load the page, wait for it to settle, and assert
+  that no request URL matches `/huggingface\.co|\.onnx$/`. Route interception
+  (`page.route`) makes this cheap. An accidental gigabyte download on first paint is
+  the worst bug this project could ship, so it gets a permanent regression test.
+
+Also run the happy path once at a 360×740 viewport to confirm the mobile layout is
+usable, since that is the primary target.
 
 Run with `npm run test:e2e`.
 
@@ -317,8 +366,10 @@ Run with `npm run test:e2e`.
 - [ ] Every store test listed above passes, including the double-collect guard.
 - [ ] `+page.svelte` contains no game rules — only phase dispatch and store calls.
 - [ ] Every phase renders a visible state.
+- [ ] The engine receives the modified prompt and the player never sees it.
+- [ ] Nothing downloads without an explicit click.
 - [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` all green.
-- [ ] `npm run test:e2e` passes all three e2e tests.
-- [ ] `npm run dev` gives a playable Level 1 end to end with no models installed.
+- [ ] `npm run test:e2e` passes every e2e test, including the mobile viewport run.
+- [ ] `npm run dev` gives a playable Level 1 end to end with no models downloaded.
 - [ ] `src/lib/stores/README.md` written, documenting the state machine.
 - [ ] Handoff entry appended to `docs/agent-log.md`.

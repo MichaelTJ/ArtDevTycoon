@@ -78,15 +78,15 @@ Rules:
   (`git status`, `git diff`, `git log`) is fine.
 - The **orchestrator alone** commits and merges. This removes all `index.lock`
   contention and keeps history coherent and reviewable.
-- Agents that touch no Node tooling and own a wholly separate top-level directory
-  (for example `sidecar/`) **MAY** work directly in the main tree. There is no
-  interference risk, and a worktree would only add overhead.
+- Agents whose ownership zone is a single leaf directory that nobody else touches
+  **MAY** work directly in the main tree when no other agent is active. A worktree is
+  overhead when there is no interference to prevent.
 
 ### 2.3 Shared build state
 
 - Agents **MUST NOT** run `npm install`, `npm update`, or edit the lockfile.
 - Agents **SHOULD** scope test runs to their own project to cut runtime and avoid
-  touching unrelated build output: `npm run test:unit -- --run --project=server`.
+  touching unrelated build output: `npm run test:unit -- --run --project=node`.
 - Only one long-lived `npm run dev` server may exist at a time, and it belongs to the
   orchestrator. Agents verify with tests, not with a dev server.
 
@@ -110,8 +110,10 @@ and it will run in Node, fail to mount, and waste your time.
 
 ### 3.2 Rules
 
-- Every exported function in `src/lib/game/**` and `src/lib/server/**` **MUST** have
+- Every exported function in `src/lib/game/**` and `src/lib/engines/**` **MUST** have
   unit tests covering the happy path, boundary values, and malformed input.
+- No test may download a model. Inference code is tested against injected fakes; a test
+  suite that pulls a gigabyte is a broken test suite.
 - Every component in `src/lib/components/**` **MUST** have a `.svelte.test.ts` that
   mounts it, asserts rendered output for representative props, and exercises each
   event or callback it exposes.
@@ -188,15 +190,18 @@ syntax is a compile error, not a style preference.
   validated at runtime, not merely cast. A type assertion on an LLM's JSON is a lie.
 - Types shared between layers belong in `src/lib/types/` and nowhere else.
 
-### 5.3 Server / client boundary
+### 5.3 There is no server
 
-- Anything under `src/lib/server/` is server-only; SvelteKit enforces this. Model
-  calls, sidecar URLs, and secrets live there.
-- API route handlers **MUST** validate their input and **MUST** return typed,
-  schema-conformant JSON, including on the error path. Never let a raw exception
-  become the response body.
-- Secrets come from `$env/dynamic/private`. **MUST NOT** commit a `.env`; update
-  `.env.example` instead.
+- This builds to static files via `adapter-static` and all inference runs in the
+  player's browser. **MUST NOT** add `+server.ts`, `$lib/server/**`, `$env/*/private`,
+  or anything else requiring a running backend. If a task seems to need one, the design
+  is wrong — raise it in your handoff.
+- **All model inference MUST run in a Web Worker.** A 1B model on the main thread
+  freezes the UI for the whole generation and gets the tab killed on mobile.
+- Anything crossing a trust boundary — model output, restored `localStorage`, a
+  user-supplied endpoint — **MUST** be validated with a schema, not cast.
+- **MUST NOT** start a model download without an explicit player action. Assume every
+  player is on metered mobile data until they tell you otherwise.
 
 ### 5.4 Accessibility and feel
 

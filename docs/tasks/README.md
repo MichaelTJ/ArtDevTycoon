@@ -1,6 +1,6 @@
 # Task Specs — how to run the build
 
-Five self-contained specs. Each is written so an implementing agent needs **no other
+Six self-contained specs. Each is written so an implementing agent needs **no other
 context**: exact file paths, exact signatures, exact algorithms with worked examples,
 and a test table with literal expected values.
 
@@ -16,39 +16,49 @@ picks one.
 | #   | Spec                                          | Owns                                                                                  | Depends on |
 | --- | --------------------------------------------- | ------------------------------------------------------------------------------------- | ---------- |
 | 01  | [Domain layer](./01-domain.md)                | `src/lib/game/**`, `src/lib/data/**`                                                  | nothing    |
-| 02  | [Backend & AI providers](./02-backend.md)     | `src/lib/server/ai/**`, `src/routes/api/**`                                           | 01         |
+| 02  | [Engine layer](./02-engine-layer.md)          | `src/lib/engines/*.ts`, `src/lib/engines/mock/**`                                     | 01         |
 | 03  | [UI component library](./03-ui-components.md) | `src/lib/components/**`, `static/avatars/**`                                          | nothing    |
 | 04  | [Integration](./04-integration.md)            | `src/lib/stores/**`, `src/routes/+page.svelte`, `src/routes/+layout.svelte`, `e2e/**` | 01, 02, 03 |
-| 05  | [Python AI sidecar](./05-sidecar.md)          | `sidecar/**`                                                                          | nothing    |
+| 05  | [Janus WebGPU engine](./05-janus-engine.md)   | `src/lib/engines/janus/**`                                                            | 02         |
+| 06  | [SD-Turbo engine](./06-sdturbo-engine.md)     | `src/lib/engines/sdturbo/**`                                                          | 02, 05     |
 
 ## Execution order
 
 ```
-Wave 1  (run all three at once — zero file overlap)
+Wave 1  (run both at once — zero file overlap)
    ├── 01 Domain          → worktree ../adt-wt-domain    branch agent/domain
-   ├── 03 UI components   → worktree ../adt-wt-ui        branch agent/ui
-   └── 05 Sidecar         → worktree ../adt-wt-sidecar   branch agent/sidecar
+   └── 03 UI components   → worktree ../adt-wt-ui        branch agent/ui
 
 Wave 2  (after 01 is merged to main)
-   └── 02 Backend         → worktree ../adt-wt-backend   branch agent/backend
+   └── 02 Engine layer    → worktree ../adt-wt-backend   branch agent/backend
 
-Wave 3  (after 01, 02, 03 are merged to main)
-   └── 04 Integration     → main tree
+Wave 3  (after 01, 02, 03 are merged — run both at once)
+   ├── 04 Integration     → main tree            ← the game becomes playable here
+   └── 05 Janus engine    → worktree ../adt-wt-sidecar   branch agent/sidecar
+
+Wave 4  (optional, after 05 is merged)
+   └── 06 SD-Turbo        → worktree ../adt-wt-sdturbo   branch agent/sdturbo
 ```
 
-Wave 1's three specs touch entirely disjoint directories, so they cannot corrupt each
-other. Spec 02 needs the scoring functions from 01, and spec 04 needs everything, so
-those wait.
+The waves are ordered so the game is **playable and shippable at the end of wave 3**,
+on the mock engine, with real AI arriving as an enhancement rather than a prerequisite.
+That ordering is deliberate: it means a failure in the hardest, least predictable work
+(specs 05 and 06) costs you a feature rather than the project.
+
+Spec 02 leaves stub files at the two real-engine paths so `main` always compiles, which
+is what lets 04 and 05 run concurrently.
 
 ## Worktrees are already set up
 
 ```
-C:/Users/JensenM/Documents/My Apps/Art Dev Tycoon   main
-C:/Users/JensenM/Documents/My Apps/adt-wt-domain    agent/domain
-C:/Users/JensenM/Documents/My Apps/adt-wt-ui        agent/ui
-C:/Users/JensenM/Documents/My Apps/adt-wt-backend   agent/backend
-C:/Users/JensenM/Documents/My Apps/adt-wt-sidecar   agent/sidecar
+C:/Users/JensenM/Documents/My Apps/Art Dev Tycoon   main            → spec 04
+C:/Users/JensenM/Documents/My Apps/adt-wt-domain    agent/domain    → spec 01
+C:/Users/JensenM/Documents/My Apps/adt-wt-ui        agent/ui        → spec 03
+C:/Users/JensenM/Documents/My Apps/adt-wt-backend   agent/backend   → spec 02
+C:/Users/JensenM/Documents/My Apps/adt-wt-sidecar   agent/sidecar   → spec 05
 ```
+
+Spec 06 has no worktree yet; create one if and when you get to it.
 
 Each has `node_modules` junctioned to the main checkout, so `npm run check`, `npm run
 lint` and `npm run test:unit` all work inside a worktree with no extra install. Every
@@ -112,11 +122,12 @@ bracketed values:
 > Finally, write the directory `README.md` the spec asks for and append your handoff
 > entry to `docs/agent-log.md` using the template in `best-practices.md` §6.3.
 
-For spec 05 the verification commands are different; they are listed inside that spec.
+Specs 05 and 06 also require a manual browser check that cannot be automated; it is
+described inside each of them.
 
 ### If the agent stalls or drifts
 
-Cheaper models tend to fail in three specific ways here. Watch for them:
+Cheaper models tend to fail in a few specific ways here. Watch for them:
 
 - **Inventing a type instead of importing it.** Everything it needs is already in
   `src/lib/types/contracts.ts`. Point it back there.
@@ -124,11 +135,18 @@ Cheaper models tend to fail in three specific ways here. Watch for them:
   runs it in Node where it cannot mount, and the failure message is confusing.
 - **Reaching for Svelte 4 syntax** (`export let`, `$:`, `writable`). Runes are forced on
   in `vite.config.ts`, so this is a hard compile error. The spec shows the runes form.
+- **Writing a test that downloads a model.** On specs 05 and 06 this turns a test run
+  into a multi-gigabyte download. Both specs forbid it; check the tests actually use the
+  injected fakes.
+- **Adding a server route.** There is no server. If an agent reaches for `+server.ts` or
+  `$lib/server`, it has misread the architecture.
 
 ## Definition of done for the whole project
 
-- [ ] All five specs implemented and merged into `main`
+- [ ] Specs 01–05 implemented and merged into `main` (06 is optional)
 - [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green on `main`
-- [ ] `npm run test:e2e` passes the full commission loop against the mock provider
-- [ ] `npm run dev` gives a playable Level 1 with no models installed
-- [ ] With the sidecar running and `AI_PROVIDER=sidecar`, real artwork is generated
+- [ ] `npm run test:e2e` passes the full commission loop on the mock engine
+- [ ] `npm run build` produces a static bundle that runs from a plain file server
+- [ ] `npm run dev` gives a playable Level 1 with nothing downloaded
+- [ ] Selecting the Janus engine in a WebGPU browser generates real artwork
+- [ ] On a device without WebGPU the game is still completable end to end

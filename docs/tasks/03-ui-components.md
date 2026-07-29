@@ -55,6 +55,17 @@ Real `<button>` elements, never clickable `<div>`s. Every image needs meaningful
 Every form control needs an associated `<label>`. Modal-like surfaces need
 `role="dialog"` and `aria-modal="true"`. ESLint will fail the build on most violations.
 
+### Mobile first, genuinely
+
+This is a phone game that also runs on desktop, not the other way around. Design every
+component at 360 px wide first and let it grow.
+
+- Tap targets are at least 44×44 px. A 32 px icon button fails on a phone.
+- No hover-only affordances — touch devices have no hover.
+- Text stays at 16 px or larger in inputs; smaller triggers iOS auto-zoom on focus.
+- Prefer flexible layouts over fixed pixel widths. The only fixed dimension in the whole
+  library is the artwork thumbnail.
+
 ### Respect reduced motion
 
 ```svelte
@@ -68,7 +79,7 @@ Apply this to **every** transition and animation you write. No exceptions.
 
 ### Visual language
 
-Warm paper and garage-workshop. Use these exact Tailwind 4 classes so twelve
+Warm paper and garage-workshop. Use these exact Tailwind 4 classes so fifteen
 independently-written components still look like one game:
 
 | Role                          | Classes                                                                                                                         |
@@ -239,13 +250,24 @@ the button is disabled when `disabled` is true; Ctrl+Enter submits.
 
 ### 6. `GeneratingPanel.svelte`
 
-| Prop         | Type       | Default   |
-| ------------ | ---------- | --------- |
-| `messages`   | `string[]` | see below |
-| `intervalMs` | `number`   | `2200`    |
+| Prop         | Type             | Default      |
+| ------------ | ---------------- | ------------ |
+| `messages`   | `string[]`       | see below    |
+| `intervalMs` | `number`         | `2200`       |
+| `progress`   | `number \| null` | `null`       |
+| `stageLabel` | `string`         | `'Painting'` |
 
 A skeleton placeholder with a shimmer, a spinner, and flavour text that rotates through
-`messages` on an interval. Default messages:
+`messages` on an interval.
+
+Real on-device generation takes **10–60 seconds**, so this panel carries more weight
+than it looks. When `progress` is a number in `0`–`1`, render a determinate `<progress>`
+element with `aria-label={stageLabel}` and a visible percentage; when it is `null`, fall
+back to the indeterminate spinner. Always show `stageLabel` — the store distinguishes
+painting from critiquing, and naming the current stage is the difference between the
+game feeling busy and feeling frozen.
+
+Default messages:
 
 ```ts
 [
@@ -263,7 +285,9 @@ that clears it. Announce status with `role="status"` and `aria-live="polite"`. W
 
 **Tests:** renders the first message immediately; exposes `role="status"`; advancing
 fake timers (`vi.useFakeTimers()`) past `intervalMs` shows the second message; unmount
-clears the interval (assert `vi.getTimerCount()` is `0` after unmount).
+clears the interval (assert `vi.getTimerCount()` is `0` after unmount);
+`progress={0.5}` renders a determinate progress element showing `50%`;
+`progress={null}` renders no progress element.
 
 ### 7. `ArtworkFrame.svelte`
 
@@ -371,6 +395,101 @@ the player, shows final cash and commission count, teases the commercial gallery
 **Tests:** renders both figures; **Continue** calls `oncontinue`; exposes
 `role="dialog"`.
 
+### 13. `CapabilityNotice.svelte`
+
+| Prop        | Type         | Default |
+| ----------- | ------------ | ------- |
+| `supported` | `boolean`    | —       |
+| `reason`    | `string`     | —       |
+| `ondismiss` | `() => void` | —       |
+
+Shown once when the device cannot run real AI models — no WebGPU, an old iOS, or too
+little GPU memory. Render nothing at all when `supported` is true.
+
+The tone matters more than the markup here. A meaningful share of mobile players will
+see this, and they are about to play a complete game, not a degraded one. Explain that
+the studio is running in **Crayon Mode**, that everything works, and that the art is
+drawn procedurally instead of by an AI model. Do not use warning colours, an error icon,
+or the words "unsupported" or "failed" — this is information, not a problem. Show
+`reason` as secondary text for the curious.
+
+`role="status"`, a dismiss button with an accessible name, and a maximum width so the
+paragraph stays readable.
+
+**Tests:** renders nothing when `supported` is true; renders the reason when false;
+dismiss calls `ondismiss`; the copy contains no error-toned wording.
+
+### 14. `EnginePicker.svelte`
+
+| Prop       | Type                   | Default |
+| ---------- | ---------------------- | ------- |
+| `options`  | `EngineOption[]`       | —       |
+| `activeId` | `string`               | —       |
+| `onselect` | `(id: string) => void` | —       |
+
+```ts
+type EngineOption = {
+	id: string;
+	displayName: string;
+	description: string;
+	available: boolean;
+	unavailableReason?: string;
+	requiresDownload: boolean;
+	approxDownloadMb: number;
+};
+```
+
+A radio group (`role="radiogroup"` with an accessible name) listing every engine. Each
+row shows the name, the one-line description, and — when `requiresDownload` — a clear
+size badge such as **"1.0 GB download"**.
+
+The size badge is the most important element in this component. It is the player's only
+warning before a gigabyte leaves their data plan, so it must be visible before
+selection, not after.
+
+Unavailable options render `disabled` with `aria-disabled="true"` and their
+`unavailableReason` as visible secondary text. Selecting an option calls `onselect`;
+this component never loads anything itself.
+
+**Tests:** renders one radio per option; the active option is checked; clicking an
+available option calls `onselect` with its id; a disabled option does not; the download
+size is rendered for options that need one; the group has an accessible name.
+
+### 15. `ModelDownloadGate.svelte`
+
+| Prop           | Type                                      | Default         |
+| -------------- | ----------------------------------------- | --------------- |
+| `engineName`   | `string`                                  | —               |
+| `approxMb`     | `number`                                  | —               |
+| `state`        | `'prompt' \| 'loading' \| 'error'`        | `'prompt'`      |
+| `progress`     | `number`                                  | `0`             |
+| `stage`        | `'downloading' \| 'compiling' \| 'ready'` | `'downloading'` |
+| `detail`       | `string \| null`                          | `null`          |
+| `errorMessage` | `string \| null`                          | `null`          |
+| `onconfirm`    | `() => void`                              | —               |
+| `oncancel`     | `() => void`                              | —               |
+
+The explicit consent step before any model download, and the progress display during it.
+
+- `'prompt'`: state the size in plain language ("This will download about 1.0 GB once,
+  then works offline"), warn about mobile data, and offer **Download and Play** plus
+  **Use Crayon Mode instead**. Both are real buttons; there is no way to start a
+  download by accident.
+- `'loading'`: a determinate `<progress>` driven by `progress`, the `detail` line
+  (current file), and a **Cancel** button. When `stage` is `'compiling'`, replace the
+  bar's caption with "Preparing the model — this can take a few seconds" and explain
+  that no progress will move. Silent 10–15 second stalls during shader compilation read
+  as a crash otherwise.
+- `'error'`: show `errorMessage`, a **Try Again** and a **Use Crayon Mode** button.
+
+`role="dialog"`, `aria-modal="true"`, focus moved to the primary action on mount.
+
+**Tests:** the prompt state renders the size in GB and calls `onconfirm` / `oncancel`
+from the right buttons; the loading state renders a determinate progress element
+reflecting `progress`; `stage="compiling"` renders the compiling caption; the error
+state renders `errorMessage` and both recovery buttons; the dialog exposes
+`role="dialog"`.
+
 ---
 
 ## Avatar assets
@@ -396,14 +515,15 @@ Match these to the briefs:
 
 ## Barrel file
 
-`src/lib/components/index.ts` re-exporting all twelve components, so spec 04 can write
+`src/lib/components/index.ts` re-exporting all fifteen components, so spec 04 can write
 a single import.
 
 ---
 
 ## Definition of done
 
-- [ ] All twelve components exist, each with a passing `.svelte.test.ts`.
+- [ ] All fifteen components exist, each with a passing `.svelte.test.ts`.
+- [ ] Every component is usable at 360 px wide with 44 px minimum tap targets.
 - [ ] All six avatar SVGs exist.
 - [ ] No component imports from `$lib/stores`, `$lib/game`, `$lib/server` or `$app/*`.
 - [ ] No component performs `fetch` or owns global state.

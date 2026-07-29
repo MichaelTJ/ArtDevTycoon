@@ -15,7 +15,6 @@ Thumbs.db
 # Env
 .env
 .env.*
-!.env.example
 !.env.test
 
 # Vite
@@ -25,18 +24,9 @@ vite.config.ts.timestamp-*
 test-results
 playwright-report
 
-# Python sidecar
-sidecar/.venv
-sidecar/__pycache__
-**/__pycache__
-*.pyc
-.pytest_cache
-.ruff_cache
-
-# AI model weights and OpenVINO IR exports (multi-GB, never commit)
-sidecar/models
+# AI model weights. Models are fetched by the browser at runtime and cached by the
+# browser, never committed. This only catches a stray local download.
 models
+*.onnx
 
-# Runtime-generated artwork
-static/generated
 .tmp

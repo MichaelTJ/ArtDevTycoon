@@ -84,3 +84,67 @@ assumed:
 
 **Known gaps:** All five specs are unimplemented. Wave 1 (specs 01, 03, 05) can run
 concurrently; spec 02 needs 01; spec 04 needs everything.
+
+> **Superseded by the entry below.** The Python sidecar described here no longer exists.
+
+---
+
+## 2026-07-29 — Orchestrator (re-architecture: browser-side inference)
+
+**Zone:** config, `src/lib/types/**`, `src/routes/+layout.ts`, `docs/**`, `README.md`,
+`best-practices.md`, `.gitignore`
+
+**Why:** The product direction was clarified — this is a **browser and mobile game**, not
+a desktop app with a local AI service. The user had also already run both Janus-Pro-1B
+and SD-Turbo successfully in web apps, which invalidated the earlier assumption that
+Janus was too weak to generate images. That assumption had driven the whole
+SDXL-Turbo-plus-sidecar design, so the design had to go.
+
+**Built:** Replaced the Python sidecar architecture with in-browser WebGPU inference.
+
+- Swapped `adapter-node` for `adapter-static`; added `+layout.ts` with
+  `prerender = true`, `ssr = false`. Verified `npm run build` emits a deployable static
+  bundle.
+- Added `@huggingface/transformers` 4.2.0 and `onnxruntime-web` 1.27.0; removed
+  `adapter-node`. Excluded both from Vite pre-bundling and set `worker.format: 'es'`.
+- Rewrote `src/lib/types/contracts.ts` around a tiered `ArtEngine` interface, replacing
+  the HTTP DTOs and the `ImageGenerator`/`ArtCritic` split. Added `DeviceCapability`,
+  `LoadProgress`, `EngineAvailability` and the worker message protocol.
+- Rewrote `docs/architecture.md`; replaced spec 02 with the engine layer, spec 05 with
+  the Janus WebGPU engine, and added spec 06 for the SD-Turbo desktop tier. Updated
+  specs 03 and 04 and the wave order.
+- Deleted `.env.example` and the Python entries in `.gitignore`. There is no
+  configuration left to set.
+
+**Verified, not assumed:**
+
+- `MultiModalityCausalLM`, `VLChatProcessor`, `processor.num_image_tokens`,
+  `generate_images()` and duck-typed `streamer` support all exist in the installed
+  `@huggingface/transformers` 4.2.0, so specs 05 and 06 cite a real API rather than the
+  v3 documentation.
+- `npm run check` and `npm run build` are green on the new contract and adapter.
+
+**Decisions:**
+
+- **Janus is the default and does both jobs.** It is a unified multimodal model, so one
+  ~1 GB download covers generation and critique. Pairing SD-Turbo with Janus would mean
+  ~2.5 GB before the player sees anything, which is untenable on mobile.
+- **The mock engine is now a production tier, not a test fixture.** WebGPU is roughly
+  70–75% of mobile browsers; iOS needs Safari 26, which is an OS-level wall. A real
+  share of players will never load a model and must get a complete game.
+- **Nothing downloads without an explicit click**, and the size is shown before the
+  choice. This is written into `best-practices.md` §5.3 and has a permanent e2e
+  regression test in spec 04.
+- **`maxStorageBufferBindingSize` is a hard gate.** Exceeding mobile VRAM crashes the
+  tab with no catchable error, so the capability probe refuses rather than tries.
+- **Wave order was resequenced** so the game is playable and shippable at the end of
+  wave 3 on the mock engine. The riskiest work — specs 05 and 06 — now costs a feature
+  if it fails, not the project.
+- Kept the earlier division of labour: an engine returns a `CritiqueDraft` and the
+  domain layer decides creativity and money. That decision survived the rewrite intact.
+
+**Requests:** None.
+
+**Known gaps:** Spec 01 is unchanged and still correct. Specs 02–06 are unimplemented.
+Spec 06 has no worktree yet. The `remote` engine tier — player-supplied API keys — is
+declared in the contract but deliberately unspecified; it is a later phase.

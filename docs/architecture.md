@@ -16,131 +16,174 @@ client's budget. Five commissions and $500 unlocks Level 2. The joke the whole d
 rests on is that the player never sees the modifiers, so their grand ambitions keep
 coming back rendered in crayon.
 
+## 2. What kind of app this is
+
+**A browser and mobile game with no backend.** It builds to static files via
+`adapter-static` and hosts on any CDN. All AI inference runs _in the player's browser_
+on WebGPU. Nothing is uploaded, there are no API keys, no server bill, and the game
+works offline once the model is cached.
+
+That single choice drives almost everything below. In particular it means the device —
+not our infrastructure — decides what is possible, and devices vary enormously.
+
 ---
 
-## 2. Layer map
+## 3. Layer map
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  Browser — Svelte 5 runes                                    │
-│  routes/+page.svelte  ·  lib/components/**  ·  lib/stores/** │
-└───────────────────────────┬──────────────────────────────────┘
-                            │  fetch, JSON validated both ways
-┌───────────────────────────▼──────────────────────────────────┐
-│  SvelteKit server — routes/api/generate, routes/api/evaluate │
-│  lib/server/ai/**  chooses a provider at runtime             │
-└───────────┬──────────────────────────────┬───────────────────┘
-            │                              │
-   ┌────────▼─────────┐          ┌─────────▼──────────────────┐
-   │ mock provider    │          │ sidecar client (HTTP)      │
-   │ deterministic,   │          │  ──► FastAPI on :8756      │
-   │ instant, no deps │          │      SDXL-Turbo (OpenVINO) │
-   │ DEFAULT          │          │      Janus-Pro-1B (critic) │
-   └──────────────────┘          └────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  Main thread                                                     │
+│    routes/+page.svelte                                           │
+│    lib/components/**      presentational, props in / events out  │
+│    lib/stores/**          game state machine + engine manager    │
+│    lib/game/**            pure rules: scoring, payout, prompts   │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │  postMessage, ImageBitmap transfer
+┌─────────────────────────────▼────────────────────────────────────┐
+│  Web Worker — all inference, never the main thread               │
+│    lib/engines/janus/worker.ts     Transformers.js + WebGPU      │
+│    lib/engines/sdturbo/worker.ts   ONNX Runtime Web + WebGPU     │
+└──────────────────────────────────────────────────────────────────┘
+
+  lib/engines/mock/  runs on the main thread — it is instant and has no model
 ```
 
-Pure game rules live in `src/lib/game/**` and depend on nothing — no Svelte, no fetch,
-no Node. That is what makes them exhaustively unit-testable.
+Pure game rules in `src/lib/game/**` depend on nothing — no Svelte, no DOM, no engine.
+That is what makes them exhaustively unit-testable and reusable by every engine.
 
 ---
 
-## 3. The decision that shapes everything: pluggable AI providers
+## 4. The decision that shapes everything: tiered engines
 
-Both AI capabilities sit behind the `ImageGenerator` and `ArtCritic` interfaces in
-`src/lib/types/contracts.ts`, and there are always two implementations:
+Every AI backend implements one interface, `ArtEngine` in
+`src/lib/types/contracts.ts`. An engine manager probes the device once and picks the
+best tier it can actually run.
 
-- **`mock`** — deterministic, instant, zero dependencies. Generates a seeded SVG
-  placeholder and scores by keyword overlap. **This is the default.**
-- **`sidecar`** — real models over HTTP to a local Python service.
+| Tier | Engine           | Download      | Needs           | Role                                                           |
+| ---- | ---------------- | ------------- | --------------- | -------------------------------------------------------------- |
+| 0    | `mock`           | none          | nothing         | Procedural SVG art, text-based scoring. **Always available.**  |
+| 1    | `janus-webgpu`   | ~1 GB         | WebGPU          | **Default.** Janus-Pro-1B does _both_ generation and critique. |
+| 2    | `sdturbo-webgpu` | ~1.5 GB extra | WebGPU, desktop | SD-Turbo paints at 512px; Janus still critiques.               |
+| 3    | `remote`         | none          | user's own key  | Reserved for a later phase.                                    |
 
-Selected by the `AI_PROVIDER` environment variable (`mock` | `sidecar` | `auto`).
-`auto` probes the sidecar and silently falls back to mock.
+Selection rules:
 
-This is worth the indirection for four reasons. The game stays playable on any machine
-with no multi-gigabyte download. The entire test suite runs in CI in seconds with no
-GPU. Four agents could build against the AI layer in parallel without any of them
-owning a model. And when generation inevitably fails mid-demo, there is a working
-fallback instead of a dead end.
+- Probe the device, then offer the best supported tier — but **never auto-download**.
+  A gigabyte on someone's mobile data is not a decision we get to make for them.
+- The player's choice persists in `localStorage`; the model itself is cached by the
+  browser's Cache API, so the download happens once.
+- Any engine failure at runtime falls back to `mock` and the game continues. Losing
+  image quality is acceptable; a dead-ended commission is not.
 
-**Corollary:** no code outside `src/lib/server/ai/**` may know which provider is
-active. If a component branches on provider name, the abstraction has leaked.
+**Corollary:** nothing outside `src/lib/engines/**` may branch on which engine is
+active, except the one component that displays it. If a game rule depends on the
+engine, the abstraction has leaked.
 
----
+### Why Janus does both jobs
 
-## 4. Why the models are assigned the way they are
+Janus-Pro-1B is a _unified_ multimodal model — the same weights handle text-to-image
+generation and image understanding, switched by the chat template. So one ~1 GB
+download gives us both the painter and the critic.
 
-The original brief suggested Janus 1B for image generation. We split the roles
-differently, and the reasoning matters:
+On mobile that is decisive. Pairing SD-Turbo with Janus would mean two model stacks and
+roughly 2.5 GB before a player sees anything. Janus alone generates at 384×384, which
+is exactly the right size for Level 1's deliberately amateur aesthetic.
 
-| Job              | Model                       | Why this one                                                                                                |
-| ---------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Image generation | **SDXL-Turbo** via OpenVINO | Single-step generation, ~2-3s on this iGPU, 512px output. Purpose-built for real-time use.                  |
-| Art critique     | **Janus-Pro-1B**            | It is a _vision_-language model. It can look at the finished image through its SigLIP encoder and judge it. |
+There is a happy accident here. Janus produces markedly better images from _thorough_
+prompts, and the Level 1 modifier suffix is itself a long descriptive string. The
+mechanic that caps the player's style also improves the model's output.
 
-Janus-Pro-1B _can_ generate images, but only at 384×384 and at noticeably lower
-fidelity than SDXL-Turbo. Meanwhile its understanding side is the only local model here
-capable of actually seeing a picture. Using it as the critic means the score reflects
-the artwork that was really produced, rather than string-matching the player's prompt —
-which makes the critic feel alive and is a genuinely better game.
+### Why the critic is a vision model, not a keyword matcher
 
-### Hardware constraints driving the sidecar design
+The critic asks the model a narrow yes/no question per brief keyword — "Does this
+picture clearly show a coffee cup?" — and scores from the hit rate. It is judging the
+picture that was actually produced, not the text the player typed. That is what makes
+the critic feel alive, and it is the whole reason a vision model is worth a gigabyte.
 
-This machine has an **Intel Arc 130V iGPU (Lunar Lake), no CUDA, 16 GB of RAM shared
-with the GPU**, so:
+**We never ask the model for JSON.** A 1B model will not reliably emit valid JSON, and a
+parse failure mid-commission is a far worse experience than a slightly coarse score.
+Narrow questions with trivially parseable answers are robust; structured output is not.
 
-- Inference goes through **OpenVINO** (`optimum-intel`) with `device="GPU"`, not stock
-  CUDA PyTorch. Stock PyTorch would silently fall back to CPU and take minutes.
-- SDXL-Turbo **must** run with `num_inference_steps=1` and `guidance_scale=0.0`. The
-  model is distilled for single-step sampling; ordinary guidance produces noise.
-- Models are loaded **lazily and one at a time**, with the idle one evictable. Holding
-  SDXL-Turbo and Janus resident simultaneously does not fit comfortably in 16 GB
-  shared memory.
-- The sidecar needs its own **Python 3.12** virtualenv. The system Python is 3.14,
-  which the ML stack does not yet support.
+### The model never decides money
 
----
-
-## 5. Request flow for one commission
-
-1. Player clicks **Create Art**. UI moves to `generating` and renders a skeleton.
-2. `POST /api/generate { prompt }`. The route validates with `generateRequestSchema`,
-   calls `buildLevel1Prompt()` to append the hidden modifiers, and hands the result to
-   the active `ImageGenerator`. Returns an `Artwork`.
-3. `POST /api/evaluate { brief, playerPrompt, imageUrl }`. The active `ArtCritic`
-   judges the picture and returns an accuracy score plus prose. Creativity is derived
-   from the player's prompt and the payout from the brief's budget, both in the domain
-   layer — the model never decides money. The response is validated with
-   `critiqueSchema` before it leaves the server.
-4. UI moves to `results` and shows the image, the critique and the payout.
-5. **Collect Cash** applies the payout via a tweened counter, pushes a `GalleryEntry`
-   into the portfolio strip, increments the commission count, and returns to `idle` —
-   or to `levelComplete` if both win conditions are met.
-
-Any failure at step 2 or 3 moves the UI to `failed` with a player-safe message and a
-retry affordance. The player never loses their typed prompt.
+An engine returns a `CritiqueDraft`: a title, an accuracy score, and prose. The domain
+layer then computes `creativityScore` from the player's prompt and `finalPayout` from
+the brief's budget. Economy rules live in exactly one place, so the mock and real
+engines cannot drift apart on difficulty, and a hallucinating model cannot mint cash.
 
 ---
 
-## 6. Directory ownership
+## 5. Mobile is a constraint, not a target to hit later
 
-| Path                      | Contents                                                | Owner             |
-| ------------------------- | ------------------------------------------------------- | ----------------- |
-| `src/lib/types/**`        | Frozen shared contract                                  | Orchestrator      |
-| `src/lib/game/**`         | Pure rules: prompt pipeline, scoring, payout, win check | Domain agent      |
-| `src/lib/data/**`         | Level 1 client brief pool                               | Domain agent      |
-| `src/lib/server/ai/**`    | Provider interfaces, mock impl, sidecar client          | Backend agent     |
-| `src/routes/api/**`       | HTTP endpoints                                          | Backend agent     |
-| `src/lib/components/**`   | Presentational components                               | UI agent          |
-| `src/lib/stores/**`       | `gameState.svelte.ts` runes store                       | UI agent          |
-| `src/routes/+page.svelte` | Screen assembly                                         | UI agent          |
-| `sidecar/**`              | Python FastAPI + OpenVINO service                       | Sidecar agent     |
-| `e2e/**`                  | Playwright end-to-end specs                             | Integration agent |
+WebGPU on mobile is **not a baseline**. As of 2026 it is roughly 70–75% of mobile
+browsers, and the failure modes are harsh:
+
+| Reality                                                               | What we do about it                               |
+| --------------------------------------------------------------------- | ------------------------------------------------- |
+| Chrome Android needs 121+, Android 12+, Qualcomm/ARM GPU              | Probe, never assume                               |
+| iOS needs Safari 26 — an OS-level wall, no browser can work around it | Fall back to `mock`                               |
+| Safari's Metal backend caps buffers at 256 MB on older iPhones        | Gate on `maxStorageBufferBindingSize`             |
+| Exceeding VRAM crashes the tab rather than throwing                   | Refuse to load below a measured threshold         |
+| Cold shader compilation takes 10–15 s                                 | A `compiling` progress state, not a frozen screen |
+| Thermal throttling on sustained inference                             | Never queue concurrent generations                |
+
+`maxStorageBufferBindingSize` is the most reliable signal the platform gives us. A
+device reporting 128 MB cannot run these models, and attempting it produces an "Aw
+Snap" crash with no catchable error — so the probe is a hard gate, not a hint.
+
+This is why `mock` is a **production tier**, not a development convenience. A real
+share of players will never load a model, and the game must be complete for them.
 
 ---
 
-## 7. Deliberately deferred
+## 6. Request flow for one commission
+
+1. Player clicks **Create Art**. UI moves to `generating`.
+2. `buildLevel1Prompt()` appends the hidden modifiers. The player never sees the
+   result; it goes straight to the active engine.
+3. The engine generates. For WebGPU engines this happens in a Web Worker and the
+   result comes back as a transferred `ImageBitmap` — inference on the main thread
+   would freeze the UI for the entire generation and get the tab killed on mobile.
+4. UI moves to `critiquing`. The engine is asked one yes/no question per brief keyword
+   plus one request for prose.
+5. The domain layer converts the hit rate into `accuracyScore`, derives
+   `creativityScore` from the prompt, and computes `finalPayout`.
+6. UI moves to `results`. **Collect Cash** applies the payout via a tweened counter,
+   pushes a `GalleryEntry` into the portfolio strip, and returns to `idle` — or to
+   `levelComplete` if both win conditions are met.
+
+Any failure moves the UI to `failed` with a player-safe message and a retry. The
+player never loses their typed prompt.
+
+---
+
+## 7. Directory ownership
+
+| Path                                           | Contents                                   | Spec         |
+| ---------------------------------------------- | ------------------------------------------ | ------------ |
+| `src/lib/types/**`                             | Frozen shared contract                     | Orchestrator |
+| `src/lib/game/**`, `src/lib/data/**`           | Pure rules and the brief pool              | 01           |
+| `src/lib/engines/**` (except model subdirs)    | Interface, manager, capability probe, mock | 02           |
+| `src/lib/components/**`, `static/avatars/**`   | Presentational components                  | 03           |
+| `src/lib/stores/**`, `src/routes/**`, `e2e/**` | State machine, screen, end-to-end          | 04           |
+| `src/lib/engines/janus/**`                     | Janus-Pro-1B worker engine                 | 05           |
+| `src/lib/engines/sdturbo/**`                   | SD-Turbo desktop engine                    | 06           |
+
+---
+
+## 8. Known wart
+
+`@huggingface/transformers` pulls `onnxruntime-node` and `sharp` as dependencies, and
+`npm audit` reports high-severity advisories against them. Neither ever reaches a
+browser bundle — Vite resolves the browser entry point, which uses `onnxruntime-web`.
+They are build-tree noise, not shipped code. Do not "fix" this by pinning or forcing an
+audit resolution; check the bundle instead.
+
+---
+
+## 9. Deliberately deferred
 
 Upgrades, staff, gallery customisation, complex client types and extra art mediums are
-all out of scope. Leave seams — `LEVEL_1` is a config object precisely so a `LEVEL_2`
-can slot in beside it, and the provider interfaces already allow new backends — but
-implement none of it.
+out of scope. Leave seams — `LEVEL_1` is a config object so a `LEVEL_2` can slot in
+beside it, and `ArtEngine` already accommodates the `remote` tier — but implement none
+of it.

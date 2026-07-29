@@ -1,15 +1,14 @@
 /**
  * FROZEN CONTRACT — the single source of truth shared by every layer of the game.
  *
- * The UI, the domain logic, the API routes and the Python sidecar all agree on the
- * shapes in this file. It is orchestrator-owned: task agents import from it and MUST
- * NOT edit it. If a change is genuinely required, request it in your handoff report
- * rather than editing, because a unilateral change here silently breaks every other
- * agent working in parallel.
+ * The UI, the domain rules and every AI engine agree on the shapes in this file. It is
+ * orchestrator-owned: task agents import from it and MUST NOT edit it. A unilateral
+ * change here silently breaks every other agent working in parallel, so request changes
+ * in your handoff report instead.
  *
- * Anything crossing a trust boundary (an HTTP body, a model's JSON) is validated with
- * the Zod schemas below rather than cast, because a type assertion on a language
- * model's output is a lie we would only discover at runtime.
+ * Anything crossing a trust boundary — a model's output, a remote API's JSON, restored
+ * localStorage — is validated with the Zod schemas below rather than cast. A type
+ * assertion on a language model's output is a lie we would only discover at runtime.
  */
 
 import { z } from 'zod';
@@ -33,6 +32,10 @@ export const LEVEL_1 = {
 	/**
 	 * Appended to every player prompt before generation. Never shown to the player:
 	 * the comedy of Level 1 is that they write "epic masterpiece" and get crayon.
+	 *
+	 * These also do useful technical work. Janus-Pro-1B produces markedly better images
+	 * from thorough, descriptive prompts, so a fixed descriptive suffix raises quality
+	 * even as it caps the *style* at amateur.
 	 */
 	promptModifiers:
 		'flat color, simple line art, crayon texture, amateur style, low detail, basic shading',
@@ -55,8 +58,9 @@ export const clientBriefSchema = z.object({
 	/** Maximum payout when the player nails the brief perfectly. */
 	budget: z.number().int().positive(),
 	/**
-	 * Concepts the critic checks the player's prompt against. Matching is fuzzy and
-	 * lives in the domain layer, so these are plain concepts, not regex.
+	 * Concepts the critic checks against. Matching is fuzzy and lives in the domain
+	 * layer, so these are plain concepts rather than regex. A vision engine turns each
+	 * one into a yes/no question about the finished picture.
 	 */
 	preferredKeywords: z.array(z.string().min(1)).min(1)
 });
@@ -70,23 +74,130 @@ export type ClientBrief = z.infer<typeof clientBriefSchema>;
 const scoreSchema = z.number().int().min(1).max(LEVEL_1.maxScore);
 
 /**
- * The critic's verdict. This exact shape is what the sidecar must emit and what the
- * results modal renders, so it is validated on the way in from the model.
+ * What an engine returns from `critique`. Deliberately excludes money and creativity.
+ *
+ * An engine judges the *picture* — that is the one thing a vision model can offer that
+ * text analysis cannot. Creativity is a property of the player's prompt and the payout
+ * is a property of the economy, so both are computed in the domain layer where the mock
+ * and real engines cannot drift apart on difficulty.
  */
-export const critiqueSchema = z.object({
+export const critiqueDraftSchema = z.object({
 	/** A gallery title for the piece, invented by the critic. */
 	title: z.string().min(1).max(120),
 	/** How faithfully the artwork serves the client's brief, 1-10. */
 	accuracyScore: scoreSchema,
+	/** One or two sentences of in-character criticism shown to the player. */
+	criticReview: z.string().min(1).max(600)
+});
+
+export type CritiqueDraft = z.infer<typeof critiqueDraftSchema>;
+
+/** The complete verdict after the domain layer adds creativity and money. */
+export const critiqueSchema = critiqueDraftSchema.extend({
 	/** How imaginative and detailed the player's prompt was, 1-10. */
 	creativityScore: scoreSchema,
-	/** One or two sentences of in-character criticism shown to the player. */
-	criticReview: z.string().min(1).max(600),
-	/** Cash awarded, already clamped to the brief's budget by the domain layer. */
+	/** Cash awarded, already clamped to the brief's budget. */
 	finalPayout: z.number().int().min(0)
 });
 
 export type Critique = z.infer<typeof critiqueSchema>;
+
+/* -------------------------------------------------------------------------- */
+/* Engines                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Engines are tiered. The manager picks the best one the device can actually run and
+ * always keeps `mock` as a floor, because WebGPU is not a baseline on mobile.
+ *
+ * - `mock`           procedural art and text scoring; no download, works everywhere
+ * - `janus-webgpu`   Janus-Pro-1B; one model does both generation and critique
+ * - `sdturbo-webgpu` SD-Turbo 512px images, paired with Janus for critique; desktop
+ * - `remote`         a user-supplied API endpoint; reserved for a later phase
+ */
+export const ENGINE_IDS = ['mock', 'janus-webgpu', 'sdturbo-webgpu', 'remote'] as const;
+export type EngineId = (typeof ENGINE_IDS)[number];
+
+export const engineIdSchema = z.enum(ENGINE_IDS);
+
+export interface EngineRequirements {
+	/** Whether the engine cannot run at all without WebGPU. */
+	webgpu: boolean;
+	/** Rough download size, shown to the player before they opt in. */
+	approxDownloadMb: number;
+	/**
+	 * Minimum `maxStorageBufferBindingSize` in MB. This is the most reliable proxy the
+	 * platform gives us for whether a model will fit; phones reporting 128 MB cannot
+	 * run these models and will hard-crash the tab rather than fail gracefully.
+	 */
+	minStorageBufferMb: number;
+	/** True when the engine is realistically desktop-only. */
+	desktopOnly: boolean;
+}
+
+/** What a device can actually do, measured once at startup. */
+export interface DeviceCapability {
+	webgpu: boolean;
+	/** WebGPU `shader-f16` feature. Its absence roughly doubles memory use. */
+	fp16: boolean;
+	maxStorageBufferBindingMb: number | null;
+	maxBufferMb: number | null;
+	isMobile: boolean;
+	/** `navigator.deviceMemory` in GB where exposed; null on Safari and Firefox. */
+	deviceMemoryGb: number | null;
+}
+
+export type EngineAvailability =
+	| { available: true; requiresDownload: boolean; approxDownloadMb: number }
+	| { available: false; reason: string };
+
+/** Emitted repeatedly while an engine downloads and compiles. Drives the progress UI. */
+export interface LoadProgress {
+	status: 'downloading' | 'compiling' | 'ready';
+	/** Current file being fetched, for the detail line under the bar. */
+	file: string | null;
+	loadedBytes: number;
+	totalBytes: number;
+	/** 0-1. Always populated, even when byte totals are unknown. */
+	fraction: number;
+}
+
+export type EngineState = 'idle' | 'probing' | 'loading' | 'ready' | 'error' | 'unsupported';
+
+/**
+ * The single interface every AI backend implements. The game depends only on this,
+ * which is what lets it run with no models installed, lets engines be swapped at
+ * runtime, and leaves a clean seam for user-supplied APIs in a later phase.
+ */
+export interface ArtEngine {
+	readonly id: EngineId;
+	readonly displayName: string;
+	/** One line shown in the engine picker. */
+	readonly description: string;
+	readonly requirements: EngineRequirements;
+	readonly capabilities: { generate: boolean; critique: boolean };
+
+	/** Cheap, side-effect-free check. Must not download anything. */
+	probe(capability: DeviceCapability): Promise<EngineAvailability>;
+
+	/** Download and initialise. Must be safe to call twice. */
+	load(options?: {
+		onProgress?: (progress: LoadProgress) => void;
+		signal?: AbortSignal;
+	}): Promise<void>;
+
+	generate(input: { prompt: string; seed?: number; signal?: AbortSignal }): Promise<Artwork>;
+
+	critique(input: {
+		brief: ClientBrief;
+		playerPrompt: string;
+		artwork: Artwork;
+		signal?: AbortSignal;
+	}): Promise<CritiqueDraft>;
+
+	/** Free GPU memory. The manager calls this before loading a different engine. */
+	unload(): Promise<void>;
+}
 
 /* -------------------------------------------------------------------------- */
 /* Artwork                                                                    */
@@ -94,14 +205,16 @@ export type Critique = z.infer<typeof critiqueSchema>;
 
 export const artworkSchema = z.object({
 	id: z.string().min(1),
-	/** Displayable image source: an HTTP path or a `data:` URL. */
+	/** Displayable source: a `blob:` URL, a `data:` URL, or an HTTP path. */
 	imageUrl: z.string().min(1),
 	/** Exactly what the player typed, for the portfolio and for scoring. */
 	playerPrompt: z.string(),
-	/** Milliseconds the model took, surfaced in dev tooling to spot slow paths. */
+	width: z.number().int().positive(),
+	height: z.number().int().positive(),
+	/** Milliseconds the model took, surfaced in the debug panel to spot slow devices. */
 	generationMs: z.number().nonnegative(),
-	/** Which backend produced this, so mock and real art are distinguishable. */
-	provider: z.enum(['mock', 'sidecar'])
+	/** Which engine produced this, so mock and real art are distinguishable. */
+	engineId: engineIdSchema
 });
 
 export type Artwork = z.infer<typeof artworkSchema>;
@@ -112,7 +225,7 @@ export const galleryEntrySchema = z.object({
 	imageUrl: z.string().min(1),
 	title: z.string().min(1),
 	payout: z.number().int().min(0),
-	/** Mean of accuracy and creativity, rounded — the single headline number. */
+	/** Mean of accuracy and creativity — the single headline number. */
 	score: z.number().min(0).max(LEVEL_1.maxScore),
 	clientName: z.string().min(1),
 	completedAt: z.number().int().nonnegative()
@@ -131,9 +244,10 @@ export type GalleryEntry = z.infer<typeof galleryEntrySchema>;
 export type GamePhase =
 	| 'idle' // no client present; waiting for the player to invite one
 	| 'briefing' // client is here, player is writing their prompt
-	| 'generating' // request in flight
+	| 'generating' // the engine is painting
+	| 'critiquing' // the artwork exists; the critic is judging it
 	| 'results' // artwork and critique ready, awaiting "Collect Cash"
-	| 'failed' // generation or evaluation failed; player may retry
+	| 'failed' // generation or critique failed; player may retry
 	| 'levelComplete'; // win condition met
 
 export interface GameState {
@@ -151,79 +265,45 @@ export interface GameState {
 }
 
 /* -------------------------------------------------------------------------- */
-/* HTTP API                                                                   */
-/* -------------------------------------------------------------------------- */
-
-export const generateRequestSchema = z.object({
-	prompt: z.string().min(1, 'Describe the artwork before creating it.').max(500),
-	/** Optional seed so tests and bug reports can reproduce an exact image. */
-	seed: z.number().int().nonnegative().optional()
-});
-
-export type GenerateRequest = z.infer<typeof generateRequestSchema>;
-
-export const generateResponseSchema = z.object({ artwork: artworkSchema });
-export type GenerateResponse = z.infer<typeof generateResponseSchema>;
-
-export const evaluateRequestSchema = z.object({
-	brief: clientBriefSchema,
-	playerPrompt: z.string().min(1).max(500),
-	/** The generated image, so a vision model can critique what was actually made. */
-	imageUrl: z.string().min(1)
-});
-
-export type EvaluateRequest = z.infer<typeof evaluateRequestSchema>;
-
-export const evaluateResponseSchema = z.object({ critique: critiqueSchema });
-export type EvaluateResponse = z.infer<typeof evaluateResponseSchema>;
-
-/**
- * Every non-2xx response from our API uses this shape. `message` is safe to show to
- * the player; `code` is what the UI branches on.
- */
-export const apiErrorSchema = z.object({
-	code: z.enum([
-		'invalid_request',
-		'generation_failed',
-		'evaluation_failed',
-		'sidecar_unavailable',
-		'timeout',
-		'internal'
-	]),
-	message: z.string().min(1)
-});
-
-export type ApiError = z.infer<typeof apiErrorSchema>;
-export type ApiErrorCode = ApiError['code'];
-
-/* -------------------------------------------------------------------------- */
-/* Provider interfaces                                                        */
+/* Worker protocol                                                            */
 /* -------------------------------------------------------------------------- */
 
 /**
- * Turns a fully-modified prompt into an image. Implemented by the deterministic mock
- * and by the OpenVINO sidecar client; the API routes depend only on this interface,
- * which is what lets the entire game run and be tested with no models installed.
+ * Messages between the page and an inference Web Worker. Inference must never run on
+ * the main thread — a 1B model would freeze the UI for the whole generation, and on
+ * mobile the browser would kill the tab.
+ *
+ * Every request carries an `id` so concurrent replies can be matched to their caller.
  */
-export interface ImageGenerator {
-	readonly name: 'mock' | 'sidecar';
-	generate(input: { prompt: string; seed?: number; signal?: AbortSignal }): Promise<Artwork>;
-	/** Cheap liveness probe used by the health endpoint and provider fallback. */
-	isAvailable(): Promise<boolean>;
-}
+export type WorkerRequest =
+	| { type: 'load'; id: string; engineId: EngineId }
+	| { type: 'generate'; id: string; prompt: string; seed?: number }
+	| {
+			type: 'critique';
+			id: string;
+			questions: string[];
+			reviewPrompt: string;
+			imageBitmap: ImageBitmap;
+	  }
+	| { type: 'unload'; id: string }
+	| { type: 'cancel'; id: string };
 
-/**
- * Judges a finished artwork against its brief. The sidecar implementation shows the
- * image to a vision model, so the critique reflects the actual picture rather than
- * mere keyword overlap.
- */
-export interface ArtCritic {
-	readonly name: 'mock' | 'sidecar';
-	evaluate(input: {
-		brief: ClientBrief;
-		playerPrompt: string;
-		imageUrl: string;
-		signal?: AbortSignal;
-	}): Promise<Critique>;
-	isAvailable(): Promise<boolean>;
-}
+export type WorkerResponse =
+	| { type: 'progress'; id: string; progress: LoadProgress }
+	| { type: 'loaded'; id: string }
+	| { type: 'generated'; id: string; imageBitmap: ImageBitmap; generationMs: number }
+	| { type: 'critiqued'; id: string; answers: string[]; review: string }
+	| { type: 'unloaded'; id: string }
+	| { type: 'error'; id: string; message: string; code: EngineErrorCode };
+
+export const ENGINE_ERROR_CODES = [
+	'webgpu_unavailable',
+	'out_of_memory',
+	'download_failed',
+	'generation_failed',
+	'critique_failed',
+	'cancelled',
+	'internal'
+] as const;
+
+export type EngineErrorCode = (typeof ENGINE_ERROR_CODES)[number];
