@@ -320,3 +320,46 @@ functions into the live commission loop.
 `OperationsPanel.svelte.test.ts` (`Locator.locator` typing). Full `npm run lint` fails
 on pre-existing `+page.svelte` formatting. Domain zone passes scoped eslint/prettier
 and all 40 unit tests in `src/lib/game` + `src/lib/data`; full suite is 105 green.
+
+---
+
+## 2026-07-29 — Backend agent (spec 02)
+
+**Zone:** `src/lib/engines/**` (including `janus/janusEngine.ts` and `sdturbo/sdturboEngine.ts` stubs)
+
+**Built:** Full engine layer per spec 02 — `EngineError`/`toEngineError`, deterministic
+`random` utilities, WebGPU capability probe, shared `critiqueProtocol` helpers, engine
+registry with lazy dynamic imports, `EngineManager` with mock fallback and
+`localStorage` restore, complete `MockEngine` with procedural SVG art and templated
+critique copy, Janus/SD-Turbo stubs, barrel export, and README.
+
+**Public surface:** Import from `$lib/engines` — `EngineManager`, `EngineManagerDeps`,
+`ENGINE_REGISTRY`, `EngineDescriptor`, `detectCapability`, `meetsRequirements`,
+`EngineError`, `toEngineError`, and all `critiqueProtocol` helpers.
+
+**Tests:** 39 tests in engine zone (33 node unit + 6 browser capability). Command:
+
+```powershell
+npm run test:unit -- --run --project=node src/lib/engines
+npm run test:unit -- --run --project=client src/lib/engines/capability.svelte.test.ts
+```
+
+**Decisions:**
+
+- `MockEngine.generate` uses `hashString(prompt)` for default seed (not `playerPrompt`)
+  so art varies with hidden modifiers while `playerPrompt` echoes verbatim.
+- `generationMs` rounded to integer; determinism tests compare stable fields only.
+- `EngineManager` always keeps an internal `MockEngine` instance as the runtime floor,
+  separate from registry descriptors used for probing.
+- `localStorage['adt.engine']` restored on init only when probe reports
+  `requiresDownload: false`.
+
+**Requests:** None.
+
+**Known gaps:** Janus (spec 05) and SD-Turbo (spec 06) stubs return unavailable;
+`EngineStore` (spec 04) not wired yet.
+
+**Pre-existing failures outside zone:** `npm run check` still fails on
+`OperationsPanel.svelte.test.ts` (`Locator.locator` typing). Full `npm run lint` fails
+on `+page.svelte` formatting (orchestrator-owned). Some component browser tests time
+out intermittently in the full suite; engine zone passes all scoped checks.
