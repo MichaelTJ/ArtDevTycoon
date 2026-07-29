@@ -6,7 +6,8 @@
 	const demoHistory: GalleryEntry[] = [
 		{
 			id: 'g3',
-			imageUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23d6d3d1" width="96" height="96"/%3E%3C/svg%3E',
+			imageUrl:
+				'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23d6d3d1" width="96" height="96"/%3E%3C/svg%3E',
 			title: 'Regal Cat',
 			payout: 95,
 			score: 8.5,
@@ -16,7 +17,8 @@
 		},
 		{
 			id: 'g2',
-			imageUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23fcd34d" width="96" height="96"/%3E%3C/svg%3E',
+			imageUrl:
+				'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23fcd34d" width="96" height="96"/%3E%3C/svg%3E',
 			title: 'Magic Sword',
 			payout: 42,
 			score: 4.2,
@@ -26,7 +28,8 @@
 		},
 		{
 			id: 'g1',
-			imageUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23fdba74" width="96" height="96"/%3E%3C/svg%3E',
+			imageUrl:
+				'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="96" height="96"%3E%3Crect fill="%23fdba74" width="96" height="96"/%3E%3C/svg%3E',
 			title: 'Morning Coffee',
 			payout: 88,
 			score: 6.5,

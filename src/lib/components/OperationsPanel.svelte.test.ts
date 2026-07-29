@@ -41,9 +41,7 @@ test('renders summary, search controls, and commission table', async () => {
 	});
 
 	await expect.element(screen.getByRole('heading', { name: 'Studio Operations' })).toBeVisible();
-	await expect
-		.element(screen.getByText('Cash on hand').locator('..').getByText('$275'))
-		.toBeVisible();
+	await expect.element(screen.getByText('$225 to target')).toBeVisible();
 	await expect.element(screen.getByRole('searchbox', { name: 'Search commissions' })).toBeVisible();
 	await expect.element(screen.getByRole('table')).toBeVisible();
 	await expect.element(screen.getByText('Morning Coffee')).toBeVisible();
