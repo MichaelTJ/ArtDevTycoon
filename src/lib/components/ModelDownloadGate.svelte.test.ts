@@ -32,6 +32,18 @@ test('loading state renders progress reflecting progress prop', async () => {
 	expect(bar.element()).toHaveProperty('value', 0.42);
 });
 
+test('loading stage renders loading caption', async () => {
+	const screen = render(ModelDownloadGate, {
+		engineName: 'Janus Pro',
+		approxMb: 1000,
+		state: 'loading',
+		stage: 'loading',
+		onconfirm: vi.fn(),
+		oncancel: vi.fn()
+	});
+	await expect.element(screen.getByText(/Loading model into memory/)).toBeVisible();
+});
+
 test('compiling stage renders compiling caption', async () => {
 	const screen = render(ModelDownloadGate, {
 		engineName: 'Janus Pro',

@@ -153,7 +153,7 @@ export type EngineAvailability =
 
 /** Emitted repeatedly while an engine downloads and compiles. Drives the progress UI. */
 export interface LoadProgress {
-	status: 'downloading' | 'compiling' | 'ready';
+	status: 'downloading' | 'loading' | 'compiling' | 'ready';
 	/** Current file being fetched, for the detail line under the bar. */
 	file: string | null;
 	loadedBytes: number;
@@ -321,7 +321,7 @@ export interface GameState {
  * Every request carries an `id` so concurrent replies can be matched to their caller.
  */
 export type WorkerRequest =
-	| { type: 'load'; id: string; engineId: EngineId }
+	| { type: 'load'; id: string; engineId: EngineId; fromCache?: boolean }
 	| { type: 'generate'; id: string; prompt: string; seed?: number }
 	| {
 			type: 'critique';

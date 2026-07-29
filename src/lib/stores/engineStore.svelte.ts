@@ -21,6 +21,20 @@ function toOption(entry: EngineDescriptor & { availability: EngineAvailability }
 	};
 }
 
+const STORAGE_KEY = 'adt.engine';
+
+function readStoredEngineId(): EngineId | null {
+	try {
+		const stored = localStorage.getItem(STORAGE_KEY);
+		if (stored === 'mock' || stored === 'janus-webgpu' || stored === 'sdturbo-webgpu') {
+			return stored;
+		}
+	} catch {
+		return null;
+	}
+	return null;
+}
+
 /** Reactive wrapper around {@link EngineManager} for the engine picker UI. */
 export class EngineStore {
 	state = $state<EngineState>('idle');
@@ -50,8 +64,16 @@ export class EngineStore {
 	async init(): Promise<void> {
 		try {
 			this.state = 'probing';
-			await this.#manager.init();
+			const stored = readStoredEngineId();
+			if (stored) {
+				this.activeId = stored;
+			}
+			await this.#manager.init((progress) => {
+				this.state = 'loading';
+				this.loadProgress = progress;
+			});
 			this.syncFromManager();
+			this.loadProgress = null;
 		} catch {
 			this.activeId = 'mock';
 			this.state = 'ready';
@@ -63,6 +85,7 @@ export class EngineStore {
 
 	async select(id: EngineId): Promise<void> {
 		const generation = ++this.#loadGeneration;
+		this.activeId = id;
 		this.state = 'loading';
 		this.loadError = null;
 		this.loadProgress = null;
@@ -80,6 +103,7 @@ export class EngineStore {
 			this.state = 'ready';
 			this.loadProgress = null;
 			this.loadError = null;
+			this.syncOptions();
 		} catch (error) {
 			if (generation !== this.#loadGeneration) {
 				return;
@@ -89,6 +113,7 @@ export class EngineStore {
 			this.state = 'error';
 			this.loadProgress = null;
 			this.activeId = this.#manager.activeId;
+			this.syncOptions();
 		}
 	}
 
@@ -99,6 +124,7 @@ export class EngineStore {
 		void this.#manager.select('mock').then(() => {
 			this.activeId = this.#manager.activeId;
 			this.state = 'ready';
+			this.syncOptions();
 		});
 	}
 

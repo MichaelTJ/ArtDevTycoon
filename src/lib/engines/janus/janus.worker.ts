@@ -2,7 +2,8 @@ import {
 	AutoProcessor,
 	MultiModalityCausalLM,
 	RawImage,
-	type ProgressCallback
+	type ProgressCallback,
+	type ProgressInfo
 } from '@huggingface/transformers';
 import type {
 	EngineErrorCode,
@@ -59,9 +60,13 @@ async function handleRequest(request: WorkerRequest): Promise<void> {
 
 	if (request.type === 'load') {
 		try {
-			await ensureLoaded(request.id, (progress) => {
-				postReply({ type: 'progress', id: request.id, progress });
-			});
+			await ensureLoaded(
+				request.id,
+				(progress) => {
+					postReply({ type: 'progress', id: request.id, progress });
+				},
+				request.fromCache ?? false
+			);
 			postReply({ type: 'loaded', id: request.id });
 		} catch (error) {
 			postError(request.id, error);
@@ -120,14 +125,15 @@ async function handleRequest(request: WorkerRequest): Promise<void> {
 
 async function ensureLoaded(
 	requestId: string,
-	onProgress?: (progress: LoadProgress) => void
+	onProgress?: (progress: LoadProgress) => void,
+	fromCache = false
 ): Promise<void> {
 	if (processor && model) {
 		return;
 	}
 
 	if (!loadPromise) {
-		loadPromise = loadModel(onProgress ?? (() => undefined));
+		loadPromise = loadModel(onProgress ?? (() => undefined), fromCache);
 	} else if (onProgress) {
 		// Second load call waits on the in-flight download; progress is only wired to the first caller.
 	}
@@ -139,7 +145,29 @@ async function ensureLoaded(
 	}
 }
 
-async function loadModel(onProgress: (progress: LoadProgress) => void): Promise<void> {
+const PROCESSOR_WEIGHT = 0.15;
+const MODEL_WEIGHT = 0.75;
+
+function fileProgressFraction(report: Extract<ProgressInfo, { status: 'progress' }>): number {
+	if (report.total > 0) {
+		return Math.min(1, Math.max(0, report.loaded / report.total));
+	}
+	return Math.min(1, Math.max(0, report.progress / 100));
+}
+
+function totalProgressFraction(
+	report: Extract<ProgressInfo, { status: 'progress_total' }>
+): number {
+	if (report.total > 0) {
+		return Math.min(1, Math.max(0, report.loaded / report.total));
+	}
+	return Math.min(1, Math.max(0, report.progress / 100));
+}
+
+async function loadModel(
+	onProgress: (progress: LoadProgress) => void,
+	fromCache: boolean
+): Promise<void> {
 	if (!('gpu' in navigator)) {
 		throw workerError('webgpu_unavailable', 'WebGPU is not available on this device.');
 	}
@@ -150,31 +178,47 @@ async function loadModel(onProgress: (progress: LoadProgress) => void): Promise<
 	}
 
 	const fp16Supported = adapter.features.has('shader-f16');
-
-	let totalLoaded = 0;
-	let totalBytes = 0;
-	let sawProgress = false;
+	const fetchStatus: LoadProgress['status'] = fromCache ? 'loading' : 'downloading';
+	let loadPhase: 'processor' | 'model' = 'processor';
+	let sawFetchProgress = false;
 
 	const progress_callback: ProgressCallback = (report) => {
-		sawProgress = true;
-		if (report.status === 'progress') {
-			totalLoaded += report.loaded ?? 0;
-			totalBytes += report.total ?? 0;
-			const fraction =
-				totalBytes > 0 ? Math.min(1, totalLoaded / totalBytes) : (report.progress ?? 0);
+		if (report.status === 'progress_total') {
+			sawFetchProgress = true;
 			onProgress({
-				status: 'downloading',
-				file: report.file ?? report.name ?? null,
-				loadedBytes: totalLoaded,
-				totalBytes,
-				fraction
+				status: fetchStatus,
+				file: null,
+				loadedBytes: report.loaded,
+				totalBytes: report.total,
+				fraction: Math.min(0.99, totalProgressFraction(report))
 			});
+			return;
 		}
+
+		if (report.status !== 'progress') {
+			return;
+		}
+
+		sawFetchProgress = true;
+		const local = fileProgressFraction(report);
+		const base = loadPhase === 'processor' ? 0 : PROCESSOR_WEIGHT;
+		const weight = loadPhase === 'processor' ? PROCESSOR_WEIGHT : MODEL_WEIGHT;
+		const fraction = Math.min(0.99, base + local * weight);
+
+		onProgress({
+			status: fetchStatus,
+			file: report.file ?? report.name ?? null,
+			loadedBytes: report.loaded,
+			totalBytes: report.total,
+			fraction
+		});
 	};
 
 	processor = (await AutoProcessor.from_pretrained(MODEL_ID, {
 		progress_callback
 	})) as ProcessorInstance;
+
+	loadPhase = 'model';
 
 	model = (await MultiModalityCausalLM.from_pretrained(MODEL_ID, {
 		dtype: fp16Supported
@@ -205,21 +249,21 @@ async function loadModel(onProgress: (progress: LoadProgress) => void): Promise<
 		progress_callback
 	})) as ModelInstance;
 
-	if (sawProgress) {
+	if (sawFetchProgress) {
 		onProgress({
 			status: 'compiling',
 			file: null,
-			loadedBytes: totalBytes,
-			totalBytes,
-			fraction: 1
+			loadedBytes: 0,
+			totalBytes: 0,
+			fraction: PROCESSOR_WEIGHT + MODEL_WEIGHT
 		});
 	}
 
 	onProgress({
 		status: 'ready',
 		file: null,
-		loadedBytes: totalBytes,
-		totalBytes,
+		loadedBytes: 0,
+		totalBytes: 0,
 		fraction: 1
 	});
 }

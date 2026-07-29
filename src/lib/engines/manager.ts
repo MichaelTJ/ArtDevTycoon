@@ -15,6 +15,11 @@ import { MockEngine } from './mock/mockEngine';
 import { ENGINE_REGISTRY, type EngineDescriptor } from './registry';
 
 const STORAGE_KEY = 'adt.engine';
+const DOWNLOADED_KEY = 'adt.engine.downloaded';
+
+function isEngineId(value: unknown): value is EngineId {
+	return value === 'mock' || value === 'janus-webgpu' || value === 'sdturbo-webgpu';
+}
 
 export interface EngineManagerDeps {
 	capability?: DeviceCapability;
@@ -79,7 +84,7 @@ export class EngineManager {
 	}
 
 	/** Probe the device and every registered engine. Call once at startup. */
-	async init(): Promise<void> {
+	async init(onProgress?: (progress: LoadProgress) => void): Promise<void> {
 		this.stateValue = 'probing';
 		try {
 			this.capabilityValue = this.capabilityValue ?? (await detectCapability());
@@ -96,15 +101,15 @@ export class EngineManager {
 				}
 
 				const probeResult = await engine.probe(this.capabilityValue);
-				this.availability.set(descriptor.id, probeResult);
+				this.availability.set(descriptor.id, this.withDownloadState(descriptor.id, probeResult));
 			}
 
 			const restored = this.readStoredEngineId();
 			if (restored) {
 				const availability = this.availability.get(restored);
-				if (availability?.available && !availability.requiresDownload) {
+				if (availability?.available) {
 					try {
-						await this.select(restored);
+						await this.select(restored, onProgress);
 						this.stateValue = 'ready';
 						this.initialized = true;
 						return;
@@ -146,6 +151,7 @@ export class EngineManager {
 		}
 
 		this.stateValue = 'loading';
+		this.activeIdValue = id;
 		const previous = this.activeEngineValue;
 
 		try {
@@ -156,6 +162,9 @@ export class EngineManager {
 			this.activeIdValue = id;
 			this.stateValue = 'ready';
 			this.persistEngineId(id);
+			if (id !== 'mock') {
+				this.markEngineDownloaded(id);
+			}
 		} catch (error) {
 			this.activeEngineValue = this.mockEngine;
 			this.activeIdValue = 'mock';
@@ -245,6 +254,55 @@ export class EngineManager {
 			localStorage.setItem(STORAGE_KEY, id);
 		} catch {
 			// Persistence is best-effort; gameplay continues without it.
+		}
+	}
+
+	private readDownloadedEngines(): Set<EngineId> {
+		try {
+			const raw = localStorage.getItem(DOWNLOADED_KEY);
+			if (!raw) {
+				return new Set();
+			}
+			const parsed: unknown = JSON.parse(raw);
+			if (!Array.isArray(parsed)) {
+				return new Set();
+			}
+			return new Set(parsed.filter(isEngineId));
+		} catch {
+			return new Set();
+		}
+	}
+
+	private isEngineDownloaded(id: EngineId): boolean {
+		return id !== 'mock' && this.readDownloadedEngines().has(id);
+	}
+
+	private withDownloadState(id: EngineId, availability: EngineAvailability): EngineAvailability {
+		if (!availability.available || id === 'mock') {
+			return availability;
+		}
+		if (this.isEngineDownloaded(id) || this.readStoredEngineId() === id) {
+			return { ...availability, requiresDownload: false };
+		}
+		return availability;
+	}
+
+	private markEngineDownloaded(id: EngineId): void {
+		if (id === 'mock') {
+			return;
+		}
+
+		try {
+			const downloaded = this.readDownloadedEngines();
+			downloaded.add(id);
+			localStorage.setItem(DOWNLOADED_KEY, JSON.stringify([...downloaded]));
+		} catch {
+			// Persistence is best-effort; gameplay continues without it.
+		}
+
+		const availability = this.availability.get(id);
+		if (availability?.available) {
+			this.availability.set(id, { ...availability, requiresDownload: false });
 		}
 	}
 }

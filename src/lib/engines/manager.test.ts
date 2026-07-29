@@ -91,6 +91,63 @@ describe('EngineManager', () => {
 		});
 	});
 
+	it('treats a previously selected engine as downloaded on init', async () => {
+		storage.set('adt.engine', 'janus-webgpu');
+		const mock = createFakeEngine({ id: 'mock', tier: 0 });
+		const high = createFakeEngine({
+			id: 'janus-webgpu',
+			tier: 1,
+			probe: async () => ({ available: true, requiresDownload: true, approxDownloadMb: 1024 })
+		});
+		const manager = new EngineManager({
+			capability: desktopCapability,
+			registry: [mock.descriptor, high.descriptor]
+		});
+
+		await manager.init();
+
+		const janus = manager.options.find((option) => option.id === 'janus-webgpu');
+		expect(janus?.availability).toMatchObject({ available: true, requiresDownload: false });
+	});
+
+	it('marks an engine as downloaded after a successful select', async () => {
+		const mock = createFakeEngine({ id: 'mock', tier: 0 });
+		const high = createFakeEngine({
+			id: 'janus-webgpu',
+			tier: 1,
+			probe: async () => ({ available: true, requiresDownload: true, approxDownloadMb: 1024 })
+		});
+		const manager = new EngineManager({
+			capability: desktopCapability,
+			registry: [mock.descriptor, high.descriptor]
+		});
+
+		await manager.init();
+		await manager.select('janus-webgpu');
+
+		const janus = manager.options.find((option) => option.id === 'janus-webgpu');
+		expect(janus?.availability).toMatchObject({ available: true, requiresDownload: false });
+		expect(JSON.parse(storage.get('adt.engine.downloaded') ?? '[]')).toContain('janus-webgpu');
+	});
+
+	it('restores a stored engine even when it still requires download', async () => {
+		storage.set('adt.engine', 'janus-webgpu');
+		const mock = createFakeEngine({ id: 'mock', tier: 0 });
+		const high = createFakeEngine({
+			id: 'janus-webgpu',
+			tier: 1,
+			probe: async () => ({ available: true, requiresDownload: true, approxDownloadMb: 1024 })
+		});
+		const manager = new EngineManager({
+			capability: desktopCapability,
+			registry: [mock.descriptor, high.descriptor]
+		});
+
+		await manager.init();
+
+		expect(manager.activeId).toBe('janus-webgpu');
+	});
+
 	it('init leaves activeId as mock', async () => {
 		const mock = createFakeEngine({ id: 'mock', tier: 0 });
 		const high = createFakeEngine({ id: 'janus-webgpu', tier: 1 });

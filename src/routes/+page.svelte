@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+		ArtworkFrame,
 		CapabilityNotice,
 		ClientCard,
 		EnginePicker,
@@ -31,6 +32,34 @@
 		pendingEngineId ? engines.options.find((option) => option.id === pendingEngineId) : null
 	);
 
+	const activeEngineLabel = $derived(
+		engines.options.find((option) => option.id === engines.activeId)?.displayName ?? 'Crayon Mode'
+	);
+
+	const engineButtonLabel = $derived.by(() => {
+		if (engines.state === 'loading') {
+			return `Loading ${activeEngineLabel}…`;
+		}
+		return `Art engine · ${activeEngineLabel}`;
+	});
+
+	const loadStage = $derived.by((): 'downloading' | 'loading' | 'compiling' => {
+		const status = engines.loadProgress?.status;
+		if (status === 'compiling') {
+			return 'compiling';
+		}
+		if (status === 'loading') {
+			return 'loading';
+		}
+		if (status === 'downloading') {
+			return 'downloading';
+		}
+		if (pendingEngine && !pendingEngine.requiresDownload) {
+			return 'loading';
+		}
+		return 'downloading';
+	});
+
 	const downloadGateState = $derived.by((): 'prompt' | 'loading' | 'error' => {
 		if (engines.loadError) {
 			return 'error';
@@ -59,6 +88,11 @@
 	async function handleEngineSelect(id: EngineId) {
 		const option = engines.options.find((entry) => entry.id === id);
 		if (!option?.available) {
+			return;
+		}
+
+		if (id === engines.activeId && engines.state === 'ready') {
+			showEngineMenu = false;
 			return;
 		}
 
@@ -110,11 +144,11 @@
 					game.phase === 'critiquing'}
 				title={engines.switchingLocked
 					? 'Finish the current commission before switching engines'
-					: 'Choose art engine'}
-				aria-label="Art engine"
+					: engineButtonLabel}
+				aria-label={engineButtonLabel}
 				onclick={openEngineMenu}
 			>
-				Art engine
+				{engineButtonLabel}
 			</button>
 
 			<div class="min-w-0 flex-1">
@@ -149,11 +183,26 @@
 					<ClientCard brief={game.currentClient} />
 				{/if}
 				<GeneratingPanel progress={game.generationProgress} stageLabel="Painting" />
-			{:else if game.phase === 'critiquing'}
+			{:else if game.phase === 'critiquing' && game.currentArtwork}
 				{#if game.currentClient}
 					<ClientCard brief={game.currentClient} />
 				{/if}
-				<GeneratingPanel progress={game.generationProgress} stageLabel="Critiquing" />
+				<ArtworkFrame
+					imageUrl={game.currentArtwork.imageUrl}
+					title="Fresh from the easel"
+					alt={game.currentArtwork.playerPrompt}
+					size="full"
+				/>
+				<GeneratingPanel
+					progress={game.generationProgress}
+					stageLabel="Waiting for the commissioner"
+					messages={[
+						'The client stepped out to look at your piece…',
+						'Squinting at it from across the room…',
+						'Comparing it to the brief…',
+						'Drafting something diplomatic to say…'
+					]}
+				/>
 			{:else if game.phase === 'results' && game.currentArtwork && game.currentCritique && game.currentClient}
 				<ResultsPanel
 					artwork={game.currentArtwork}
@@ -212,7 +261,7 @@
 		approxMb={pendingEngine.approxDownloadMb}
 		state={downloadGateState}
 		progress={engines.loadProgress?.fraction ?? 0}
-		stage={engines.loadProgress?.status === 'compiling' ? 'compiling' : 'downloading'}
+		stage={loadStage}
 		detail={engines.loadProgress?.file}
 		errorMessage={engines.loadError}
 		onconfirm={confirmDownload}

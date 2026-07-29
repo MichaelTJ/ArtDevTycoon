@@ -44,8 +44,12 @@ export class JanusWorkerClient {
 	}
 
 	/** Download and compile the model shards in the worker. Safe to call twice. */
-	load(onProgress?: (progress: LoadProgress) => void, signal?: AbortSignal): Promise<void> {
-		return this.enqueue<void>('load', { onLoadProgress: onProgress, signal });
+	load(
+		onProgress?: (progress: LoadProgress) => void,
+		signal?: AbortSignal,
+		fromCache = false
+	): Promise<void> {
+		return this.enqueue<void>('load', { onLoadProgress: onProgress, signal, fromCache });
 	}
 
 	/**
@@ -96,6 +100,7 @@ export class JanusWorkerClient {
 			onLoadProgress?: (progress: LoadProgress) => void;
 			onGenerateProgress?: (fraction: number) => void;
 			signal?: AbortSignal;
+			fromCache?: boolean;
 		}
 	): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
@@ -130,6 +135,7 @@ export class JanusWorkerClient {
 			onLoadProgress?: (progress: LoadProgress) => void;
 			onGenerateProgress?: (fraction: number) => void;
 			signal?: AbortSignal;
+			fromCache?: boolean;
 		}
 	): Promise<T> {
 		if (options.signal?.aborted) {
@@ -157,7 +163,12 @@ export class JanusWorkerClient {
 			options.signal?.addEventListener('abort', abortHandler, { once: true });
 
 			if (kind === 'load') {
-				this.worker.postMessage({ type: 'load', id, engineId: 'janus-webgpu' });
+				this.worker.postMessage({
+					type: 'load',
+					id,
+					engineId: 'janus-webgpu',
+					fromCache: options.fromCache ?? false
+				});
 				return;
 			}
 

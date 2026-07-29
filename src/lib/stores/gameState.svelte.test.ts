@@ -75,6 +75,38 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('briefing');
 	});
 
+	it('shows the artwork before critique finishes', async () => {
+		let resolveCritique: ((draft: CritiqueDraft) => void) | undefined;
+		const critique = vi.fn(
+			() =>
+				new Promise<CritiqueDraft>((resolve) => {
+					resolveCritique = resolve;
+				})
+		);
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+
+		const run = store.createArt();
+
+		await vi.waitFor(() => {
+			expect(store.phase).toBe('critiquing');
+			expect(store.currentArtwork).toEqual(fakeArtwork);
+			expect(resolveCritique).toBeDefined();
+		});
+
+		expect(store.currentCritique).toBeNull();
+
+		resolveCritique!(fakeDraft);
+		await run;
+
+		expect(store.phase).toBe('results');
+		expect(store.currentCritique).not.toBeNull();
+	});
+
 	it('happy path ends in results with artwork and critique', async () => {
 		const store = createStore({
 			generate: vi.fn(async () => fakeArtwork),

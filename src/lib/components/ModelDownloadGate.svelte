@@ -4,7 +4,7 @@
 		approxMb: number;
 		state?: 'prompt' | 'loading' | 'error';
 		progress?: number;
-		stage?: 'downloading' | 'compiling' | 'ready';
+		stage?: 'downloading' | 'loading' | 'compiling' | 'ready';
 		detail?: string | null;
 		errorMessage?: string | null;
 		onconfirm: () => void;
@@ -28,6 +28,16 @@
 
 	const approxGb = $derived((approxMb / 1000).toFixed(1));
 	const progressPercent = $derived(Math.round(progress * 100));
+	const stageLabel = $derived.by(() => {
+		if (stage === 'compiling') {
+			return 'Preparing the model — this can take a few seconds. The progress bar may not move while shaders compile; that is normal.';
+		}
+		if (stage === 'loading') {
+			return 'Loading model into memory…';
+		}
+		return 'Downloading model files…';
+	});
+	const progressAriaLabel = $derived(stage === 'loading' ? 'Load progress' : 'Download progress');
 
 	$effect(() => {
 		primaryButton?.focus();
@@ -66,20 +76,13 @@
 				</button>
 			</div>
 		{:else if gateState === 'loading'}
-			{#if stage === 'compiling'}
-				<p class="mt-3 text-stone-800">
-					Preparing the model — this can take a few seconds. The progress bar may not move while
-					shaders compile; that is normal.
-				</p>
-			{:else}
-				<p class="mt-3 text-stone-800">Downloading model files…</p>
-			{/if}
+			<p class="mt-3 text-stone-800">{stageLabel}</p>
 
 			<progress
 				class="mt-4 h-3 w-full accent-amber-600"
 				value={progress}
 				max={1}
-				aria-label="Download progress"
+				aria-label={progressAriaLabel}
 			></progress>
 			<p class="mt-1 text-sm text-stone-500">{progressPercent}%</p>
 			{#if detail}

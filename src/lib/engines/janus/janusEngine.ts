@@ -94,7 +94,7 @@ export class JanusEngine implements ArtEngine {
 			return { available: false, reason: deviceCheck.reason };
 		}
 
-		const cached = await isModelCached(capability.fp16);
+		const cached = await isModelCached();
 		return {
 			available: true,
 			requiresDownload: !cached,
@@ -110,7 +110,8 @@ export class JanusEngine implements ArtEngine {
 			if (!this.client) {
 				this.client = this.createClient();
 			}
-			await this.client.load(options?.onProgress, options?.signal);
+			const fromCache = await isModelCached();
+			await this.client.load(options?.onProgress, options?.signal, fromCache);
 		} catch (error) {
 			throw toEngineError(error, 'download_failed');
 		}
@@ -219,25 +220,26 @@ export class JanusEngine implements ArtEngine {
 }
 
 /** Best-effort Cache API probe — any failure means treat the model as not cached. */
-export async function isModelCached(fp16: boolean): Promise<boolean> {
+export async function isModelCached(): Promise<boolean> {
 	try {
 		if (typeof caches === 'undefined') {
 			return false;
 		}
 
 		const cache = await caches.open(CACHE_NAME);
-		const keys = await cache.keys();
-		const keyTexts = keys.map((request) => request.url);
+		const keyTexts = (await cache.keys()).map((request) => request.url);
 
-		const shards = fp16 ? FP16_SHARDS : FP32_SHARDS;
-		const expected = [...shards, ...SHARED_ARTIFACTS];
-
-		return expected.every((filename) =>
-			keyTexts.some((url) => url.includes(MODEL_ID) && url.includes(filename))
-		);
+		return isShardSetCached(keyTexts, FP16_SHARDS) || isShardSetCached(keyTexts, FP32_SHARDS);
 	} catch {
 		return false;
 	}
+}
+
+function isShardSetCached(keyTexts: string[], shards: readonly string[]): boolean {
+	const expected = [...shards, ...SHARED_ARTIFACTS];
+	return expected.every((filename) =>
+		keyTexts.some((url) => url.includes(MODEL_ID) && url.includes(filename))
+	);
 }
 
 function fallbackReview(clientName: string, accuracyScore: number, seed: number): string {

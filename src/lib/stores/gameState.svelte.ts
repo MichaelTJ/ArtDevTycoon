@@ -93,7 +93,11 @@ export class GameStore {
 
 		try {
 			const artwork = await this.#engine.generate({ playerPrompt, prompt: builtPrompt });
+			this.currentArtwork = artwork;
 			this.phase = 'critiquing';
+
+			// Let the player see the finished piece before the (often slow) critique begins.
+			await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 			const draft = await this.#engine.critique({
 				brief: client,
@@ -111,7 +115,6 @@ export class GameStore {
 				finalPayout
 			});
 
-			this.currentArtwork = artwork;
 			this.currentCritique = critique;
 			this.phase = 'results';
 		} catch (error) {

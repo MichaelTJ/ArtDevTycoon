@@ -163,7 +163,7 @@ describe('isModelCached', () => {
 	it('returns false when caches API is unavailable', async () => {
 		const original = globalThis.caches;
 		Object.defineProperty(globalThis, 'caches', { value: undefined, configurable: true });
-		await expect(isModelCached(true)).resolves.toBe(false);
+		await expect(isModelCached()).resolves.toBe(false);
 		Object.defineProperty(globalThis, 'caches', { value: original, configurable: true });
 	});
 });

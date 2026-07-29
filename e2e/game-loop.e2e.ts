@@ -67,13 +67,13 @@ test('engine menu is disabled during a commission', async ({ page }) => {
 	await page.getByRole('button', { name: 'Wait for a Client' }).click();
 	await page.getByLabel('Your prompt').fill('a cozy coffee cup on a wooden table');
 
-	const engineButton = page.getByRole('button', { name: 'Art engine' });
+	const engineButton = page.getByRole('button', { name: /Art engine/ });
 	await expect(engineButton).toBeEnabled();
 
 	await Promise.all([
 		page.waitForFunction(() => {
 			const button = document.querySelector(
-				'button[aria-label="Art engine"]'
+				'button[aria-label^="Art engine"]'
 			) as HTMLButtonElement | null;
 			return button?.disabled === true;
 		}),
