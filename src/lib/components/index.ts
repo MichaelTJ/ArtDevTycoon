@@ -1,1 +1,16 @@
 export { default as OperationsPanel } from './OperationsPanel.svelte';
+export { default as Avatar } from './Avatar.svelte';
+export { default as ScoreBadge } from './ScoreBadge.svelte';
+export { default as HudBar } from './HudBar.svelte';
+export { default as ClientCard } from './ClientCard.svelte';
+export { default as PromptComposer } from './PromptComposer.svelte';
+export { default as GeneratingPanel } from './GeneratingPanel.svelte';
+export { default as ArtworkFrame } from './ArtworkFrame.svelte';
+export { default as ResultsPanel } from './ResultsPanel.svelte';
+export { default as PortfolioStrip } from './PortfolioStrip.svelte';
+export { default as ErrorPanel } from './ErrorPanel.svelte';
+export { default as IdlePanel } from './IdlePanel.svelte';
+export { default as LevelCompleteOverlay } from './LevelCompleteOverlay.svelte';
+export { default as CapabilityNotice } from './CapabilityNotice.svelte';
+export { default as EnginePicker } from './EnginePicker.svelte';
+export { default as ModelDownloadGate } from './ModelDownloadGate.svelte';

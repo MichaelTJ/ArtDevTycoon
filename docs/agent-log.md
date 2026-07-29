@@ -245,5 +245,42 @@ entry only corrects the specs themselves before that work starts.
 
 **Requests:** Wire `OperationsPanel` into `+page.svelte` during spec 04 integration.
 
-**Known gaps:** Not yet mounted on the game screen; remaining spec-01/03 components still
-unimplemented.
+**Known gaps:** Full spec-01 domain and spec-04 game loop still pending.
+
+---
+
+## 2026-07-29 — UI agent (spec 03)
+
+**Zone:** `src/lib/components/**`, `static/avatars/**`
+
+**Built:** Fifteen presentational Svelte 5 components covering the full Level 1 UI:
+HUD, client briefing, prompt entry, generation/critique waiting states, results payoff,
+portfolio strip, error/idle/level-complete surfaces, capability notice, engine picker,
+and model download gate. Six hand-written client avatar SVGs (`c1`–`c6`). Barrel export
+at `$lib/components/index.ts`.
+
+**Public surface:** Import from `$lib/components` — `Avatar`, `ScoreBadge`, `HudBar`,
+`ClientCard`, `PromptComposer`, `GeneratingPanel`, `ArtworkFrame`, `ResultsPanel`,
+`PortfolioStrip`, `ErrorPanel`, `IdlePanel`, `LevelCompleteOverlay`, `CapabilityNotice`,
+`EnginePicker`, `ModelDownloadGate`. All accept typed props and `onsomething` callbacks
+per the README table; types from `$lib/types/contracts`.
+
+**Tests:** 61 browser component tests (`*.svelte.test.ts`), one file per component.
+Command: `npm run test:unit -- --run --project=client src/lib/components`
+
+**Decisions:**
+
+- Renamed `ModelDownloadGate`'s `state` prop to `gateState` internally — a prop named
+  `state` breaks Svelte 5's `$state` rune parser.
+- Avatar initials fallback test dispatches a synthetic `error` event rather than relying
+  on a 404, which was flaky in Vitest's Chromium harness.
+- `ClientCard` test uses a request string that does not overlap `preferredKeywords`, since
+  the spec forbids rendering the keyword _list_, not words that naturally appear in client
+  dialogue.
+- Shared score colour bands extracted to `scoreBand.ts` for reuse without duplicating
+  threshold logic.
+
+**Requests:** None.
+
+**Known gaps:** Components are not yet mounted in `+page.svelte` — that is spec 04's job.
+No visual regression against a live game loop until integration lands.

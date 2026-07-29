@@ -1,4 +1,0 @@
-feat(game): add studio operations dashboard preview
-
-Operations search/filter layer and OperationsPanel for early UI preview.
-Full game loop arrives with spec 04 integration.
