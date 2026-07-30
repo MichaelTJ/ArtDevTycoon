@@ -131,11 +131,13 @@ C:/Users/JensenM/Documents/My Apps/adt-wt-ui               agent/ui             
 C:/Users/JensenM/Documents/My Apps/adt-wt-backend          agent/backend             → spec 02
 C:/Users/JensenM/Documents/My Apps/adt-wt-sidecar          agent/sidecar             → spec 05
 C:/Users/JensenM/Documents/My Apps/adt-wt-progression-save agent/progression-save    → spec 12
+C:/Users/JensenM/Documents/My Apps/adt-wt-studio-automation agent/studio-automation → spec 16
 ```
 
 Spec 06 has no worktree yet; create one if and when you get to it. Spec 12 is merged
-into `main`. Progression worktrees: `adt-wt-medium-tiers` (spec 13) is active; create 14–16
-with the `git worktree add` command shown at the top of each spec file when you start them.
+into `main`. Specs 13–15 are merged; Wave B (spec 16) runs in
+`adt-wt-studio-automation`. Create any remaining progression worktrees with the
+`git worktree add` command shown at the top of each spec file when you start them.
 
 Each has `node_modules` junctioned to the main checkout, so `npm run check`, `npm run
 lint` and `npm run test:unit` all work inside a worktree with no extra install. Every

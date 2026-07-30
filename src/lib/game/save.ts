@@ -63,14 +63,25 @@ export function createDefaultSave(startingCash: number, now: () => number = Date
  * missing key, malformed JSON, a schema mismatch, or a `localStorage` throw (Safari
  * private mode, quota errors) — a corrupt save must never block the game from loading.
  */
+/**
+ * Spec 16: a null tick time must never reach `computeIdleEarnings` as a timestamp.
+ * Old saves and brand-new defaults still parse as null; we stamp `now()` here.
+ */
+function withIncomeTickInitialised(data: SaveData, now: () => number): SaveData {
+	if (data.lastIncomeTickAt !== null) return data;
+	return { ...data, lastIncomeTickAt: now() };
+}
+
 export function loadSave(startingCash: number, now: () => number = Date.now): SaveData {
 	try {
 		const raw = localStorage.getItem(SAVE_STORAGE_KEY);
-		if (!raw) return createDefaultSave(startingCash, now);
+		if (!raw) return withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
 		const parsed = saveDataSchema.safeParse(JSON.parse(raw));
-		return parsed.success ? parsed.data : createDefaultSave(startingCash, now);
+		return parsed.success
+			? withIncomeTickInitialised(parsed.data, now)
+			: withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
 	} catch {
-		return createDefaultSave(startingCash, now);
+		return withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
 	}
 }
 

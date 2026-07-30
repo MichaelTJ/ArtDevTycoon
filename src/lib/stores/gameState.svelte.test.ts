@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getMediumTier } from '$lib/data/mediumTiers';
 import { EngineError } from '$lib/engines/errors';
 import { calculatePayout, createDefaultSave, scorePrompt, type SaveData } from '$lib/game';
+import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
 import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
 import { GameStore } from './gameState.svelte';
 
@@ -38,6 +39,7 @@ function createStore(
 			reservePrice: number,
 			random?: () => number
 		) => { bidderCount: number; bids: number[]; winningBid: number };
+		tickIntervalMs?: number;
 	}
 ) {
 	const now = options?.now ?? (() => 1_000);
@@ -49,7 +51,8 @@ function createStore(
 		loadSave: options?.loadSave ?? ((startingCash) => createDefaultSave(startingCash, now)),
 		persistSave: options?.persistSave ?? (() => {}),
 		clearSave: options?.clearSave ?? (() => {}),
-		resolveAuction: options?.resolveAuction
+		resolveAuction: options?.resolveAuction,
+		tickIntervalMs: options?.tickIntervalMs
 	});
 }
 
@@ -845,8 +848,193 @@ describe('GameStore', () => {
 
 		await store.createArt();
 
-		// accuracy 10, creativity from scorePrompt on that prompt is 2 ΓåÆ quality 0.76
-		// 100 * 0.76 * 1.05 = 79.8 ΓåÆ 80
+		// accuracy 10, creativity from scorePrompt on that prompt is 2 → quality 0.76
+		// 100 * 0.76 * 1.05 = 79.8 → 80
 		expect(store.currentCritique?.finalPayout).toBe(80);
 	});
+
+	it('hireStaff deducts cash, raises incomePerSecond, and persists', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.cash = 800;
+		store.reputation = 8;
+
+		expect(store.hireStaff('apprentice')).toBe(true);
+		expect(store.cash).toBe(0);
+		expect(store.hiredStaffIds).toEqual(['apprentice']);
+		expect(store.incomePerSecond).toBe(0.05);
+		expect(persistSave).toHaveBeenCalledOnce();
+	});
+
+	it('hireStaff refuses a second hire of the same role', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.cash = 2000;
+		store.reputation = 8;
+
+		expect(store.hireStaff('apprentice')).toBe(true);
+		persistSave.mockClear();
+		expect(store.hireStaff('apprentice')).toBe(false);
+		expect(store.cash).toBe(1200);
+		expect(persistSave).not.toHaveBeenCalled();
+	});
+
+	it('startIncomeTicker catch-up sets cash and idleEarningsToShow', () => {
+		const nowMs = 100_000;
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{
+				now: () => nowMs,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => nowMs),
+					cash: 100,
+					hiredStaffIds: ['apprentice'],
+					lastIncomeTickAt: 40_000
+				})
+			}
+		);
+
+		const expected = computeIdleEarnings(40_000, 100_000, 0.05);
+		const cleanup = store.startIncomeTicker();
+		expect(expected.earned).toBe(3);
+		expect(store.cash).toBe(103);
+		expect(store.idleEarningsToShow).toBe(3);
+		cleanup();
+	});
+
+	it('startIncomeTicker with no income roles leaves cash and modal unset', () => {
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{
+				now: () => 100_000,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 100_000),
+					cash: 100,
+					hiredStaffIds: [],
+					lastIncomeTickAt: 40_000
+				})
+			}
+		);
+
+		const cleanup = store.startIncomeTicker();
+		expect(store.cash).toBe(100);
+		expect(store.idleEarningsToShow).toBeNull();
+		cleanup();
+	});
+
+	it('marketing director auto-invites after BASE_AUTO_INVITE_DELAY_MS / 3', () => {
+		vi.useFakeTimers();
+		try {
+			const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+			store.cash = 2200;
+			store.reputation = 14;
+			expect(store.hireStaff('marketing-director')).toBe(true);
+			expect(store.phase).toBe('idle');
+
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS / 3);
+			expect(store.phase).toBe('briefing');
+			expect(store.currentClient).not.toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('without marketing director, advancing timers does not auto-invite', () => {
+		vi.useFakeTimers();
+		try {
+			const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+			expect(store.phase).toBe('idle');
+
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS);
+			expect(store.phase).toBe('idle');
+			expect(store.currentClient).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('curator orders displayedGalleryEntries by score descending', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 3000;
+		store.reputation = 18;
+		store.galleryHistory = [
+			{
+				id: 'recent-low',
+				imageUrl: '/a.png',
+				title: 'A',
+				payout: 10,
+				score: 4,
+				clientName: 'C',
+				briefId: 'c1',
+				completedAt: 900
+			},
+			{
+				id: 'older-high',
+				imageUrl: '/b.png',
+				title: 'B',
+				payout: 10,
+				score: 9,
+				clientName: 'C',
+				briefId: 'c2',
+				completedAt: 100
+			},
+			{
+				id: 'mid',
+				imageUrl: '/c.png',
+				title: 'C',
+				payout: 10,
+				score: 7,
+				clientName: 'C',
+				briefId: 'c3',
+				completedAt: 500
+			}
+		];
+
+		expect(store.displayedGalleryEntries.map((e) => e.id)).toEqual([
+			'recent-low',
+			'mid',
+			'older-high'
+		]);
+
+		expect(store.hireStaff('curator')).toBe(true);
+		expect(store.displayedGalleryEntries.map((e) => e.id)).toEqual([
+			'older-high',
+			'mid',
+			'recent-low'
+		]);
+		expect(store.activeLayoutId).toBe('cluttered');
+	});
+
+	it('curator uses best owned layout for presentationMultiplier without mutating activeLayoutId', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 10_000;
+		store.reputation = 18;
+		store.unlockLayout('tidy-rows');
+		store.setActiveLayout('cluttered');
+		expect(store.activeLayoutId).toBe('cluttered');
+		expect(store.presentationMultiplier).toBe(1);
+
+		expect(store.hireStaff('curator')).toBe(true);
+		expect(store.activeLayoutId).toBe('cluttered');
+		expect(store.effectiveLayoutId).toBe('tidy-rows');
+		expect(store.presentationMultiplier).toBeCloseTo(1.05, 5);
+	});
+
+	it('reset clears hired staff and idle earnings', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 800;
+		store.reputation = 8;
+		store.hireStaff('apprentice');
+		store.idleEarningsToShow = 12;
+
+		store.reset();
+
+		expect(store.hiredStaffIds).toEqual([]);
+		expect(store.incomePerSecond).toBe(0);
+		expect(store.idleEarningsToShow).toBeNull();
+	});
+});
+
+afterEach(() => {
+	vi.useRealTimers();
 });

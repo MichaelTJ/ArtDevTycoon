@@ -21,7 +21,8 @@
 		onselect
 	}: Props = $props();
 
-	const sortedEntries = $derived([...entries].sort((a, b) => b.completedAt - a.completedAt));
+	/** Preserve caller order (store already curator- or recency-sorted). */
+	const displayEntries = $derived(entries);
 
 	/** Messy fridge tilt for cluttered/rows; nicer layouts hang straight. */
 	const tiltEnabled = $derived(
@@ -39,11 +40,11 @@
 	class="fridge-door rounded-3xl border-4 border-stone-200 bg-white/90 p-4 shadow-inner"
 >
 	<div class="mb-2 h-2 w-full rounded bg-stone-100" aria-hidden="true"></div>
-	{#if sortedEntries.length === 0}
+	{#if displayEntries.length === 0}
 		<p class="text-stone-500">{emptyMessage}</p>
 	{:else}
 		<ul class="gallery-strip flex gap-4 overflow-x-auto pb-2 {layoutClassName}">
-			{#each sortedEntries as entry, i (entry.id)}
+			{#each displayEntries as entry, i (entry.id)}
 				<li
 					class="min-w-[7rem] shrink-0"
 					animate:flip={{ duration: prefersReducedMotion.current ? 0 : 300 }}

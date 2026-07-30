@@ -30,16 +30,19 @@ Import everything from `$lib/components` (barrel `index.ts`):
 | `ModelDownloadGate`    | `engineName`, `approxMb`, `state?`, `progress?`, `stage?`, `detail?`, `errorMessage?`                            | `onconfirm()`, `oncancel()`                                                   |
 | `ToolkitShop`          | `tiers: MediumTier[]`, `unlockedTierIds`, `activeTierId`, `cash`, `reputation`                                   | `onunlock(id)`, `onselect(id)`, `onclose()`                                   |
 | `GalleryUpgradeShop`   | `venues`/`layouts`/`atmosphereItems`, unlock/active/owned ids, `cash`, `reputation`                              | `onunlockvenue`/`onunlocklayout`/`onselectlayout`/`onbuyatmosphere`/`onclose` |
+| `StaffOffice`          | `roles: StaffRole[]`, `hiredIds`, `cash`, `reputation`                                                           | `onhire(id)`, `onclose()`                                                     |
+| `IdleEarningsModal`    | `amount`                                                                                                         | `ondismiss()`                                                                 |
 | `GameMenuBar`          | `cash`, `levelName`, progress fields, `engineButtonLabel`, `engineMenuTitle`, `engineMenuDisabled`               | `onopenenginemenu()`                                                          |
 | `GameScene`            | `environment`, `galleryEntries`, `galleryLayoutClassName?`                                                       | `onselectentry(entry)`                                                        |
 | `WorkspaceZone`        | `label`, `children` snippet                                                                                      | —                                                                             |
-| `FridgeGallery`        | `entries`, `label?`, `emptyMessage?`, `layoutClassName?`                                                         | `onselect(entry)`                                                             |
+| `FridgeGallery`        | `entries` (order preserved), `label?`, `emptyMessage?`, `layoutClassName?`                                       | `onselect(entry)`                                                             |
 | `ArtworkFullView`      | `entry: GalleryEntry`                                                                                            | `onclose()`                                                                   |
 
 Types (`ClientBrief`, `Artwork`, `Critique`, `GalleryEntry`, `EngineOption`) come from
 `$lib/types/contracts`. Operations types come from `$lib/game/operations`. Medium tiers
 come from `$lib/data/mediumTiers`. Gallery venue/layout/atmosphere data come from
-`$lib/data/galleryVenues`, `galleryLayouts`, and `galleryAtmosphere`.
+`$lib/data/galleryVenues`, `galleryLayouts`, and `galleryAtmosphere`. Staff roles come
+from `$lib/data/staffRoles`.
 
 ### `ToolkitShop`
 
@@ -55,6 +58,19 @@ Presentational overlay for venue / layout / atmosphere purchases (spec 14). Thre
 with `role="tab"` / `aria-selected`. `GameMenuBar` mounts it the same way as
 `ToolkitShop` and wires callbacks to `game.unlockVenue` / `unlockLayout` /
 `setActiveLayout` / `buyAtmosphereItem`.
+
+### `StaffOffice`
+
+Presentational hire shop for spec 16 staff roles (Apprentice, Print Shop, Marketing
+Director, Curator). Hired / not-hired cards only — no firing or switching. Shows
+`$X/min` passive income and short tags for auto-invite / auto-curate. `GameMenuBar`
+hosts it alongside the other shops.
+
+### `IdleEarningsModal`
+
+One-shot overlay shown when `game.idleEarningsToShow` is truthy after
+`startIncomeTicker()` catch-up. Copy reports the earned amount; **Collect** calls
+`ondismiss`, which clears the flag so it cannot reappear until the next catch-up.
 
 ### `OperationsPanel`
 
@@ -90,10 +106,12 @@ npm run test:unit -- --run --project=client src/lib/components
 ## Deliberately not done
 
 - No wiring to game stores inside presentational components — except `GameMenuBar`, which
-  hosts the toolkit and gallery upgrade overlays during progression specs.
+  hosts the toolkit, gallery upgrade, and staff office overlays during progression specs.
 - No engine loading logic — `EnginePicker` and `ModelDownloadGate` are display-only.
-- `ToolkitShop` / `GalleryUpgradeShop` are display-only; unlock persistence lives in
-  `GameStore`.
+- `ToolkitShop` / `GalleryUpgradeShop` / `StaffOffice` / `IdleEarningsModal` are
+  display-only; hire/tick persistence lives in `GameStore`.
+- `FridgeGallery` preserves the entry order passed in (curator- or recency-sorted by the
+  store); it does not re-sort by `completedAt`.
 - No Level 2 UI gameplay (commercial gallery, reputation display). `SceneComingSoon`
   renders placeholder copy for levels 2–4 environments.
 - `PortfolioStrip` is retained but unmounted; the fridge gallery replaces it in the

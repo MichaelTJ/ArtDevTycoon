@@ -39,7 +39,6 @@ describe('save', () => {
 		const now = () => 1_700_000_000_000;
 		const loaded = loadSave(100, now);
 
-		expect(loaded).toEqual(createDefaultSave(100, now));
 		expect(loaded.cash).toBe(100);
 		expect(loaded.reputation).toBe(0);
 		expect(loaded.lifetimeCommissions).toBe(0);
@@ -47,10 +46,11 @@ describe('save', () => {
 		expect(loaded.unlockedMediumTierIds).toEqual(['crayon']);
 		expect(loaded.seriesOnBrandFlags).toEqual({});
 		expect(loaded.hiredStaffIds).toEqual([]);
-		expect(loaded.lastIncomeTickAt).toBeNull();
+		expect(loaded.lastIncomeTickAt).toBe(1_700_000_000_000);
+		expect(loaded.savedAt).toBe(1_700_000_000_000);
 	});
 
-	it('returns a valid stored blob unchanged', () => {
+	it('initialises null lastIncomeTickAt to now on load', () => {
 		const saved: SaveData = {
 			version: CURRENT_SAVE_VERSION,
 			cash: 340,
@@ -82,7 +82,21 @@ describe('save', () => {
 		};
 		persistSave(saved);
 
-		expect(loadSave(100, () => 0)).toEqual(saved);
+		expect(loadSave(100, () => 42)).toEqual({ ...saved, lastIncomeTickAt: 42 });
+	});
+
+	it('preserves a concrete lastIncomeTickAt on load', () => {
+		const saved: SaveData = {
+			...createDefaultSave(100, () => 1),
+			cash: 200,
+			hiredStaffIds: ['apprentice'],
+			lastIncomeTickAt: 99,
+			savedAt: 1
+		};
+		persistSave(saved);
+
+		expect(loadSave(100, () => 0).lastIncomeTickAt).toBe(99);
+		expect(loadSave(100, () => 0).hiredStaffIds).toEqual(['apprentice']);
 	});
 
 	it('fills Zod defaults for missing optional progression fields', () => {
@@ -100,7 +114,7 @@ describe('save', () => {
 			})
 		);
 
-		const loaded = loadSave(100, () => 0);
+		const loaded = loadSave(100, () => 55);
 
 		expect(loaded.hiredStaffIds).toEqual([]);
 		expect(loaded.unlockedMediumTierIds).toEqual(['crayon']);
@@ -111,7 +125,7 @@ describe('save', () => {
 		expect(loaded.ownedAtmosphereIds).toEqual([]);
 		expect(loaded.unlockedClientTiers).toEqual(['walk-in']);
 		expect(loaded.seriesOnBrandFlags).toEqual({});
-		expect(loaded.lastIncomeTickAt).toBeNull();
+		expect(loaded.lastIncomeTickAt).toBe(55);
 		expect(loaded.cash).toBe(200);
 	});
 
@@ -121,6 +135,7 @@ describe('save', () => {
 		expect(() => loadSave(100, () => 42)).not.toThrow();
 		expect(loadSave(100, () => 42).cash).toBe(100);
 		expect(loadSave(100, () => 42).savedAt).toBe(42);
+		expect(loadSave(100, () => 42).lastIncomeTickAt).toBe(42);
 	});
 
 	it('falls back to default on malformed JSON', () => {
@@ -129,7 +144,10 @@ describe('save', () => {
 		storage.setItem(SAVE_STORAGE_KEY, '{not-json');
 
 		expect(() => loadSave(100, () => 7)).not.toThrow();
-		expect(loadSave(100, () => 7)).toEqual(createDefaultSave(100, () => 7));
+		const loaded = loadSave(100, () => 7);
+		expect(loaded.cash).toBe(100);
+		expect(loaded.savedAt).toBe(7);
+		expect(loaded.lastIncomeTickAt).toBe(7);
 	});
 
 	it('round-trips persistSave then loadSave', () => {
@@ -137,6 +155,7 @@ describe('save', () => {
 		data.cash = 275;
 		data.reputation = 4;
 		data.lifetimeCommissions = 2;
+		data.lastIncomeTickAt = 55;
 		persistSave(data);
 
 		expect(loadSave(100, () => 0)).toEqual(data);
@@ -155,5 +174,6 @@ describe('save', () => {
 
 		expect(loadSave(100, () => 2).cash).toBe(100);
 		expect(loadSave(100, () => 2).savedAt).toBe(2);
+		expect(loadSave(100, () => 2).lastIncomeTickAt).toBe(2);
 	});
 });
