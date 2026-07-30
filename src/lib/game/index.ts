@@ -16,3 +16,13 @@ export {
 	type OperationsQuery,
 	type OperationsSummary
 } from './operations';
+export {
+	SAVE_STORAGE_KEY,
+	CURRENT_SAVE_VERSION,
+	saveDataSchema,
+	createDefaultSave,
+	loadSave,
+	persistSave,
+	clearSave,
+	type SaveData
+} from './save';

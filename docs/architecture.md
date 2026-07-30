@@ -81,11 +81,15 @@ engine, the abstraction has leaked.
 
 **What persists across a reload and what doesn't, deliberately:** the engine choice
 (`localStorage`) and the downloaded model weights (Cache API) persist, because losing
-either means re-downloading a gigabyte. `GameState` — cash, gallery, the current
-commission — does **not** persist. Level 1 starts fresh every session by design; it
-is a short, self-contained loop, and re-testing it from a clean slate is more valuable
-right now than carrying progress between visits. Do not add `GameState` persistence
-without an explicit product decision to do so — it is not an oversight.
+either means re-downloading a gigabyte. `GameState` used to be fully session-only by design. Spec 12
+(`docs/tasks/12-progression-persistence.md`) narrowed that: `cash`, `reputation`,
+lifetime commission count and `galleryHistory`, plus every progression unlock from specs
+13-16, now persist to `localStorage` under `adt.save.v1` and survive a reload. The
+in-flight commission — `phase`, the current client/artwork/critique, the draft prompt —
+still does not persist; a reload always lands back on `idle`. The reasoning that made
+session-only state the right call for a five-commission Level-1 loop does not extend to
+permanent purchases, and losing a half-typed prompt on refresh is an acceptable, honest
+trade against silently erasing $5,000 of banked upgrades.
 
 ### Why Janus does both jobs
 

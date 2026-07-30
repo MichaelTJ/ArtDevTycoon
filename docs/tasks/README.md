@@ -1,8 +1,12 @@
 # Task Specs — how to run the build
 
-Six self-contained specs. Each is written so an implementing agent needs **no other
+Self-contained specs. Each is written so an implementing agent needs **no other
 context**: exact file paths, exact signatures, exact algorithms with worked examples,
 and a test table with literal expected values.
+
+Specs 01-07 built the Level 1 loop (see "The specs" below). Specs 12-16 are the next
+wave: **game progression** on top of that loop — mediums, gallery upgrades, client
+tiers, and staffing/automation. See "Progression specs" further down.
 
 These are aimed at fast, cheap models. That drives the writing style: nothing is left
 as "use your judgement", every formula is given in code, and every test case states the
@@ -13,14 +17,28 @@ picks one.
 
 ## The specs
 
-| #   | Spec                                          | Owns                                                                                  | Depends on |
-| --- | --------------------------------------------- | ------------------------------------------------------------------------------------- | ---------- |
-| 01  | [Domain layer](./01-domain.md)                | `src/lib/game/**`, `src/lib/data/**`                                                  | nothing    |
-| 02  | [Engine layer](./02-engine-layer.md)          | `src/lib/engines/*.ts`, `src/lib/engines/mock/**`                                     | 01         |
-| 03  | [UI component library](./03-ui-components.md) | `src/lib/components/**`, `static/avatars/**`                                          | nothing    |
-| 04  | [Integration](./04-integration.md)            | `src/lib/stores/**`, `src/routes/+page.svelte`, `src/routes/+layout.svelte`, `e2e/**` | 01, 02, 03 |
-| 05  | [Janus WebGPU engine](./05-janus-engine.md)   | `src/lib/engines/janus/**`                                                            | 02         |
-| 06  | [SD-Turbo engine](./06-sdturbo-engine.md)     | `src/lib/engines/sdturbo/**`                                                          | 02, 05     |
+| #   | Spec                                                | Owns                                                                                    | Depends on |
+| --- | --------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------- |
+| 01  | [Domain layer](./01-domain.md)                      | `src/lib/game/**`, `src/lib/data/**`                                                    | nothing    |
+| 02  | [Engine layer](./02-engine-layer.md)                | `src/lib/engines/*.ts`, `src/lib/engines/mock/**`                                       | 01         |
+| 03  | [UI component library](./03-ui-components.md)       | `src/lib/components/**`, `static/avatars/**`                                            | nothing    |
+| 04  | [Integration](./04-integration.md)                  | `src/lib/stores/**`, `src/routes/+page.svelte`, `src/routes/+layout.svelte`, `e2e/**`   | 01, 02, 03 |
+| 05  | [Janus WebGPU engine](./05-janus-engine.md)         | `src/lib/engines/janus/**`                                                              | 02         |
+| 06  | [SD-Turbo engine](./06-sdturbo-engine.md)           | `src/lib/engines/sdturbo/**`                                                            | 02, 05     |
+| 07  | [ComfyUI + Janus remote engine](./07-api-engine.md) | `src/lib/engines/remote/**`, `static/comfyui/**`, plus registry, manager, store, picker | 02, 03, 04 |
+
+### Future specs (stubs — not ready to implement)
+
+These are placeholders. A fuller spec will replace each file before an agent runs it. All
+multi-provider paths assume **two model fields**: **generation model** + **critique model**
+(spec 07 uses one Janus model for both via ComfyUI).
+
+| #   | Stub                                       | Topic                                                |
+| --- | ------------------------------------------ | ---------------------------------------------------- |
+| 08  | [Local providers](./08-local-providers.md) | Ollama, LM Studio, ComfyUI+SD, A1111 — split models  |
+| 09  | [BYO API](./09-byo-api.md)                 | OpenRouter, OpenAI — API key + split models          |
+| 10  | [ADT Cloud](./10-adt-cloud.md)             | Hosted service, accounts, credits                    |
+| 11  | [BAGEL sketch](./11-bagel-sketch.md)       | Draw sketch → BAGEL refine + separate critique model |
 
 ## Execution order
 
@@ -38,7 +56,16 @@ Wave 3  (after 01, 02, 03 are merged — run both at once)
 
 Wave 4  (optional, after 05 is merged)
    └── 06 SD-Turbo        → worktree ../adt-wt-sdturbo   branch agent/sdturbo
+
+Wave 5  (optional, any time after wave 3 — no dependency on 05 or 06)
+   └── 07 ComfyUI + Janus  → worktree ../adt-wt-remote    branch agent/remote
 ```
+
+Spec 07 connects to **Janus-Pro running in the player's local ComfyUI** (checked-in workflow
+JSON + `/prompt` API). It does not need the in-browser Janus or SD-Turbo engines merged, but it
+does need the engine manager (02) and picker UI (03, 04). Do not run it concurrently with another
+agent touching `src/lib/engines/registry.ts`, `src/lib/engines/manager.ts`,
+`src/lib/stores/engineStore.svelte.ts`, or `src/lib/components/EnginePicker.svelte`.
 
 The waves are ordered so the game is **playable and shippable at the end of wave 3**,
 on the mock engine, with real AI arriving as an enhancement rather than a prerequisite.
@@ -48,17 +75,59 @@ That ordering is deliberate: it means a failure in the hardest, least predictabl
 Spec 02 leaves stub files at the two real-engine paths so `main` always compiles, which
 is what lets 04 and 05 run concurrently.
 
+## Progression specs (12-16)
+
+Once the mock-engine loop from specs 01-04 is playable, `docs/architecture.md` §9
+deliberately deferred everything that makes a _tycoon_ game feel like one: upgrades,
+staff, gallery customisation, extra mediums, and richer clients. These five specs build
+that layer. They do not depend on specs 05-11 (real AI engines) at all — they build on
+top of whichever engine (`mock` or real) happens to be active, exactly like specs 03/04 do.
+
+| #   | Spec                                                       | Owns (new)                                                                                                | Depends on                |
+| --- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------- |
+| 12  | [Progression persistence](./12-progression-persistence.md) | `src/lib/game/save.ts`                                                                                    | 01-04                     |
+| 13  | [Medium & material tiers](./13-medium-tiers.md)            | `src/lib/data/mediumTiers.ts`, `ToolkitShop.svelte`                                                       | 12                        |
+| 14  | [Gallery real estate](./14-gallery-real-estate.md)         | `src/lib/data/galleryVenues.ts`, `galleryLayouts.ts`, `galleryAtmosphere.ts`, `GalleryUpgradeShop.svelte` | 12 (parallel with 13)     |
+| 15  | [Client prestige & demographics](./15-client-prestige.md)  | `src/lib/data/clientTiers.ts` + 3 brief pools, `src/lib/game/auction.ts`, `paletteSeries.ts`              | 12 (parallel with 13, 14) |
+| 16  | [Studio automation & staffing](./16-studio-automation.md)  | `src/lib/data/staffRoles.ts`, `src/lib/game/idleIncome.ts`, `StaffOffice.svelte`                          | 12, 13, 14, 15            |
+
+```
+Wave A  (after 12 is merged — run 13, 14, 15 concurrently, each in its own worktree)
+   ├── 13 Medium tiers        → worktree ../adt-wt-medium-tiers        branch agent/medium-tiers
+   ├── 14 Gallery real estate → worktree ../adt-wt-gallery-real-estate branch agent/gallery-real-estate
+   └── 15 Client prestige     → worktree ../adt-wt-client-prestige     branch agent/client-prestige
+
+Wave B  (after 13, 14, 15 are all merged)
+   └── 16 Studio automation   → worktree ../adt-wt-studio-automation   branch agent/studio-automation
+```
+
+13, 14 and 15 all touch `src/lib/game/scoring.ts` (a `multiplier` parameter on
+`calculatePayout`) and `src/lib/stores/gameState.svelte.ts`. Each spec's edits there are
+small and additive (a new parameter, a few new fields), but merge them one at a time and
+re-run `npm run check`/`test:unit` after each merge rather than merging all three at once
+— the same discipline as any wave-1 pair in the section above. 15 is also the only
+progression spec allowed to touch `src/lib/types/contracts.ts` (an additive extension to
+`clientBriefSchema`); do not run it concurrently with any other agent editing that file.
+
+16 depends on all three because it automates things they each own: the Apprentice's
+income needs spec 13's medium concept to make sense narratively (no code dependency), the
+Curator reorders spec 14's gallery display, and the roster only becomes fully visible once
+spec 15's client tiers exist. Do not start 16 until 13, 14 and 15 are all on `main`.
+
 ## Worktrees are already set up
 
 ```
-C:/Users/JensenM/Documents/My Apps/Art Dev Tycoon   main            → spec 04
-C:/Users/JensenM/Documents/My Apps/adt-wt-domain    agent/domain    → spec 01
-C:/Users/JensenM/Documents/My Apps/adt-wt-ui        agent/ui        → spec 03
-C:/Users/JensenM/Documents/My Apps/adt-wt-backend   agent/backend   → spec 02
-C:/Users/JensenM/Documents/My Apps/adt-wt-sidecar   agent/sidecar   → spec 05
+C:/Users/JensenM/Documents/My Apps/Art Dev Tycoon          main                      → specs 01-05 merged
+C:/Users/JensenM/Documents/My Apps/adt-wt-domain           agent/domain              → spec 01
+C:/Users/JensenM/Documents/My Apps/adt-wt-ui               agent/ui                  → spec 03
+C:/Users/JensenM/Documents/My Apps/adt-wt-backend          agent/backend             → spec 02
+C:/Users/JensenM/Documents/My Apps/adt-wt-sidecar          agent/sidecar             → spec 05
+C:/Users/JensenM/Documents/My Apps/adt-wt-progression-save agent/progression-save    → spec 12
 ```
 
-Spec 06 has no worktree yet; create one if and when you get to it.
+Spec 06 has no worktree yet; create one if and when you get to it. Progression
+worktrees 13-16 do not exist yet — create each with the `git worktree add` command
+shown at the top of its spec file when you start it.
 
 Each has `node_modules` junctioned to the main checkout, so `npm run check`, `npm run
 lint` and `npm run test:unit` all work inside a worktree with no extra install. Every
