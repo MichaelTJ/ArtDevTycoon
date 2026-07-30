@@ -16,7 +16,8 @@ function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
 }
 
-function keywordMatches(keyword: string, promptStems: Set<string>): boolean {
+/** Fuzzy keyword match used by `scorePrompt` and corporate palette checks. */
+export function keywordMatches(keyword: string, promptStems: Set<string>): boolean {
 	const keywordTokens = normalize(keyword);
 	return keywordTokens.every((kt) => {
 		const ks = stem(kt);

@@ -1,3 +1,5 @@
+import { unlockedClientTiers } from '$lib/data/clientTiers';
+import { CORPORATE_BRIEFS } from '$lib/data/corporateBriefs';
 import { canUnlockMediumTier, DEFAULT_MEDIUM_TIER_ID, getMediumTier } from '$lib/data/mediumTiers';
 import { pickBrief } from '$lib/data/briefs';
 import { getAtmosphereItem, totalAtmosphereBonus } from '$lib/data/galleryAtmosphere';
@@ -29,6 +31,12 @@ import {
 	toGalleryScore,
 	type SaveData
 } from '$lib/game';
+import { resolveAuction, type AuctionResult } from '$lib/game/auction';
+import {
+	checkPaletteUsage,
+	fullyCompletedSeriesIds,
+	seriesCompletionBonus
+} from '$lib/game/paletteSeries';
 import {
 	LEVEL_1,
 	critiqueSchema,
@@ -48,6 +56,12 @@ export interface GameStoreDeps {
 	loadSave?: (startingCash: number, now?: () => number) => SaveData;
 	persistSave?: (data: SaveData) => void;
 	clearSave?: () => void;
+	/** Injectable so auction payout tests stay deterministic. */
+	resolveAuction?: typeof resolveAuction;
+}
+
+function briefTier(brief: ClientBrief) {
+	return brief.tier ?? 'walk-in';
 }
 
 /** Drives the Level 1 commission loop and gallery state. */
@@ -57,10 +71,16 @@ export class GameStore {
 	reputation = $state(0);
 	commissionsCompleted = $state(0);
 	currentClient = $state<ClientBrief | null>(null);
+	/** Populated only in the `results` phase. */
 	currentArtwork = $state<Artwork | null>(null);
 	currentCritique = $state<Critique | null>(null);
+	/** Set when the current results payout came from an auction. */
+	currentAuctionResult = $state<AuctionResult | null>(null);
+	/** Player-facing message for the `failed` phase. */
 	errorMessage = $state<string | null>(null);
 	galleryHistory = $state<GalleryEntry[]>([]);
+	/** Corporate seriesId → on-brand flags for pieces collected so far. */
+	seriesOnBrandFlags = $state<Record<string, boolean[]>>({});
 	draftPrompt = $state('');
 	generationProgress = $state<number | null>(null);
 	unlockedMediumTierIds = $state<string[]>([DEFAULT_MEDIUM_TIER_ID]);
@@ -104,6 +124,7 @@ export class GameStore {
 	readonly #loadSave: (startingCash: number, now?: () => number) => SaveData;
 	readonly #persistSave: (data: SaveData) => void;
 	readonly #clearSave: () => void;
+	readonly #resolveAuction: typeof resolveAuction;
 
 	constructor(deps?: GameStoreDeps) {
 		this.#engine = deps?.engine ?? engines.manager;
@@ -113,12 +134,14 @@ export class GameStore {
 		this.#loadSave = deps?.loadSave ?? defaultLoadSave;
 		this.#persistSave = deps?.persistSave ?? defaultPersistSave;
 		this.#clearSave = deps?.clearSave ?? defaultClearSave;
+		this.#resolveAuction = deps?.resolveAuction ?? resolveAuction;
 
 		const save = this.#loadSave(LEVEL_1.startingCash, this.#now);
 		this.cash = save.cash;
 		this.reputation = save.reputation;
 		this.commissionsCompleted = save.lifetimeCommissions;
 		this.galleryHistory = [...save.galleryHistory];
+		this.seriesOnBrandFlags = { ...save.seriesOnBrandFlags };
 		this.unlockedMediumTierIds = [...save.unlockedMediumTierIds];
 		this.activeMediumTierId = save.activeMediumTierId;
 		this.unlockedVenueId = save.unlockedVenueId;
@@ -132,12 +155,16 @@ export class GameStore {
 			return;
 		}
 
+		const excludeIds = this.galleryHistory.map((entry) => entry.briefId);
 		this.currentClient = pickBrief({
-			excludeIds: this.galleryHistory.map((entry) => entry.briefId),
+			excludeIds,
+			unlockedTiers: unlockedClientTiers(this.reputation),
+			completedSeriesIds: fullyCompletedSeriesIds(excludeIds, CORPORATE_BRIEFS),
 			random: this.#random
 		});
 		this.currentArtwork = null;
 		this.currentCritique = null;
+		this.currentAuctionResult = null;
 		this.errorMessage = null;
 		this.draftPrompt = '';
 		this.phase = 'briefing';
@@ -155,6 +182,7 @@ export class GameStore {
 		this.phase = 'generating';
 		this.errorMessage = null;
 		this.generationProgress = null;
+		this.currentAuctionResult = null;
 		this.#setSwitchingLocked(true);
 
 		// Yield so the UI can paint the generating state before instant mock work finishes.
@@ -175,12 +203,36 @@ export class GameStore {
 			});
 
 			const { creativityScore } = scorePrompt(client, playerPrompt);
-			const finalPayout = calculatePayout(
-				client,
-				draft.accuracyScore,
-				creativityScore,
-				this.presentationMultiplier
-			);
+			const tier = briefTier(client);
+			let finalPayout: number;
+			let auctionResult: AuctionResult | null = null;
+
+			if (tier === 'auction-house') {
+				auctionResult = this.#resolveAuction(
+					toGalleryScore(draft.accuracyScore, creativityScore),
+					client.budget,
+					this.#random
+				);
+				finalPayout = auctionResult.winningBid;
+			} else {
+				finalPayout = calculatePayout(
+					client,
+					draft.accuracyScore,
+					creativityScore,
+					this.presentationMultiplier
+				);
+				if (
+					tier === 'corporate' &&
+					client.seriesPosition === 3 &&
+					client.seriesId &&
+					client.paletteConstraint
+				) {
+					const prior = this.seriesOnBrandFlags[client.seriesId] ?? [];
+					const currentOnBrand = checkPaletteUsage(playerPrompt, client.paletteConstraint).onBrand;
+					finalPayout += seriesCompletionBonus([...prior, currentOnBrand]);
+				}
+			}
+
 			const critique = critiqueSchema.parse({
 				title: draft.title,
 				accuracyScore: draft.accuracyScore,
@@ -190,6 +242,7 @@ export class GameStore {
 			});
 
 			this.currentCritique = critique;
+			this.currentAuctionResult = auctionResult;
 			this.phase = 'results';
 		} catch (error) {
 			this.errorMessage =
@@ -240,6 +293,20 @@ export class GameStore {
 		const critique = this.currentCritique;
 		const client = this.currentClient;
 
+		if (
+			briefTier(client) === 'corporate' &&
+			client.seriesId &&
+			client.paletteConstraint &&
+			artwork.playerPrompt !== undefined
+		) {
+			const onBrand = checkPaletteUsage(artwork.playerPrompt, client.paletteConstraint).onBrand;
+			const existing = this.seriesOnBrandFlags[client.seriesId] ?? [];
+			this.seriesOnBrandFlags = {
+				...this.seriesOnBrandFlags,
+				[client.seriesId]: [...existing, onBrand]
+			};
+		}
+
 		this.cash += critique.finalPayout;
 		this.reputation += reputationGain(critique.accuracyScore, critique.creativityScore);
 		this.commissionsCompleted += 1;
@@ -259,6 +326,7 @@ export class GameStore {
 		this.currentArtwork = null;
 		this.currentCritique = null;
 		this.currentClient = null;
+		this.currentAuctionResult = null;
 
 		this.phase = isLevelComplete({
 			cash: this.cash,
@@ -347,8 +415,10 @@ export class GameStore {
 		this.currentClient = null;
 		this.currentArtwork = null;
 		this.currentCritique = null;
+		this.currentAuctionResult = null;
 		this.errorMessage = null;
 		this.galleryHistory = [];
+		this.seriesOnBrandFlags = {};
 		this.draftPrompt = '';
 		this.generationProgress = null;
 		this.unlockedMediumTierIds = [DEFAULT_MEDIUM_TIER_ID];
@@ -370,6 +440,7 @@ export class GameStore {
 		data.reputation = this.reputation;
 		data.lifetimeCommissions = this.commissionsCompleted;
 		data.galleryHistory = [...this.galleryHistory];
+		data.seriesOnBrandFlags = { ...this.seriesOnBrandFlags };
 		data.unlockedMediumTierIds = [...this.unlockedMediumTierIds];
 		data.activeMediumTierId = this.activeMediumTierId;
 		data.unlockedVenueId = this.unlockedVenueId;

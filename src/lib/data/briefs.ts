@@ -1,8 +1,11 @@
-import { clientBriefSchema, type ClientBrief } from '$lib/types/contracts';
+import { AUCTION_BRIEFS } from '$lib/data/auctionBriefs';
+import { BILLIONAIRE_BRIEFS } from '$lib/data/billionaireBriefs';
+import { CORPORATE_BRIEFS } from '$lib/data/corporateBriefs';
+import { clientBriefSchema, type ClientBrief, type ClientTier } from '$lib/types/contracts';
 import { z } from 'zod';
 
 /** Six Level 1 client briefs — enough variety for a five-commission run without repeats. */
-export const LEVEL_1_BRIEFS: readonly ClientBrief[] = [
+const LEVEL_1_BRIEF_DEFS = [
 	{
 		id: 'c1',
 		clientName: 'Local Cafe Owner',
@@ -56,24 +59,81 @@ export const LEVEL_1_BRIEFS: readonly ClientBrief[] = [
 	}
 ];
 
-// Throws at import time if any brief is malformed.
-z.array(clientBriefSchema).parse(LEVEL_1_BRIEFS);
+/** Parsed Level 1 walk-ins; object literals above omit `tier` and still parse via default. */
+export const LEVEL_1_BRIEFS: readonly ClientBrief[] = z
+	.array(clientBriefSchema)
+	.parse(LEVEL_1_BRIEF_DEFS);
+
+const ALL_PRESTIGE_BRIEFS: readonly ClientBrief[] = [
+	...LEVEL_1_BRIEFS,
+	...CORPORATE_BRIEFS,
+	...BILLIONAIRE_BRIEFS,
+	...AUCTION_BRIEFS
+];
+
+function briefTier(brief: ClientBrief): ClientTier {
+	return brief.tier ?? 'walk-in';
+}
+
+function isSeriesEligible(
+	brief: ClientBrief,
+	excludeIds: readonly string[],
+	completedSeriesIds: readonly string[]
+): boolean {
+	if (briefTier(brief) !== 'corporate') {
+		return true;
+	}
+	if (brief.seriesId && completedSeriesIds.includes(brief.seriesId)) {
+		return false;
+	}
+	const position = brief.seriesPosition ?? 1;
+	if (position <= 1) {
+		return true;
+	}
+	const predecessor = ALL_PRESTIGE_BRIEFS.find(
+		(candidate) =>
+			candidate.seriesId === brief.seriesId && candidate.seriesPosition === position - 1
+	);
+	return predecessor !== undefined && excludeIds.includes(predecessor.id);
+}
+
+function buildPool(
+	excludeIds: readonly string[],
+	unlockedTiers: readonly ClientTier[],
+	completedSeriesIds: readonly string[]
+): ClientBrief[] {
+	const tierSet = new Set(unlockedTiers);
+	return ALL_PRESTIGE_BRIEFS.filter((brief) => {
+		if (!tierSet.has(briefTier(brief))) return false;
+		if (excludeIds.includes(brief.id)) return false;
+		return isSeriesEligible(brief, excludeIds, completedSeriesIds);
+	});
+}
 
 /**
  * Choose the next client. `random` is injected so tests and replays are deterministic;
  * production passes nothing and gets `Math.random`.
  *
- * When every brief has already been used the pool resets rather than returning null,
- * so a long run never runs out of clients.
+ * When every eligible brief has already been used the pool resets rather than returning
+ * null, so a long run never runs out of clients. Corporate series always unlock in
+ * order (1 → 2 → 3) via `excludeIds`.
  */
 export function pickBrief(options?: {
 	excludeIds?: readonly string[];
+	/** Defaults to `['walk-in']` — existing callers unaffected. */
+	unlockedTiers?: readonly ClientTier[];
+	/** Series ids where all three commissions are already done. */
+	completedSeriesIds?: readonly string[];
 	random?: () => number;
 }): ClientBrief {
 	const random = options?.random ?? Math.random;
-	let pool = LEVEL_1_BRIEFS.filter((b) => !(options?.excludeIds ?? []).includes(b.id));
+	const excludeIds = options?.excludeIds ?? [];
+	const unlockedTiers = options?.unlockedTiers ?? ['walk-in'];
+	const completedSeriesIds = options?.completedSeriesIds ?? [];
+
+	let pool = buildPool(excludeIds, unlockedTiers, completedSeriesIds);
 	if (pool.length === 0) {
-		pool = [...LEVEL_1_BRIEFS];
+		pool = buildPool([], unlockedTiers, completedSeriesIds);
 	}
 	const index = Math.min(Math.floor(random() * pool.length), pool.length - 1);
 	return pool[index];
