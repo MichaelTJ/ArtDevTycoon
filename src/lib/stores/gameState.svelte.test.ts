@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { EngineError } from '$lib/engines/errors';
+import { createDefaultSave, type SaveData } from '$lib/game';
 import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
 import { GameStore } from './gameState.svelte';
 
@@ -28,13 +29,20 @@ function createStore(
 		random?: () => number;
 		now?: () => number;
 		setSwitchingLocked?: (locked: boolean) => void;
+		loadSave?: (startingCash: number, now?: () => number) => SaveData;
+		persistSave?: (data: SaveData) => void;
+		clearSave?: () => void;
 	}
 ) {
+	const now = options?.now ?? (() => 1_000);
 	return new GameStore({
 		engine,
 		random: options?.random ?? (() => 0),
-		now: options?.now ?? (() => 1_000),
-		setSwitchingLocked: options?.setSwitchingLocked
+		now,
+		setSwitchingLocked: options?.setSwitchingLocked,
+		loadSave: options?.loadSave ?? ((startingCash) => createDefaultSave(startingCash, now)),
+		persistSave: options?.persistSave ?? (() => {}),
+		clearSave: options?.clearSave ?? (() => {})
 	});
 }
 
@@ -48,6 +56,28 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('idle');
 		expect(store.cash).toBe(LEVEL_1.startingCash);
 		expect(store.galleryHistory).toEqual([]);
+	});
+
+	it('hydrates cash and reputation from injected loadSave', () => {
+		const store = createStore(
+			{
+				generate: vi.fn(),
+				critique: vi.fn()
+			},
+			{
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					cash: 340,
+					reputation: 12,
+					lifetimeCommissions: 2
+				})
+			}
+		);
+
+		expect(store.cash).toBe(340);
+		expect(store.reputation).toBe(12);
+		expect(store.commissionsCompleted).toBe(2);
+		expect(store.phase).toBe('idle');
 	});
 
 	it('inviteClient moves to briefing with c1 when random is 0', () => {
@@ -256,11 +286,38 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('idle');
 	});
 
+	it('collectCash calls persistSave once with updated cash and gallery', async () => {
+		const persistSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(async () => fakeArtwork),
+				critique: vi.fn(async () => fakeDraft)
+			},
+			{ persistSave }
+		);
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+		await store.createArt();
+
+		store.collectCash();
+
+		expect(persistSave).toHaveBeenCalledOnce();
+		const saved = persistSave.mock.calls[0][0] as SaveData;
+		expect(saved.cash).toBe(store.cash);
+		expect(saved.lifetimeCommissions).toBe(1);
+		expect(saved.galleryHistory).toHaveLength(1);
+		expect(saved.galleryHistory[0]?.briefId).toBe('c1');
+	});
+
 	it('double collectCash pays only once', async () => {
-		const store = createStore({
-			generate: vi.fn(async () => fakeArtwork),
-			critique: vi.fn(async () => fakeDraft)
-		});
+		const persistSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(async () => fakeArtwork),
+				critique: vi.fn(async () => fakeDraft)
+			},
+			{ persistSave }
+		);
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
@@ -271,6 +328,7 @@ describe('GameStore', () => {
 
 		expect(store.cash).toBe(cashAfterFirst);
 		expect(store.galleryHistory).toHaveLength(1);
+		expect(persistSave).toHaveBeenCalledOnce();
 	});
 
 	it('excludes completed briefIds when inviting the next client', async () => {
@@ -288,17 +346,22 @@ describe('GameStore', () => {
 		expect(store.currentClient?.id).toBe('c2');
 	});
 
-	it('reset restores initial state', async () => {
-		const store = createStore({
-			generate: vi.fn(async () => fakeArtwork),
-			critique: vi.fn(async () => fakeDraft)
-		});
+	it('reset restores initial state and calls clearSave', async () => {
+		const clearSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(async () => fakeArtwork),
+				critique: vi.fn(async () => fakeDraft)
+			},
+			{ clearSave }
+		);
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
 		store.collectCash();
 		store.reset();
 
+		expect(clearSave).toHaveBeenCalledOnce();
 		expect(store.phase).toBe('idle');
 		expect(store.cash).toBe(LEVEL_1.startingCash);
 		expect(store.galleryHistory).toEqual([]);

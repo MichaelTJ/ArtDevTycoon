@@ -444,3 +444,19 @@ second generation when cached. Record observed timings in a follow-up handoff no
 
 **Pre-existing failures outside zone:** None — full `npm run check`, `npm run lint`, and
 `npm run test:unit -- --run` are green after this change.
+
+## 2026-07-30 — Spec 12 Progression persistence
+
+**Zone:** `src/lib/game/save.ts`, `src/lib/game/save.test.ts`, `src/lib/stores/gameState.svelte.ts`, `src/lib/stores/gameState.svelte.test.ts`, `src/lib/game/index.ts`, `docs/architecture.md` (§4 only), `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** `save.ts` with Zod `saveDataSchema` (v1) covering banked progression plus reserved fields for specs 13–16 (defaults via Zod). `loadSave` / `persistSave` / `clearSave` never throw; corrupt or missing storage falls back to `createDefaultSave`. `GameStore` hydrates `cash` / `reputation` / `commissionsCompleted` / `galleryHistory` from injected `loadSave` on construction, calls private `#persist()` at the end of `collectCash()`, and `reset()` clears storage via injected `clearSave`. Live commission fields stay session-only.
+
+**Public surface:** From `$lib/game` — `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave(startingCash, now?)`, `loadSave(startingCash, now?)`, `persistSave(data)`, `clearSave()`. `GameStoreDeps` now accepts optional `loadSave` / `persistSave` / `clearSave`.
+
+**Tests:** `save.test.ts` covers defaults, round-trip, Zod defaults for missing fields, getItem/setItem throws, malformed JSON. `gameState.svelte.test.ts` covers hydrate-from-save, persist after collectCash, clearSave on reset; every case injects fakes so nothing touches real `localStorage`. Commands: `npm run check`; `npx eslint` on owned files; `npm run test:unit -- --run` (192 passed).
+
+**Decisions:** `#persist()` builds via `createDefaultSave` then overwrites banked fields so reserved 13–16 defaults stay correct until those specs extend the method. `cash` is typed `$state<number>(...)` because `LEVEL_1.startingCash` is a literal `100` and hydration assigns a general `number`. Explicit `#persist()` call site (not an `$effect`) per spec.
+
+**Requests:** Full `npm run lint` fails Prettier on untracked `docs/tasks/12-progression-persistence.md` through `16-studio-automation.md` (pre-existing; outside intentional edits). Please run `npx prettier --write docs/tasks/12-progression-persistence.md docs/tasks/13-medium-tiers.md docs/tasks/14-gallery-real-estate.md docs/tasks/15-client-prestige.md docs/tasks/16-studio-automation.md` on merge. Optional: mention `save.ts` in `src/lib/game/README.md` (outside this zone).
+
+**Known gaps:** Idle-income ticking (`lastIncomeTickAt`) unused by design — spec 16. No UI for reset-progress (`clearSave` exposed only). Specs 13–16 must extend `#persist()` when they add unlock/purchase actions. Manual mid-commission reload check not run here (no `npm run dev`); worth a quick orchestrator smoke test after merge.

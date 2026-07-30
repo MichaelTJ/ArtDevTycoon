@@ -4,11 +4,16 @@ import type { EngineManager } from '$lib/engines/manager';
 import {
 	buildLevel1Prompt,
 	calculatePayout,
+	clearSave as defaultClearSave,
+	createDefaultSave,
 	isLevelComplete,
 	levelProgress,
+	loadSave as defaultLoadSave,
+	persistSave as defaultPersistSave,
 	reputationGain,
 	scorePrompt,
-	toGalleryScore
+	toGalleryScore,
+	type SaveData
 } from '$lib/game';
 import {
 	LEVEL_1,
@@ -26,12 +31,15 @@ export interface GameStoreDeps {
 	setSwitchingLocked?: (locked: boolean) => void;
 	random?: () => number;
 	now?: () => number;
+	loadSave?: (startingCash: number, now?: () => number) => SaveData;
+	persistSave?: (data: SaveData) => void;
+	clearSave?: () => void;
 }
 
 /** Drives the Level 1 commission loop and gallery state. */
 export class GameStore {
 	phase = $state<GamePhase>('idle');
-	cash = $state(LEVEL_1.startingCash);
+	cash = $state<number>(LEVEL_1.startingCash);
 	reputation = $state(0);
 	commissionsCompleted = $state(0);
 	currentClient = $state<ClientBrief | null>(null);
@@ -50,12 +58,24 @@ export class GameStore {
 	readonly #setSwitchingLocked: (locked: boolean) => void;
 	readonly #random: () => number;
 	readonly #now: () => number;
+	readonly #loadSave: (startingCash: number, now?: () => number) => SaveData;
+	readonly #persistSave: (data: SaveData) => void;
+	readonly #clearSave: () => void;
 
 	constructor(deps?: GameStoreDeps) {
 		this.#engine = deps?.engine ?? engines.manager;
 		this.#setSwitchingLocked = deps?.setSwitchingLocked ?? engines.setSwitchingLocked.bind(engines);
 		this.#random = deps?.random ?? Math.random;
 		this.#now = deps?.now ?? Date.now;
+		this.#loadSave = deps?.loadSave ?? defaultLoadSave;
+		this.#persistSave = deps?.persistSave ?? defaultPersistSave;
+		this.#clearSave = deps?.clearSave ?? defaultClearSave;
+
+		const save = this.#loadSave(LEVEL_1.startingCash, this.#now);
+		this.cash = save.cash;
+		this.reputation = save.reputation;
+		this.commissionsCompleted = save.lifetimeCommissions;
+		this.galleryHistory = [...save.galleryHistory];
 	}
 
 	inviteClient(): void {
@@ -168,6 +188,8 @@ export class GameStore {
 		})
 			? 'levelComplete'
 			: 'idle';
+
+		this.#persist();
 	}
 
 	retry(): void {
@@ -187,6 +209,7 @@ export class GameStore {
 	}
 
 	reset(): void {
+		this.#clearSave();
 		this.phase = 'idle';
 		this.cash = LEVEL_1.startingCash;
 		this.reputation = 0;
@@ -198,6 +221,20 @@ export class GameStore {
 		this.galleryHistory = [];
 		this.draftPrompt = '';
 		this.generationProgress = null;
+	}
+
+	/**
+	 * One writer for the whole progression blob. Specs 13–16 extend this method rather
+	 * than adding parallel save calls — only banked progress goes here, never the live
+	 * commission.
+	 */
+	#persist(): void {
+		const data = createDefaultSave(this.cash, this.#now);
+		data.cash = this.cash;
+		data.reputation = this.reputation;
+		data.lifetimeCommissions = this.commissionsCompleted;
+		data.galleryHistory = [...this.galleryHistory];
+		this.#persistSave(data);
 	}
 }
 
