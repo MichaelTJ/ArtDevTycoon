@@ -58,13 +58,13 @@ Pitch to the player: **"Your ComfyUI, real Janus — generate and critique on yo
 
 ## Why ComfyUI + Janus (not Ollama / LM Studio / A1111 for spec 07)
 
-| Approach | Generate | Critique | One model? | Spec 07 |
-| -------- | -------- | -------- | ----------- | ------- |
-| In-browser Janus (spec 05) | Yes | Yes | Yes | Already done |
-| **ComfyUI + Janus nodes** | Yes (384px) | Yes (vision Q&A) | **Yes** | **This spec** |
-| Ollama / LM Studio | Separate image + vision models, different APIs | Partial | No | Deferred |
-| ComfyUI + SD workflow only | Yes | No | No | Deferred |
-| Automatic1111 | Yes | No | No | Deferred |
+| Approach                   | Generate                                       | Critique         | One model? | Spec 07       |
+| -------------------------- | ---------------------------------------------- | ---------------- | ---------- | ------------- |
+| In-browser Janus (spec 05) | Yes                                            | Yes              | Yes        | Already done  |
+| **ComfyUI + Janus nodes**  | Yes (384px)                                    | Yes (vision Q&A) | **Yes**    | **This spec** |
+| Ollama / LM Studio         | Separate image + vision models, different APIs | Partial          | No         | Deferred      |
+| ComfyUI + SD workflow only | Yes                                            | No               | No         | Deferred      |
+| Automatic1111              | Yes                                            | No               | No         | Deferred      |
 
 Spec 07 owns **one provider**: ComfyUI running Janus. Other local programs and cloud APIs are
 listed in §10 (later) — stub them in the setup UI as "Coming soon" but do not implement them.
@@ -136,11 +136,11 @@ using **Save (API Format)** after building a minimal graph with the Janus plugin
 Must contain exactly these injectable inputs (implementer picks stable node ids — e.g. `"3"` for
 prompt — and documents them in `workflows/README.md` inside the remote folder):
 
-| Node role | Expected class_type (verify at build time) | Game overrides |
-| --------- | ------------------------------------------ | -------------- |
-| Model loader | `JanusProModelLoader` or plugin equivalent | `"model_name": "Janus-Pro-1B"` |
-| Text-to-image | `JanusProImageGenerator` or equivalent | `"prompt": "<built prompt from game>"`, `"seed": <number>` |
-| Output | `SaveImage` or preview node the API exposes | `"filename_prefix": "adt-generate"` |
+| Node role     | Expected class_type (verify at build time)  | Game overrides                                             |
+| ------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| Model loader  | `JanusProModelLoader` or plugin equivalent  | `"model_name": "Janus-Pro-1B"`                             |
+| Text-to-image | `JanusProImageGenerator` or equivalent      | `"prompt": "<built prompt from game>"`, `"seed": <number>` |
+| Output        | `SaveImage` or preview node the API exposes | `"filename_prefix": "adt-generate"`                        |
 
 Output size: **384×384** (Janus native — matches in-browser Janus, keeps Level 1 amateur scale).
 
@@ -151,11 +151,11 @@ Two modes in one workflow file is allowed **only** if it keeps node ids stable; 
 question** plus **once for the prose review**, reusing the same template and swapping the
 `question` input:
 
-| Node role | Expected class_type | Game overrides |
-| --------- | ------------------- | -------------- |
-| Model loader | same as generate | same |
+| Node role           | Expected class_type                                   | Game overrides                                                                 |
+| ------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Model loader        | same as generate                                      | same                                                                           |
 | Image understanding | `JanusProImageUnderstanding` or `Janus Image To Text` | `"image": ["<upload_node_id>", 0]`, `"question": "<buildKeywordQuestion(kw)>"` |
-| Text output | node whose output the history API returns as string | — |
+| Text output         | node whose output the history API returns as string   | —                                                                              |
 
 For the prose review, one extra call with `question = buildReviewPrompt(brief.requestText)` and
 a higher token limit in the workflow (or pass through if the node exposes `max_new_tokens`).
@@ -169,9 +169,9 @@ rename nodes.
 
 ```ts
 /** Fetches the API prompt graph from static assets. Never throws — returns null on failure. */
-export async function loadWorkflowTemplate(name: 'janus-generate' | 'janus-critique'): Promise<
-  Record<string, unknown> | null
->;
+export async function loadWorkflowTemplate(
+	name: 'janus-generate' | 'janus-critique'
+): Promise<Record<string, unknown> | null>;
 ```
 
 Fetch `/comfyui/janus-generate.json` and `/comfyui/janus-critique.json`. Deep-clone before
@@ -192,16 +192,16 @@ export const CONNECTION_TEST_TIMEOUT_MS = 6000;
 export const PROMPT_TIMEOUT_MS = 120_000; // Janus gen + critique can be slow on CPU
 
 export async function testConnection(
-  baseUrl: string,
-  signal?: AbortSignal
+	baseUrl: string,
+	signal?: AbortSignal
 ): Promise<{ ok: true } | { ok: false; reason: string }>;
 
 /** Upload PNG bytes; returns the filename ComfyUI stored (for image input nodes). */
 export async function uploadImage(
-  baseUrl: string,
-  pngBytes: Uint8Array,
-  filename: string,
-  signal?: AbortSignal
+	baseUrl: string,
+	pngBytes: Uint8Array,
+	filename: string,
+	signal?: AbortSignal
 ): Promise<string>;
 
 /**
@@ -211,13 +211,17 @@ export async function uploadImage(
  * for Level 1 and keeps tests simple.
  */
 export async function runPrompt(
-  baseUrl: string,
-  prompt: Record<string, unknown>,
-  signal?: AbortSignal
+	baseUrl: string,
+	prompt: Record<string, unknown>,
+	signal?: AbortSignal
 ): Promise<ComfyPromptOutputs>;
 
 /** Fetch an output image as a Blob from GET /view?filename=...&subfolder=...&type=output */
-export async function fetchOutputImage(baseUrl: string, file: ComfyOutputFile, signal?: AbortSignal): Promise<Blob>;
+export async function fetchOutputImage(
+	baseUrl: string,
+	file: ComfyOutputFile,
+	signal?: AbortSignal
+): Promise<Blob>;
 ```
 
 ### `testConnection`
@@ -250,12 +254,12 @@ multipart and returns filename from JSON `{ name: string }`.
 
 ```ts
 export const remoteEngineConfigSchema = z.object({
-  baseUrl: z
-    .string()
-    .url()
-    .transform((url) => url.replace(/\/+$/, '')),
-  /** Janus variant baked into workflow — player may override if they use 7B */
-  modelName: z.enum(['Janus-Pro-1B', 'Janus-Pro-7B']).default('Janus-Pro-1B')
+	baseUrl: z
+		.string()
+		.url()
+		.transform((url) => url.replace(/\/+$/, '')),
+	/** Janus variant baked into workflow — player may override if they use 7B */
+	modelName: z.enum(['Janus-Pro-1B', 'Janus-Pro-7B']).default('Janus-Pro-1B')
 });
 
 export type RemoteEngineConfig = z.infer<typeof remoteEngineConfigSchema>;
@@ -280,13 +284,13 @@ export const CRITIQUE_QUESTION_NODE_ID = '...';
 export const CRITIQUE_IMAGE_INPUT_NODE_ID = '...';
 
 export function buildGeneratePrompt(
-  template: Record<string, unknown>,
-  input: { prompt: string; seed: number; modelName: string }
+	template: Record<string, unknown>,
+	input: { prompt: string; seed: number; modelName: string }
 ): Record<string, unknown>;
 
 export function buildCritiquePrompt(
-  template: Record<string, unknown>,
-  input: { uploadedImageFilename: string; question: string; modelName: string }
+	template: Record<string, unknown>,
+	input: { uploadedImageFilename: string; question: string; modelName: string }
 ): Record<string, unknown>;
 ```
 
@@ -304,17 +308,17 @@ nested inputs).
 
 ```ts
 export class RemoteEngine implements ArtEngine {
-  readonly id = 'remote' as const;
-  readonly displayName = 'ComfyUI · Janus';
-  readonly description =
-    'Real Janus art via your local ComfyUI. No browser download — you run the model.';
-  readonly requirements = {
-    webgpu: false,
-    approxDownloadMb: 0,
-    minStorageBufferMb: 0,
-    desktopOnly: false // ComfyUI can run on a beefy phone in theory; do not gate mobile
-  };
-  readonly capabilities = { generate: true, critique: true };
+	readonly id = 'remote' as const;
+	readonly displayName = 'ComfyUI · Janus';
+	readonly description =
+		'Real Janus art via your local ComfyUI. No browser download — you run the model.';
+	readonly requirements = {
+		webgpu: false,
+		approxDownloadMb: 0,
+		minStorageBufferMb: 0,
+		desktopOnly: false // ComfyUI can run on a beefy phone in theory; do not gate mobile
+	};
+	readonly capabilities = { generate: true, critique: true };
 }
 ```
 
@@ -375,15 +379,15 @@ no real network.
 Presentational setup dialog (replaces the draft `RemoteEngineSetup` name — ComfyUI is the only
 provider in spec 07).
 
-| Prop | Type | Notes |
-| ---- | ---- | ----- |
-| `baseUrl` | `string` (`$bindable`) | |
-| `modelName` | `'Janus-Pro-1B' \| 'Janus-Pro-7B'` (`$bindable`) | |
-| `testState` | `'idle' \| 'testing' \| 'success' \| 'error'` | |
-| `testError` | `string \| null` | |
-| `on test` | `() => void` | |
-| `onconnect` | `() => void` | Disabled until `testState === 'success'` |
-| `oncancel` | `() => void` | |
+| Prop        | Type                                             | Notes                                    |
+| ----------- | ------------------------------------------------ | ---------------------------------------- |
+| `baseUrl`   | `string` (`$bindable`)                           |                                          |
+| `modelName` | `'Janus-Pro-1B' \| 'Janus-Pro-7B'` (`$bindable`) |                                          |
+| `testState` | `'idle' \| 'testing' \| 'success' \| 'error'`    |                                          |
+| `testError` | `string \| null`                                 |                                          |
+| `on test`   | `() => void`                                     |                                          |
+| `onconnect` | `() => void`                                     | Disabled until `testState === 'success'` |
+| `oncancel`  | `() => void`                                     |                                          |
 
 Contents:
 
@@ -466,12 +470,12 @@ With ComfyUI + Janus-Pro plugin running locally:
 
 Stub task specs exist for each track — expand those before implementing:
 
-| Spec | Doc | Notes |
-| ---- | --- | ----- |
-| 08 | [`08-local-providers.md`](./08-local-providers.md) | Ollama, LM Studio, ComfyUI+SD, A1111 — **generate model + critique model** |
-| 09 | [`09-byo-api.md`](./09-byo-api.md) | OpenRouter, OpenAI — API key + **two models** |
-| 10 | [`10-adt-cloud.md`](./10-adt-cloud.md) | Your hosted service, credits, accounts |
-| 11 | [`11-bagel-sketch.md`](./11-bagel-sketch.md) | Sketch canvas → BAGEL edit + critique model |
+| Spec | Doc                                                | Notes                                                                      |
+| ---- | -------------------------------------------------- | -------------------------------------------------------------------------- |
+| 08   | [`08-local-providers.md`](./08-local-providers.md) | Ollama, LM Studio, ComfyUI+SD, A1111 — **generate model + critique model** |
+| 09   | [`09-byo-api.md`](./09-byo-api.md)                 | OpenRouter, OpenAI — API key + **two models**                              |
+| 10   | [`10-adt-cloud.md`](./10-adt-cloud.md)             | Your hosted service, credits, accounts                                     |
+| 11   | [`11-bagel-sketch.md`](./11-bagel-sketch.md)       | Sketch canvas → BAGEL edit + critique model                                |
 
 Spec 07 only needs greyed **"Coming soon"** labels in `ComfyUISetup` — no provider code yet.
 
@@ -479,21 +483,21 @@ Spec 07 only needs greyed **"Coming soon"** labels in `ComfyUISetup` — no prov
 
 ## Files to create (summary)
 
-| File | Contents |
-| ---- | -------- |
-| `static/comfyui/janus-generate.json` | API prompt graph for Janus text-to-image |
-| `static/comfyui/janus-critique.json` | API prompt graph for Janus image-to-text |
-| `src/lib/engines/remote/remoteConfig.ts` | Zod config + localStorage |
-| `src/lib/engines/remote/remoteConfig.test.ts` | |
-| `src/lib/engines/remote/comfyClient.ts` | HTTP client |
-| `src/lib/engines/remote/comfyClient.test.ts` | |
-| `src/lib/engines/remote/workflowBuilder.ts` | Template mutation |
-| `src/lib/engines/remote/workflowBuilder.test.ts` | |
-| `src/lib/engines/remote/loadWorkflow.ts` | Fetch static templates |
-| `src/lib/engines/remote/loadWorkflow.test.ts` | |
-| `src/lib/engines/remote/remoteEngine.ts` | `ArtEngine` |
-| `src/lib/engines/remote/remoteEngine.test.ts` | |
-| `src/lib/engines/remote/workflows/README.md` | Node ids, plugin version used |
-| `src/lib/engines/remote/README.md` | Player + dev guide |
-| `src/lib/components/ComfyUISetup.svelte` | Setup dialog |
-| `src/lib/components/ComfyUISetup.svelte.test.ts` | |
+| File                                             | Contents                                 |
+| ------------------------------------------------ | ---------------------------------------- |
+| `static/comfyui/janus-generate.json`             | API prompt graph for Janus text-to-image |
+| `static/comfyui/janus-critique.json`             | API prompt graph for Janus image-to-text |
+| `src/lib/engines/remote/remoteConfig.ts`         | Zod config + localStorage                |
+| `src/lib/engines/remote/remoteConfig.test.ts`    |                                          |
+| `src/lib/engines/remote/comfyClient.ts`          | HTTP client                              |
+| `src/lib/engines/remote/comfyClient.test.ts`     |                                          |
+| `src/lib/engines/remote/workflowBuilder.ts`      | Template mutation                        |
+| `src/lib/engines/remote/workflowBuilder.test.ts` |                                          |
+| `src/lib/engines/remote/loadWorkflow.ts`         | Fetch static templates                   |
+| `src/lib/engines/remote/loadWorkflow.test.ts`    |                                          |
+| `src/lib/engines/remote/remoteEngine.ts`         | `ArtEngine`                              |
+| `src/lib/engines/remote/remoteEngine.test.ts`    |                                          |
+| `src/lib/engines/remote/workflows/README.md`     | Node ids, plugin version used            |
+| `src/lib/engines/remote/README.md`               | Player + dev guide                       |
+| `src/lib/components/ComfyUISetup.svelte`         | Setup dialog                             |
+| `src/lib/components/ComfyUISetup.svelte.test.ts` |                                          |

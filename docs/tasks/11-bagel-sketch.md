@@ -19,12 +19,12 @@ decides one model can do both edit + judge — default assumption: **two models*
 
 ## New surface area (draft)
 
-| Area | Change |
-| ---- | ------ |
-| UI | `SketchCanvas.svelte` — draw, clear, submit with prompt |
-| Contracts | Optional `sketchImageUrl` or extend `generate()` input — orchestrator-owned |
-| Game phase | New sub-phase or Level 2 briefing variant |
-| Engine | Provider sends input image + edit instruction built from `playerPrompt` / brief |
+| Area       | Change                                                                          |
+| ---------- | ------------------------------------------------------------------------------- |
+| UI         | `SketchCanvas.svelte` — draw, clear, submit with prompt                         |
+| Contracts  | Optional `sketchImageUrl` or extend `generate()` input — orchestrator-owned     |
+| Game phase | New sub-phase or Level 2 briefing variant                                       |
+| Engine     | Provider sends input image + edit instruction built from `playerPrompt` / brief |
 
 ## Integration paths (pick one in full spec)
 

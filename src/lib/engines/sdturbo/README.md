@@ -24,12 +24,12 @@ Supporting modules (usually not imported by game code):
 
 Verified against Hugging Face on 2026-07-29:
 
-| Asset        | Path                                                       |
-| ------------ | ---------------------------------------------------------- |
-| Repository   | `schmuell/sd-turbo-ort-web`                                |
-| Text encoder | `text_encoder/model.onnx` (~681 MB)                        |
-| UNet         | `unet/model.onnx` (~1.7 GB)                                |
-| VAE decoder  | `vae_decoder/model.onnx` (~99 MB)                          |
+| Asset        | Path                                                               |
+| ------------ | ------------------------------------------------------------------ |
+| Repository   | `schmuell/sd-turbo-ort-web`                                        |
+| Text encoder | `text_encoder/model.onnx` (~681 MB)                                |
+| UNet         | `unet/model.onnx` (~1.7 GB)                                        |
+| VAE decoder  | `vae_decoder/model.onnx` (~99 MB)                                  |
 | Tokenizer    | `Xenova/clip-vit-base-patch16` via `AutoTokenizer.from_pretrained` |
 
 Weights are cached under the `onnx` Cache API bucket, matching Microsoft's

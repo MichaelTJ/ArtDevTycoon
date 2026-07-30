@@ -16,12 +16,12 @@ Spec 07 uses one Janus model for both. Spec 08 is for stacks that cannot.
 
 ## Candidate providers (pick during full spec)
 
-| Provider | Generate | Critique | Default URL |
-| -------- | -------- | -------- | ----------- |
-| Ollama | Image model (Flux, etc.) | Vision LLM (LLaVA, llama3.2-vision, …) | `http://localhost:11434` |
-| LM Studio | If supported by loaded stack | OpenAI-compatible vision chat | `http://localhost:1234` |
-| ComfyUI + SD/Flux | Workflow JSON (not Janus) | Separate vision workflow or compose Janus nodes | `http://127.0.0.1:8188` |
-| Automatic1111 | `/sdapi/v1/txt2img` | None — must pair with Ollama/LM Studio or mock | `http://127.0.0.1:7860` |
+| Provider          | Generate                     | Critique                                        | Default URL              |
+| ----------------- | ---------------------------- | ----------------------------------------------- | ------------------------ |
+| Ollama            | Image model (Flux, etc.)     | Vision LLM (LLaVA, llama3.2-vision, …)          | `http://localhost:11434` |
+| LM Studio         | If supported by loaded stack | OpenAI-compatible vision chat                   | `http://localhost:1234`  |
+| ComfyUI + SD/Flux | Workflow JSON (not Janus)    | Separate vision workflow or compose Janus nodes | `http://127.0.0.1:8188`  |
+| Automatic1111     | `/sdapi/v1/txt2img`          | None — must pair with Ollama/LM Studio or mock  | `http://127.0.0.1:7860`  |
 
 ## Config shape (draft)
 

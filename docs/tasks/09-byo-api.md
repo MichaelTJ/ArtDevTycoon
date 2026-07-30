@@ -15,10 +15,10 @@ game backend). Setup requires **two model selections** plus credentials:
 
 Vendors to support (draft):
 
-| Vendor | List models | Generate | Vision critique |
-| ------ | ----------- | -------- | --------------- |
-| OpenRouter | `GET /v1/models` | Vendor-dependent | Vision-capable models |
-| OpenAI | `GET /v1/models` | `gpt-image-*` / DALL·E | `gpt-4o` / vision models |
+| Vendor     | List models      | Generate               | Vision critique          |
+| ---------- | ---------------- | ---------------------- | ------------------------ |
+| OpenRouter | `GET /v1/models` | Vendor-dependent       | Vision-capable models    |
+| OpenAI     | `GET /v1/models` | `gpt-image-*` / DALL·E | `gpt-4o` / vision models |
 
 ## Config shape (draft)
 
