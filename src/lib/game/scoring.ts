@@ -65,8 +65,10 @@ export function scorePrompt(brief: ClientBrief, playerPrompt: string): ScoreBrea
 
 /**
  * Cash awarded for a commission. Accuracy is weighted more heavily than creativity
- * because the client is paying for their brief to be served. `multiplier` defaults to 1
- * so existing callers stay unchanged; medium tiers (and later upgrades) pass their own.
+ * because the client is paying for their brief to be served.
+ *
+ * `multiplier` (default 1) is the progression seam — medium tier × layout × atmosphere
+ * compose outside this function and pass a single number in.
  */
 export function calculatePayout(
 	brief: ClientBrief,

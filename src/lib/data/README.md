@@ -10,6 +10,9 @@ validated at module load.
 | `briefs.ts`       | `LEVEL_1_BRIEFS`, `pickBrief`                                                                    |
 | `environments.ts` | `ENVIRONMENTS`, `getEnvironmentForLevel`                                                         |
 | `mediumTiers.ts`  | `MEDIUM_TIERS`, `MediumTier`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier` |
+| `galleryVenues.ts` | `GALLERY_VENUES`, `GalleryVenue`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue` |
+| `galleryLayouts.ts` | `GALLERY_LAYOUTS`, `GalleryLayout`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout` |
+| `galleryAtmosphere.ts` | `ATMOSPHERE_ITEMS`, `AtmosphereItem`, `getAtmosphereItem`, `totalAtmosphereBonus` |
 
 Import briefs directly from `$lib/data/briefs` or re-export through a future data barrel
 if one is added.

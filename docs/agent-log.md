@@ -571,3 +571,33 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - Inherited client-test flakes outside zone: `CapabilityNotice`, `LevelCompleteOverlay`, `ModelDownloadGate` (timeouts), `ResultsPanel` (image visibility). Not touched.
 - No per-medium workspace reskin (explicitly out of scope).
 - Specs 14/15 will also touch `scoring.ts` / `gameState` - edits here are additive only.
+
+---
+
+---
+
+## 2026-07-30 — Spec 14 Gallery real estate & presentation
+
+**Zone:** `src/lib/data/galleryVenues.ts`, `galleryLayouts.ts`, `galleryAtmosphere.ts` (+ tests), `src/lib/components/GalleryUpgradeShop.svelte` (+ test), edits to `scoring.ts`, `gameState.svelte.ts`, `FridgeGallery.svelte`, `GameMenuBar.svelte`, `components/index.ts`, `components/README.md`, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Three purchasable gallery systems — Venue (linear capacity), Layout (switchable curation multiplier + CSS class), Atmosphere (stacking payout bonuses). `GameStore` exposes `presentationMultiplier` (medium × layout × (1 + atmosphere)), `displayedGalleryEntries` (capacity-capped; `galleryHistory` uncapped), and unlock/buy/select methods that persist via `#persist()`. `calculatePayout` gained optional `multiplier = 1` (spec 13 signature). `GalleryUpgradeShop` is a three-tab presentational overlay; `GameMenuBar` shows an optional "Gallery Upgrades" button; `FridgeGallery` accepts optional `layoutClassName` with layout CSS.
+
+**Public surface:**
+
+- `$lib/data/galleryVenues` — `GALLERY_VENUES`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue`
+- `$lib/data/galleryLayouts` — `GALLERY_LAYOUTS`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout`
+- `$lib/data/galleryAtmosphere` — `ATMOSPHERE_ITEMS`, `getAtmosphereItem`, `totalAtmosphereBonus`
+- `$lib/components` — `GalleryUpgradeShop`; `FridgeGallery.layoutClassName?`; `GameMenuBar.onopengalleryupgrades?`
+- `GameStore` — `unlockedVenueId`, `unlockedLayoutIds`, `activeLayoutId`, `ownedAtmosphereIds`, `venue`, `displayedGalleryEntries`, `presentationMultiplier`, `activeMediumTier` (stub), `unlockVenue`, `unlockLayout`, `setActiveLayout`, `buyAtmosphereItem`
+
+**Tests:** Data unit tests + scoring multiplier cases + GameStore unlock/display/persist/payout cases + component tests for shop tabs, FridgeGallery layout prop, GameMenuBar button. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run` (262 passed).
+
+**Decisions:**
+
+- Spec 13 is **not** in this worktree. Stubbed `activeMediumTier.payoutMultiplier` at `1` via `MEDIUM_TIER_STUB` so `presentationMultiplier` still composes correctly. Merge **either order** works: if 13 lands first it owns the real `activeMediumTier`; if 14 lands first, 13 should replace the stub and keep multiplying into `presentationMultiplier` (not pass medium alone to `calculatePayout`).
+- `onopengalleryupgrades` is optional so `+page.svelte` keeps typechecking without a page edit (outside ownership).
+- Venue unlock is strictly next-tier-only; layouts are free to switch once owned; atmosphere has no active slot.
+
+**Requests:** Page/scene wiring and medium×presentation merge completed by orchestrator on main.
+
+**Known gaps:** Page/scene not wired (ownership). No per-venue visual re-skins. Manual drag-and-drop curation deferred. Spec 13 medium factor still stubbed at 1 until that branch merges.

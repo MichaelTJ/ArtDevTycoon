@@ -38,3 +38,10 @@ test("toolkit button opens the Artist's Toolkit dialog", async () => {
 	await screen.getByRole('button', { name: /Medium ·/ }).click();
 	await expect.element(screen.getByRole('dialog', { name: "Artist's Toolkit" })).toBeVisible();
 });
+
+test('gallery upgrades button opens the Gallery Upgrades dialog', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, defaultProps);
+	await screen.getByRole('button', { name: 'Gallery Upgrades' }).click();
+	await expect.element(screen.getByRole('dialog', { name: /Gallery Upgrades/i })).toBeVisible();
+});

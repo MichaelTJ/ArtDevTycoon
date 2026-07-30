@@ -1,5 +1,18 @@
 import { canUnlockMediumTier, DEFAULT_MEDIUM_TIER_ID, getMediumTier } from '$lib/data/mediumTiers';
 import { pickBrief } from '$lib/data/briefs';
+import { getAtmosphereItem, totalAtmosphereBonus } from '$lib/data/galleryAtmosphere';
+import {
+	DEFAULT_LAYOUT_ID,
+	GALLERY_LAYOUTS,
+	canUnlockLayout,
+	getLayout
+} from '$lib/data/galleryLayouts';
+import {
+	DEFAULT_VENUE_ID,
+	GALLERY_VENUES,
+	canUnlockVenue,
+	getVenue
+} from '$lib/data/galleryVenues';
 import { EngineError } from '$lib/engines/errors';
 import type { EngineManager } from '$lib/engines/manager';
 import { buildPrompt } from '$lib/game/promptPipeline';
@@ -53,11 +66,36 @@ export class GameStore {
 	unlockedMediumTierIds = $state<string[]>([DEFAULT_MEDIUM_TIER_ID]);
 	activeMediumTierId = $state(DEFAULT_MEDIUM_TIER_ID);
 
+	unlockedVenueId = $state(DEFAULT_VENUE_ID);
+	unlockedLayoutIds = $state<string[]>([DEFAULT_LAYOUT_ID]);
+	activeLayoutId = $state(DEFAULT_LAYOUT_ID);
+	ownedAtmosphereIds = $state<string[]>([]);
+
 	progress = $derived(
 		levelProgress({ cash: this.cash, commissionsCompleted: this.commissionsCompleted })
 	);
 
 	activeMediumTier = $derived(getMediumTier(this.activeMediumTierId));
+
+	venue = $derived(getVenue(this.unlockedVenueId));
+
+	/** Capacity-capped, most-recent-first slice for the wall. `galleryHistory` stays full. */
+	displayedGalleryEntries = $derived(
+		[...this.galleryHistory]
+			.sort((a, b) => b.completedAt - a.completedAt)
+			.slice(0, this.venue.capacity)
+	);
+
+	/**
+	 * Single progression multiplier passed to `calculatePayout`. Composes
+	 * medium × layout × (1 + atmosphere). Specs 13/16 must multiply into this seat,
+	 * not call `calculatePayout` with a parallel factor.
+	 */
+	presentationMultiplier = $derived(
+		this.activeMediumTier.payoutMultiplier *
+			getLayout(this.activeLayoutId).curationMultiplier *
+			(1 + totalAtmosphereBonus(this.ownedAtmosphereIds))
+	);
 
 	readonly #engine: Pick<EngineManager, 'generate' | 'critique'>;
 	readonly #setSwitchingLocked: (locked: boolean) => void;
@@ -83,6 +121,10 @@ export class GameStore {
 		this.galleryHistory = [...save.galleryHistory];
 		this.unlockedMediumTierIds = [...save.unlockedMediumTierIds];
 		this.activeMediumTierId = save.activeMediumTierId;
+		this.unlockedVenueId = save.unlockedVenueId;
+		this.unlockedLayoutIds = [...save.unlockedLayoutIds];
+		this.activeLayoutId = save.activeLayoutId;
+		this.ownedAtmosphereIds = [...save.ownedAtmosphereIds];
 	}
 
 	inviteClient(): void {
@@ -137,7 +179,7 @@ export class GameStore {
 				client,
 				draft.accuracyScore,
 				creativityScore,
-				this.activeMediumTier.payoutMultiplier
+				this.presentationMultiplier
 			);
 			const critique = critiqueSchema.parse({
 				title: draft.title,
@@ -228,6 +270,58 @@ export class GameStore {
 		this.#persist();
 	}
 
+	/**
+	 * Venues are linear — only the next tier after the current unlocked venue can be bought.
+	 */
+	unlockVenue(id: string): boolean {
+		const targetIndex = GALLERY_VENUES.findIndex((v) => v.id === id);
+		if (targetIndex < 0) return false;
+
+		const currentIndex = GALLERY_VENUES.findIndex((v) => v.id === this.unlockedVenueId);
+		if (targetIndex !== currentIndex + 1) return false;
+
+		const venue = GALLERY_VENUES[targetIndex];
+		if (!canUnlockVenue(venue, { cash: this.cash, reputation: this.reputation })) {
+			return false;
+		}
+
+		this.cash -= venue.unlockCost;
+		this.unlockedVenueId = id;
+		this.#persist();
+		return true;
+	}
+
+	unlockLayout(id: string): boolean {
+		const layout = GALLERY_LAYOUTS.find((l) => l.id === id);
+		if (!layout) return false;
+		if (this.unlockedLayoutIds.includes(id)) return false;
+		if (!canUnlockLayout(layout, this.cash)) return false;
+
+		this.cash -= layout.unlockCost;
+		this.unlockedLayoutIds = [...this.unlockedLayoutIds, id];
+		this.activeLayoutId = id;
+		this.#persist();
+		return true;
+	}
+
+	setActiveLayout(id: string): void {
+		if (!this.unlockedLayoutIds.includes(id)) return;
+		this.activeLayoutId = id;
+		this.#persist();
+	}
+
+	buyAtmosphereItem(id: string): boolean {
+		const item = getAtmosphereItem(id);
+		if (!item) return false;
+		if (this.ownedAtmosphereIds.includes(id)) return false;
+		if (this.cash < item.cost) return false;
+
+		this.cash -= item.cost;
+		this.ownedAtmosphereIds = [...this.ownedAtmosphereIds, id];
+		this.#persist();
+		return true;
+	}
+
 	retry(): void {
 		if (this.phase !== 'failed') {
 			return;
@@ -259,6 +353,10 @@ export class GameStore {
 		this.generationProgress = null;
 		this.unlockedMediumTierIds = [DEFAULT_MEDIUM_TIER_ID];
 		this.activeMediumTierId = DEFAULT_MEDIUM_TIER_ID;
+		this.unlockedVenueId = DEFAULT_VENUE_ID;
+		this.unlockedLayoutIds = [DEFAULT_LAYOUT_ID];
+		this.activeLayoutId = DEFAULT_LAYOUT_ID;
+		this.ownedAtmosphereIds = [];
 	}
 
 	/**
@@ -274,6 +372,10 @@ export class GameStore {
 		data.galleryHistory = [...this.galleryHistory];
 		data.unlockedMediumTierIds = [...this.unlockedMediumTierIds];
 		data.activeMediumTierId = this.activeMediumTierId;
+		data.unlockedVenueId = this.unlockedVenueId;
+		data.unlockedLayoutIds = [...this.unlockedLayoutIds];
+		data.activeLayoutId = this.activeLayoutId;
+		data.ownedAtmosphereIds = [...this.ownedAtmosphereIds];
 		this.#persistSave(data);
 	}
 }

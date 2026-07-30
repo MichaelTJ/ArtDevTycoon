@@ -8,6 +8,8 @@
 		entries: GalleryEntry[];
 		label?: string;
 		emptyMessage?: string;
+		/** CSS class from the active `GalleryLayout.gridClassName`. Defaults to today's look. */
+		layoutClassName?: string;
 		onselect: (entry: GalleryEntry) => void;
 	}
 
@@ -15,10 +17,21 @@
 		entries,
 		label = 'Fridge',
 		emptyMessage = 'Your finished pieces will hang here.',
+		layoutClassName = 'layout-cluttered',
 		onselect
 	}: Props = $props();
 
 	const sortedEntries = $derived([...entries].sort((a, b) => b.completedAt - a.completedAt));
+
+	/** Messy fridge tilt for cluttered/rows; nicer layouts hang straight. */
+	const tiltEnabled = $derived(
+		layoutClassName === 'layout-cluttered' || layoutClassName === 'layout-rows'
+	);
+
+	function tiltDegrees(index: number): number {
+		if (!tiltEnabled) return 0;
+		return ((index % 5) - 2) * 3;
+	}
 </script>
 
 <section
@@ -29,7 +42,7 @@
 	{#if sortedEntries.length === 0}
 		<p class="text-stone-500">{emptyMessage}</p>
 	{:else}
-		<ul class="flex gap-4 overflow-x-auto pb-2">
+		<ul class="gallery-strip flex gap-4 overflow-x-auto pb-2 {layoutClassName}">
 			{#each sortedEntries as entry, i (entry.id)}
 				<li
 					class="min-w-[7rem] shrink-0"
@@ -38,7 +51,7 @@
 					<button
 						type="button"
 						class="block rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-						style="transform: rotate({((i % 5) - 2) * 3}deg)"
+						style="transform: rotate({tiltDegrees(i)}deg)"
 						aria-label="{entry.title}, score {entry.score}. View full size."
 						onclick={() => onselect(entry)}
 					>
@@ -55,3 +68,32 @@
 		</ul>
 	{/if}
 </section>
+
+<style>
+	:global(ul.layout-rows) {
+		flex-wrap: wrap;
+		overflow-x: visible;
+	}
+
+	:global(ul.layout-salon) {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+		gap: 0.75rem;
+		overflow-x: visible;
+	}
+
+	:global(ul.layout-grid) {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+		gap: 0.5rem;
+		overflow-x: visible;
+	}
+
+	:global(ul.layout-minimalist) {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+		gap: 1.5rem;
+		overflow-x: visible;
+		justify-items: center;
+	}
+</style>

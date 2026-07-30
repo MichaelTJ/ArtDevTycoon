@@ -19,4 +19,5 @@ export { default as GameMenuBar } from './GameMenuBar.svelte';
 export { default as GameScene } from './GameScene.svelte';
 export { default as WorkspaceZone } from './WorkspaceZone.svelte';
 export { default as FridgeGallery } from './FridgeGallery.svelte';
+export { default as GalleryUpgradeShop } from './GalleryUpgradeShop.svelte';
 export { default as ArtworkFullView } from './ArtworkFullView.svelte';

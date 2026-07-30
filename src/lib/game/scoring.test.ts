@@ -98,4 +98,13 @@ describe('calculatePayout', () => {
 		expect(calculatePayout(brief, 6, 4, 1.5)).toBe(81);
 		expect(calculatePayout(brief, 1, 1, 2.2)).toBe(22);
 	});
+
+	it('accepts layout × atmosphere composition numbers from spec 14', () => {
+		const brief = { ...c1, budget: 100 };
+		// Perfect Grid 1.2 × (1 + lighting 0.05 + velvet 0.08) = 1.356
+		expect(calculatePayout(brief, 10, 10, 1.356)).toBe(136);
+		const brief150 = { ...c1, budget: 150 };
+		// Tidy Rows 1.05 alone
+		expect(calculatePayout(brief150, 8, 8, 1.05)).toBe(126);
+	});
 });
