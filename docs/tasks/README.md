@@ -106,8 +106,13 @@ Wave B  (after 13, 14, 15 are all merged)
 agent allowed to edit `src/lib/types/contracts.ts` (additive `CLIENT_TIERS` + brief
 fields) and adds `seriesOnBrandFlags` to `saveDataSchema`. Merge them one at a time and
 re-run `npm run check`/`test:unit` after each merge rather than merging all three at once
-— the same discipline as any wave-1 pair in the section above. Do not run Spec 15
-concurrently with any other agent editing `contracts.ts`.
+— the same discipline as any wave-1 pair in the section above. Spec 14 adds the
+`multiplier` parameter itself if 13 has not landed yet, and stubs
+`activeMediumTier.payoutMultiplier` at `1` until medium tiers merge — after both are on
+`main`, confirm `presentationMultiplier` is medium × layout × (1 + atmosphere). 15 is
+also the only progression spec allowed to touch `src/lib/types/contracts.ts` (an additive
+extension to `clientBriefSchema`); do not run it concurrently with any other agent
+editing that file.
 
 Expected merge hotspots with 13/14 on `gameState.svelte.ts`: `inviteClient` /
 `createArt` payout branching, `#persist()`, and `GameStoreDeps`.
@@ -129,8 +134,8 @@ C:/Users/JensenM/Documents/My Apps/adt-wt-progression-save agent/progression-sav
 ```
 
 Spec 06 has no worktree yet; create one if and when you get to it. Spec 12 is merged
-into `main`. Progression worktrees 13-16 do not exist yet — create each with the
-`git worktree add` command shown at the top of its spec file when you start it.
+into `main`. Progression worktrees: `adt-wt-medium-tiers` (spec 13) is active; create 14–16
+with the `git worktree add` command shown at the top of each spec file when you start them.
 
 Each has `node_modules` junctioned to the main checkout, so `npm run check`, `npm run
 lint` and `npm run test:unit` all work inside a worktree with no extra install. Every

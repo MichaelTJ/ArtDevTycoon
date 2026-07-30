@@ -9,6 +9,8 @@
 		galleryLabel: string;
 		emptyGalleryMessage: string;
 		galleryEntries: GalleryEntry[];
+		/** CSS class from the active gallery layout. */
+		galleryLayoutClassName?: string;
 		onselectentry: (entry: GalleryEntry) => void;
 		workspace: Snippet;
 	}
@@ -18,6 +20,7 @@
 		galleryLabel,
 		emptyGalleryMessage,
 		galleryEntries,
+		galleryLayoutClassName,
 		onselectentry,
 		workspace
 	}: Props = $props();
@@ -43,6 +46,7 @@
 			entries={galleryEntries}
 			label={galleryLabel}
 			emptyMessage={emptyGalleryMessage}
+			layoutClassName={galleryLayoutClassName}
 			onselect={onselectentry}
 		/>
 	</div>

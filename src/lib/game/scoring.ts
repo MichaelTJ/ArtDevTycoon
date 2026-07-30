@@ -67,14 +67,22 @@ export function scorePrompt(brief: ClientBrief, playerPrompt: string): ScoreBrea
 /**
  * Cash awarded for a commission. Accuracy is weighted more heavily than creativity
  * because the client is paying for their brief to be served.
+ *
+ * `multiplier` (default 1) is the progression seam — medium tier × layout × atmosphere
+ * compose outside this function and pass a single number in.
  */
 export function calculatePayout(
 	brief: ClientBrief,
 	accuracyScore: number,
-	creativityScore: number
+	creativityScore: number,
+	multiplier = 1
 ): number {
 	const quality = (accuracyScore * 0.7 + creativityScore * 0.3) / 10;
-	return clamp(Math.round(brief.budget * quality), 0, brief.budget);
+	return clamp(
+		Math.round(brief.budget * quality * multiplier),
+		0,
+		Math.round(brief.budget * multiplier)
+	);
 }
 
 /** Mean of accuracy and creativity, rounded to one decimal place for the gallery. */

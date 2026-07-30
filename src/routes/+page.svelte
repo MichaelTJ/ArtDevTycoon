@@ -18,6 +18,7 @@
 		ScoreBadge
 	} from '$lib/components';
 	import { getEnvironmentForLevel } from '$lib/data/environments';
+	import { getLayout } from '$lib/data/galleryLayouts';
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
 	import { LEVEL_1, type EngineId, type GalleryEntry } from '$lib/types/contracts';
@@ -28,6 +29,7 @@
 	let selectedEntry: GalleryEntry | null = $state(null);
 
 	const environment = $derived(getEnvironmentForLevel(LEVEL_1.id));
+	const galleryLayoutClassName = $derived(getLayout(game.activeLayoutId).gridClassName);
 
 	const capabilityReason = $derived(
 		engines.options.find((option) => option.id !== 'mock' && !option.available)
@@ -176,7 +178,12 @@
 			{/snippet}
 		</GameMenuBar>
 
-		<GameScene {environment} galleryEntries={game.galleryHistory} onselectentry={openFullView}>
+		<GameScene
+			{environment}
+			galleryEntries={game.displayedGalleryEntries}
+			{galleryLayoutClassName}
+			onselectentry={openFullView}
+		>
 			{#snippet workspace()}
 				<div class="flex flex-col gap-4">
 					{#if game.phase === 'idle'}

@@ -544,6 +544,66 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 
 ---
 
+## 2026-07-30 - Spec 13 Medium & material tiers
+
+**Zone:** `src/lib/data/mediumTiers.ts`, `ToolkitShop.svelte`, `promptPipeline.ts`, `scoring.ts` (multiplier param), `gameState.svelte.ts` (hydrate/persist/unlock/select), `GameMenuBar.svelte`, component barrel/README, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Purchasable medium ladder (crayon to oil). `MEDIUM_TIERS` + helpers; `buildPrompt(playerInput, tier)` with deprecated `buildLevel1Prompt` wrapper that stays byte-identical to crayon; `calculatePayout` optional `multiplier` (default 1); `GameStore` hydrates/persists `unlockedMediumTierIds` / `activeMediumTierId`, `unlockMediumTier` / `setActiveMediumTier`, and uses the active tier in `createArt` for prompt suffix + payout. `ToolkitShop` (props in / events out) opens from `GameMenuBar` as an overlay.
+
+**Public surface:**
+- `$lib/data/mediumTiers` - `MediumTier`, `MEDIUM_TIERS`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier`
+- `buildPrompt(playerInput, tier)` from `$lib/game/promptPipeline` (not yet re-exported from `$lib/game` barrel)
+- `calculatePayout(brief, accuracy, creativity, multiplier = 1)`
+- `GameStore.unlockMediumTier(id)`, `setActiveMediumTier(id)`, `activeMediumTier`, `unlockedMediumTierIds`, `activeMediumTierId`
+- `ToolkitShop` / `GameMenuBar` from `$lib/components`
+
+**Tests:** Owned slice green - node: `mediumTiers` + `promptPipeline` + `scoring` (27); client: `ToolkitShop` (6) + `GameMenuBar` (4) + `gameState` (23 file total). Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run`. Full suite: 238 passed / 5 failed (inherited, outside zone).
+
+**Decisions:**
+- `GameMenuBar` imports the `game` store to host the toolkit overlay because `+page.svelte` is outside this ownership zone; `ToolkitShop` itself stays presentational.
+- `buildPrompt` imported directly from `promptPipeline` in the store so `src/lib/game/index.ts` (out of zone) did not need a barrel edit.
+- `save.ts` unchanged - schema already had the fields from spec 12.
+
+**Requests:**
+- Re-export `buildPrompt` from `src/lib/game/index.ts`.
+- Mention `mediumTiers` in `src/lib/data/README.md`.
+- Optional: lift toolkit wiring into `+page.svelte` (EnginePicker-style) so `GameMenuBar` can drop its store import.
+
+**Known gaps:**
+- Inherited client-test flakes outside zone: `CapabilityNotice`, `LevelCompleteOverlay`, `ModelDownloadGate` (timeouts), `ResultsPanel` (image visibility). Not touched.
+- No per-medium workspace reskin (explicitly out of scope).
+- Specs 14/15 will also touch `scoring.ts` / `gameState` - edits here are additive only.
+
+---
+
+## 2026-07-30 — Spec 14 Gallery real estate & presentation
+
+**Zone:** `src/lib/data/galleryVenues.ts`, `galleryLayouts.ts`, `galleryAtmosphere.ts` (+ tests), `src/lib/components/GalleryUpgradeShop.svelte` (+ test), edits to `scoring.ts`, `gameState.svelte.ts`, `FridgeGallery.svelte`, `GameMenuBar.svelte`, `components/index.ts`, `components/README.md`, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Three purchasable gallery systems — Venue (linear capacity), Layout (switchable curation multiplier + CSS class), Atmosphere (stacking payout bonuses). `GameStore` exposes `presentationMultiplier` (medium × layout × (1 + atmosphere)), `displayedGalleryEntries` (capacity-capped; `galleryHistory` uncapped), and unlock/buy/select methods that persist via `#persist()`. `calculatePayout` gained optional `multiplier = 1` (spec 13 signature). `GalleryUpgradeShop` is a three-tab presentational overlay; `GameMenuBar` shows an optional "Gallery Upgrades" button; `FridgeGallery` accepts optional `layoutClassName` with layout CSS.
+
+**Public surface:**
+
+- `$lib/data/galleryVenues` — `GALLERY_VENUES`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue`
+- `$lib/data/galleryLayouts` — `GALLERY_LAYOUTS`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout`
+- `$lib/data/galleryAtmosphere` — `ATMOSPHERE_ITEMS`, `getAtmosphereItem`, `totalAtmosphereBonus`
+- `$lib/components` — `GalleryUpgradeShop`; `FridgeGallery.layoutClassName?`; `GameMenuBar.onopengalleryupgrades?`
+- `GameStore` — `unlockedVenueId`, `unlockedLayoutIds`, `activeLayoutId`, `ownedAtmosphereIds`, `venue`, `displayedGalleryEntries`, `presentationMultiplier`, `activeMediumTier` (stub), `unlockVenue`, `unlockLayout`, `setActiveLayout`, `buyAtmosphereItem`
+
+**Tests:** Data unit tests + scoring multiplier cases + GameStore unlock/display/persist/payout cases + component tests for shop tabs, FridgeGallery layout prop, GameMenuBar button. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run` (262 passed).
+
+**Decisions:**
+
+- Spec 13 is **not** in this worktree. Stubbed `activeMediumTier.payoutMultiplier` at `1` via `MEDIUM_TIER_STUB` so `presentationMultiplier` still composes correctly. Merge **either order** works: if 13 lands first it owns the real `activeMediumTier`; if 14 lands first, 13 should replace the stub and keep multiplying into `presentationMultiplier` (not pass medium alone to `calculatePayout`).
+- `onopengalleryupgrades` is optional so `+page.svelte` keeps typechecking without a page edit (outside ownership).
+- Venue unlock is strictly next-tier-only; layouts are free to switch once owned; atmosphere has no active slot.
+
+**Requests:** Page/scene wiring and medium×presentation merge completed by orchestrator on main.
+
+**Known gaps:** Page/scene not wired (ownership). No per-venue visual re-skins. Manual drag-and-drop curation deferred. Spec 13 medium factor still stubbed at 1 until that branch merges.
+
+---
+
 ## 2026-07-30 — Spec 15 Client prestige & demographics
 
 **Zone:** `src/lib/types/contracts.ts` (additive), `src/lib/data/clientTiers*`, corporate/billionaire/auction brief pools, `src/lib/data/briefs*`, `src/lib/game/auction*`, `src/lib/game/paletteSeries*`, `src/lib/game/save.ts` (`seriesOnBrandFlags`), `src/lib/stores/gameState*`, `ClientTierBadge` / `AuctionResultPanel`, components barrel + README, `docs/tasks/README.md`, `docs/agent-log.md`

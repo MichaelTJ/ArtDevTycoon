@@ -8,11 +8,13 @@
 	interface Props {
 		environment: EnvironmentConfig;
 		galleryEntries: GalleryEntry[];
+		galleryLayoutClassName?: string;
 		onselectentry: (entry: GalleryEntry) => void;
 		workspace: Snippet;
 	}
 
-	let { environment, galleryEntries, onselectentry, workspace }: Props = $props();
+	let { environment, galleryEntries, galleryLayoutClassName, onselectentry, workspace }: Props =
+		$props();
 </script>
 
 {#if environment.id === 'home-kitchen'}
@@ -21,6 +23,7 @@
 		galleryLabel={environment.galleryLabel}
 		emptyGalleryMessage={environment.emptyGalleryMessage}
 		{galleryEntries}
+		{galleryLayoutClassName}
 		{onselectentry}
 		{workspace}
 	/>

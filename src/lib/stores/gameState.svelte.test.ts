@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { getMediumTier } from '$lib/data/mediumTiers';
 import { EngineError } from '$lib/engines/errors';
 import { calculatePayout, createDefaultSave, scorePrompt, type SaveData } from '$lib/game';
 import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
@@ -507,7 +508,8 @@ describe('GameStore', () => {
 		const base = calculatePayout(
 			store.currentClient,
 			fakeDraft.accuracyScore,
-			scorePrompt(store.currentClient, store.draftPrompt).creativityScore
+			scorePrompt(store.currentClient, store.draftPrompt).creativityScore,
+			store.presentationMultiplier
 		);
 		expect(store.currentCritique?.finalPayout).toBe(base + 300);
 	});
@@ -538,8 +540,313 @@ describe('GameStore', () => {
 		const base = calculatePayout(
 			store.currentClient,
 			fakeDraft.accuracyScore,
-			scorePrompt(store.currentClient, store.draftPrompt).creativityScore
+			scorePrompt(store.currentClient, store.draftPrompt).creativityScore,
+			store.presentationMultiplier
 		);
 		expect(store.currentCritique?.finalPayout).toBe(base);
+	});
+
+	it('unlockMediumTier succeeds when the player can afford pencil', () => {
+		const persistSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(),
+				critique: vi.fn()
+			},
+			{
+				persistSave,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					cash: 300,
+					reputation: 5
+				})
+			}
+		);
+
+		expect(store.unlockMediumTier('pencil')).toBe(true);
+		expect(store.cash).toBe(50);
+		expect(store.activeMediumTierId).toBe('pencil');
+		expect(store.unlockedMediumTierIds).toContain('pencil');
+		expect(persistSave).toHaveBeenCalledOnce();
+	});
+
+	it('unlockMediumTier fails when cash is insufficient', () => {
+		const persistSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(),
+				critique: vi.fn()
+			},
+			{
+				persistSave,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					cash: 100,
+					reputation: 5
+				})
+			}
+		);
+
+		expect(store.unlockMediumTier('pencil')).toBe(false);
+		expect(store.cash).toBe(100);
+		expect(store.activeMediumTierId).toBe('crayon');
+		expect(persistSave).not.toHaveBeenCalled();
+	});
+
+	it('unlockMediumTier refuses to re-buy crayon', () => {
+		const store = createStore({
+			generate: vi.fn(),
+			critique: vi.fn()
+		});
+
+		expect(store.unlockMediumTier('crayon')).toBe(false);
+	});
+
+	it('setActiveMediumTier no-ops for locked tiers', () => {
+		const store = createStore({
+			generate: vi.fn(),
+			critique: vi.fn()
+		});
+
+		store.setActiveMediumTier('oil');
+		expect(store.activeMediumTierId).toBe('crayon');
+	});
+
+	it('createArt uses the active medium prompt suffix', async () => {
+		const generate = vi.fn(
+			async ({ playerPrompt, prompt: builtPrompt }: { playerPrompt: string; prompt: string }) => {
+				void builtPrompt;
+				return {
+					...fakeArtwork,
+					playerPrompt
+				};
+			}
+		);
+		const store = createStore({ generate, critique: vi.fn(async () => fakeDraft) });
+		store.unlockedMediumTierIds = ['crayon', 'oil'];
+		store.activeMediumTierId = 'oil';
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+
+		await store.createArt();
+
+		expect(generate).toHaveBeenCalledOnce();
+		const args = generate.mock.calls[0][0];
+		expect(args.prompt.endsWith(getMediumTier('oil').promptModifierSuffix)).toBe(true);
+	});
+
+	it('hydrates gallery progression fields from save', () => {
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					unlockedVenueId: 'garage',
+					unlockedLayoutIds: ['cluttered', 'tidy-rows'],
+					activeLayoutId: 'tidy-rows',
+					ownedAtmosphereIds: ['gallery-lighting']
+				})
+			}
+		);
+
+		expect(store.unlockedVenueId).toBe('garage');
+		expect(store.unlockedLayoutIds).toEqual(['cluttered', 'tidy-rows']);
+		expect(store.activeLayoutId).toBe('tidy-rows');
+		expect(store.ownedAtmosphereIds).toEqual(['gallery-lighting']);
+		expect(store.venue.capacity).toBe(8);
+		expect(store.presentationMultiplier).toBeCloseTo(1.05 * 1.05, 5);
+	});
+
+	it('caps displayedGalleryEntries at venue capacity without trimming history', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.galleryHistory = [
+			{
+				id: 'a',
+				imageUrl: '/a.png',
+				title: 'A',
+				payout: 10,
+				score: 5,
+				clientName: 'C',
+				briefId: 'c1',
+				completedAt: 100
+			},
+			{
+				id: 'b',
+				imageUrl: '/b.png',
+				title: 'B',
+				payout: 10,
+				score: 5,
+				clientName: 'C',
+				briefId: 'c2',
+				completedAt: 200
+			},
+			{
+				id: 'c',
+				imageUrl: '/c.png',
+				title: 'C',
+				payout: 10,
+				score: 5,
+				clientName: 'C',
+				briefId: 'c3',
+				completedAt: 300
+			},
+			{
+				id: 'd',
+				imageUrl: '/d.png',
+				title: 'D',
+				payout: 10,
+				score: 5,
+				clientName: 'C',
+				briefId: 'c4',
+				completedAt: 400
+			},
+			{
+				id: 'e',
+				imageUrl: '/e.png',
+				title: 'E',
+				payout: 10,
+				score: 5,
+				clientName: 'C',
+				briefId: 'c5',
+				completedAt: 500
+			}
+		];
+
+		expect(store.galleryHistory).toHaveLength(5);
+		expect(store.displayedGalleryEntries).toHaveLength(3);
+		expect(store.displayedGalleryEntries.map((e) => e.id)).toEqual(['e', 'd', 'c']);
+	});
+
+	it('unlockVenue succeeds for the next venue when affordable', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.cash = 400;
+		store.reputation = 4;
+
+		expect(store.unlockVenue('garage')).toBe(true);
+		expect(store.cash).toBe(0);
+		expect(store.unlockedVenueId).toBe('garage');
+		expect(persistSave).toHaveBeenCalledOnce();
+		expect(store.displayedGalleryEntries.length).toBeLessThanOrEqual(8);
+	});
+
+	it('unlockVenue refuses when unaffordable or when skipping tiers', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.cash = 100;
+		store.reputation = 4;
+
+		expect(store.unlockVenue('garage')).toBe(false);
+		expect(store.unlockedVenueId).toBe('fridge');
+
+		store.cash = 10_000;
+		store.reputation = 22;
+		expect(store.unlockVenue('storefront')).toBe(false);
+		expect(store.unlockVenue('garage')).toBe(true);
+		expect(persistSave).toHaveBeenCalledOnce();
+	});
+
+	it('shows all five entries once garage venue is unlocked', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 400;
+		store.reputation = 4;
+		store.galleryHistory = Array.from({ length: 5 }, (_, i) => ({
+			id: `g${i}`,
+			imageUrl: `/g${i}.png`,
+			title: `G${i}`,
+			payout: 10,
+			score: 5,
+			clientName: 'C',
+			briefId: `c${i + 1}`,
+			completedAt: i + 1
+		}));
+
+		expect(store.displayedGalleryEntries).toHaveLength(3);
+		expect(store.unlockVenue('garage')).toBe(true);
+		expect(store.displayedGalleryEntries).toHaveLength(5);
+	});
+
+	it('unlockLayout deducts cash, activates, and persists', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.cash = 300;
+
+		expect(store.unlockLayout('tidy-rows')).toBe(true);
+		expect(store.cash).toBe(0);
+		expect(store.unlockedLayoutIds).toContain('tidy-rows');
+		expect(store.activeLayoutId).toBe('tidy-rows');
+		expect(store.presentationMultiplier).toBeCloseTo(1.05, 5);
+		expect(persistSave).toHaveBeenCalledOnce();
+	});
+
+	it('unlockLayout is idempotent and refuses when unaffordable', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 100;
+		expect(store.unlockLayout('tidy-rows')).toBe(false);
+		expect(store.unlockLayout('cluttered')).toBe(false);
+	});
+
+	it('setActiveLayout switches freely among owned layouts', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.cash = 300;
+		store.unlockLayout('tidy-rows');
+		persistSave.mockClear();
+
+		store.setActiveLayout('cluttered');
+		expect(store.activeLayoutId).toBe('cluttered');
+		expect(persistSave).toHaveBeenCalledOnce();
+
+		store.setActiveLayout('minimalist');
+		expect(store.activeLayoutId).toBe('cluttered');
+	});
+
+	it('buyAtmosphereItem stacks bonuses and refuses duplicates', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.cash = 350;
+
+		expect(store.buyAtmosphereItem('gallery-lighting')).toBe(true);
+		expect(store.cash).toBe(0);
+		expect(store.ownedAtmosphereIds).toEqual(['gallery-lighting']);
+		expect(store.presentationMultiplier).toBeCloseTo(1.05, 5);
+		expect(persistSave).toHaveBeenCalledOnce();
+
+		expect(store.buyAtmosphereItem('gallery-lighting')).toBe(false);
+		expect(store.buyAtmosphereItem('velvet-ropes')).toBe(false);
+	});
+
+	it('reset clears gallery progression fields', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 10_000;
+		store.reputation = 22;
+		store.unlockVenue('garage');
+		store.unlockLayout('tidy-rows');
+		store.buyAtmosphereItem('gallery-lighting');
+
+		store.reset();
+
+		expect(store.unlockedVenueId).toBe('fridge');
+		expect(store.unlockedLayoutIds).toEqual(['cluttered']);
+		expect(store.activeLayoutId).toBe('cluttered');
+		expect(store.ownedAtmosphereIds).toEqual([]);
+		expect(store.presentationMultiplier).toBe(1);
+	});
+
+	it('createArt passes presentationMultiplier into payout', async () => {
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique: vi.fn(async () => fakeDraft)
+		});
+		store.cash = 300;
+		store.unlockLayout('tidy-rows');
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+
+		await store.createArt();
+
+		// accuracy 10, creativity from scorePrompt on that prompt is 2 ΓåÆ quality 0.76
+		// 100 * 0.76 * 1.05 = 79.8 ΓåÆ 80
+		expect(store.currentCritique?.finalPayout).toBe(80);
 	});
 });

@@ -5,10 +5,14 @@ validated at module load.
 
 ## Public surface
 
-| Module            | Exports                                  |
-| ----------------- | ---------------------------------------- |
-| `briefs.ts`       | `LEVEL_1_BRIEFS`, `pickBrief`            |
-| `environments.ts` | `ENVIRONMENTS`, `getEnvironmentForLevel` |
+| Module            | Exports                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| `briefs.ts`       | `LEVEL_1_BRIEFS`, `pickBrief`                                                                    |
+| `environments.ts` | `ENVIRONMENTS`, `getEnvironmentForLevel`                                                         |
+| `mediumTiers.ts`  | `MEDIUM_TIERS`, `MediumTier`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier` |
+| `galleryVenues.ts` | `GALLERY_VENUES`, `GalleryVenue`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue` |
+| `galleryLayouts.ts` | `GALLERY_LAYOUTS`, `GalleryLayout`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout` |
+| `galleryAtmosphere.ts` | `ATMOSPHERE_ITEMS`, `AtmosphereItem`, `getAtmosphereItem`, `totalAtmosphereBonus` |
 
 Import briefs directly from `$lib/data/briefs` or re-export through a future data barrel
 if one is added.
@@ -24,9 +28,16 @@ if one is added.
 - When every brief id is excluded, the pool resets to the full list so long runs never
   run out of clients.
 
+## Medium tiers (`mediumTiers.ts`)
+
+Ordered crayon → oil ladder. Each tier has a hidden `promptModifierSuffix` (never shown to
+the player) and a `payoutMultiplier`. Unlock gates are cash + reputation; once unlocked,
+switching is free. Spec 12 already persists `unlockedMediumTierIds` / `activeMediumTierId`.
+
 ## Not done yet
 
 - Level 2+ brief pools, avatar assets beyond the six SVG placeholders, and any remote
   content loading are out of scope for spec 01.
 - Only `home-kitchen` has a real scene component; levels 2–4 are config stubs until
   their gameplay ships.
+- Gallery venues/layouts (spec 14) and client prestige tiers (spec 15) land next.
