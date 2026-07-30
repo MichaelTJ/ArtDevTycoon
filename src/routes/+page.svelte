@@ -2,6 +2,7 @@
 	import {
 		ArtworkFrame,
 		ArtworkFullView,
+		AuctionResultPanel,
 		CapabilityNotice,
 		ClientCard,
 		EnginePicker,
@@ -13,7 +14,8 @@
 		LevelCompleteOverlay,
 		ModelDownloadGate,
 		PromptComposer,
-		ResultsPanel
+		ResultsPanel,
+		ScoreBadge
 	} from '$lib/components';
 	import { getEnvironmentForLevel } from '$lib/data/environments';
 	import { engines } from '$lib/stores/engineStore.svelte';
@@ -209,12 +211,37 @@
 							messages={environment.critiqueMessages}
 						/>
 					{:else if game.phase === 'results' && game.currentArtwork && game.currentCritique && game.currentClient}
-						<ResultsPanel
-							artwork={game.currentArtwork}
-							critique={game.currentCritique}
-							clientName={game.currentClient.clientName}
-							oncollect={() => game.collectCash()}
-						/>
+						{#if game.currentAuctionResult}
+							<div class="flex flex-col gap-4">
+								{#if game.currentClient}
+									<ClientCard brief={game.currentClient} />
+								{/if}
+								<ArtworkFrame
+									imageUrl={game.currentArtwork.imageUrl}
+									title={game.currentCritique.title}
+									alt={game.currentCritique.title}
+									size="full"
+								/>
+								<h2 class="text-xl font-bold text-stone-800">{game.currentCritique.title}</h2>
+								<div class="flex flex-wrap gap-2">
+									<ScoreBadge label="Accuracy" score={game.currentCritique.accuracyScore} />
+									<ScoreBadge label="Creativity" score={game.currentCritique.creativityScore} />
+								</div>
+								<AuctionResultPanel
+									bidderCount={game.currentAuctionResult.bidderCount}
+									bids={game.currentAuctionResult.bids}
+									winningBid={game.currentAuctionResult.winningBid}
+									oncollect={() => game.collectCash()}
+								/>
+							</div>
+						{:else}
+							<ResultsPanel
+								artwork={game.currentArtwork}
+								critique={game.currentCritique}
+								clientName={game.currentClient.clientName}
+								oncollect={() => game.collectCash()}
+							/>
+						{/if}
 					{:else if game.phase === 'failed'}
 						{#if game.currentClient}
 							<ClientCard brief={game.currentClient} />

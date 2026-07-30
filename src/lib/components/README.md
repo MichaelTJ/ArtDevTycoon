@@ -14,11 +14,13 @@ Import everything from `$lib/components` (barrel `index.ts`):
 | `Avatar`               | `src`, `name`, `size?` (`sm`/`md`/`lg`)                                                                          | —                           |
 | `ScoreBadge`           | `label`, `score`, `max?`                                                                                         | —                           |
 | `HudBar`               | `cash`, `levelName`, `commissionsCompleted`, `targetCommissions`, `targetCash`, `variant?` (`default`/`compact`) | —                           |
-| `ClientCard`           | `brief: ClientBrief`                                                                                             | —                           |
+| `ClientCard`           | `brief: ClientBrief` (shows `ClientTierBadge`)                                                                   | —                           |
+| `ClientTierBadge`      | `tier: ClientTier`                                                                                               | —                           |
 | `PromptComposer`       | `value?` (bindable), `disabled?`, `maxLength?`                                                                   | `onsubmit(prompt)`          |
 | `GeneratingPanel`      | `messages?`, `intervalMs?`, `progress?`, `stageLabel?`                                                           | —                           |
 | `ArtworkFrame`         | `imageUrl`, `title`, `alt`, `size?` (`thumb`/`full`)                                                             | —                           |
 | `ResultsPanel`         | `artwork`, `critique`, `clientName`                                                                              | `oncollect()`               |
+| `AuctionResultPanel`   | `bidderCount`, `bids`, `winningBid`                                                                              | `oncollect()`               |
 | `PortfolioStrip`       | `entries`, `emptyMessage?`                                                                                       | —                           |
 | `ErrorPanel`           | `message`                                                                                                        | `onretry()`, `ondismiss?()` |
 | `IdlePanel`            | `disabled?`, `message?`                                                                                          | `oninvite()`                |

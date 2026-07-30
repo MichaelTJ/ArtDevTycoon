@@ -101,13 +101,16 @@ Wave B  (after 13, 14, 15 are all merged)
    └── 16 Studio automation   → worktree ../adt-wt-studio-automation   branch agent/studio-automation
 ```
 
-13, 14 and 15 all touch `src/lib/game/scoring.ts` (a `multiplier` parameter on
-`calculatePayout`) and `src/lib/stores/gameState.svelte.ts`. Each spec's edits there are
-small and additive (a new parameter, a few new fields), but merge them one at a time and
+13, 14 and 15 all touch `src/lib/stores/gameState.svelte.ts` (and possibly
+`calculatePayout` when a medium/venue multiplier lands). Spec 15 is the only Wave A
+agent allowed to edit `src/lib/types/contracts.ts` (additive `CLIENT_TIERS` + brief
+fields) and adds `seriesOnBrandFlags` to `saveDataSchema`. Merge them one at a time and
 re-run `npm run check`/`test:unit` after each merge rather than merging all three at once
-— the same discipline as any wave-1 pair in the section above. 15 is also the only
-progression spec allowed to touch `src/lib/types/contracts.ts` (an additive extension to
-`clientBriefSchema`); do not run it concurrently with any other agent editing that file.
+— the same discipline as any wave-1 pair in the section above. Do not run Spec 15
+concurrently with any other agent editing `contracts.ts`.
+
+Expected merge hotspots with 13/14 on `gameState.svelte.ts`: `inviteClient` /
+`createArt` payout branching, `#persist()`, and `GameStoreDeps`.
 
 16 depends on all three because it automates things they each own: the Apprentice's
 income needs spec 13's medium concept to make sense narratively (no code dependency), the

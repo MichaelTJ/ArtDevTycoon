@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { EngineError } from '$lib/engines/errors';
-import { createDefaultSave, type SaveData } from '$lib/game';
+import { calculatePayout, createDefaultSave, scorePrompt, type SaveData } from '$lib/game';
 import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
 import { GameStore } from './gameState.svelte';
 
@@ -32,6 +32,11 @@ function createStore(
 		loadSave?: (startingCash: number, now?: () => number) => SaveData;
 		persistSave?: (data: SaveData) => void;
 		clearSave?: () => void;
+		resolveAuction?: (
+			qualityScore: number,
+			reservePrice: number,
+			random?: () => number
+		) => { bidderCount: number; bids: number[]; winningBid: number };
 	}
 ) {
 	const now = options?.now ?? (() => 1_000);
@@ -42,7 +47,8 @@ function createStore(
 		setSwitchingLocked: options?.setSwitchingLocked,
 		loadSave: options?.loadSave ?? ((startingCash) => createDefaultSave(startingCash, now)),
 		persistSave: options?.persistSave ?? (() => {}),
-		clearSave: options?.clearSave ?? (() => {})
+		clearSave: options?.clearSave ?? (() => {}),
+		resolveAuction: options?.resolveAuction
 	});
 }
 
@@ -384,5 +390,156 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('levelComplete');
 		expect(store.commissionsCompleted).toBe(5);
 		expect(store.cash).toBeGreaterThanOrEqual(LEVEL_1.targetCash);
+	});
+
+	it('never surfaces a prestige client at reputation 0 across 50 draws', () => {
+		let draw = 0;
+		const seeded = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{ random: () => (draw++ % 50) / 50 }
+		);
+
+		for (let i = 0; i < 50; i++) {
+			seeded.phase = 'idle';
+			seeded.inviteClient();
+			const tier = seeded.currentClient?.tier ?? 'walk-in';
+			expect(tier).toBe('walk-in');
+		}
+	});
+
+	it('surfaces all four tiers across draws at reputation 60', () => {
+		const seen = new Set<string>();
+		let draw = 0;
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{
+				random: () => (draw++ % 100) / 100,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					reputation: 60
+				})
+			}
+		);
+
+		for (let i = 0; i < 100; i++) {
+			store.phase = 'idle';
+			store.inviteClient();
+			const client = store.currentClient;
+			expect(client).not.toBeNull();
+			if (!client) continue;
+			seen.add(client.tier ?? 'walk-in');
+			store.galleryHistory = [
+				{
+					id: `skip-${i}`,
+					imageUrl: 'data:image/svg+xml,%3Csvg/%3E',
+					title: 'Skip',
+					payout: 0,
+					score: 1,
+					clientName: client.clientName,
+					briefId: client.id,
+					completedAt: i
+				},
+				...store.galleryHistory
+			];
+		}
+
+		expect(seen.has('walk-in')).toBe(true);
+		expect(seen.has('corporate')).toBe(true);
+		expect(seen.has('billionaire')).toBe(true);
+		expect(seen.has('auction-house')).toBe(true);
+	});
+
+	it('uses injected resolveAuction winningBid for auction-house payouts', async () => {
+		const resolveAuction = vi.fn(() => ({
+			bidderCount: 4,
+			bids: [100, 400, 220, 180],
+			winningBid: 400
+		}));
+		const store = createStore(
+			{
+				generate: vi.fn(async () => fakeArtwork),
+				critique: vi.fn(async () => fakeDraft)
+			},
+			{ resolveAuction }
+		);
+		store.currentClient = {
+			id: 'auc-1',
+			clientName: "Hargrove's Auction House",
+			avatarUrl: '/avatars/c1.svg',
+			requestText: 'Bring us your finest.',
+			budget: 200,
+			preferredKeywords: ['detail', 'skill', 'composition'],
+			tier: 'auction-house'
+		};
+		store.phase = 'briefing';
+		store.draftPrompt = 'a detailed skillful composition with rich texture';
+
+		await store.createArt();
+
+		expect(resolveAuction).toHaveBeenCalledOnce();
+		expect(store.currentCritique?.finalPayout).toBe(400);
+		expect(store.currentAuctionResult?.winningBid).toBe(400);
+	});
+
+	it('adds a 300 series bonus on the third on-brand corporate piece', async () => {
+		const store = createStore({
+			generate: vi.fn(async ({ playerPrompt }) => ({ ...fakeArtwork, playerPrompt })),
+			critique: vi.fn(async () => fakeDraft)
+		});
+		store.seriesOnBrandFlags = { 'corp-1': [true, true] };
+		store.currentClient = {
+			id: 'corp-1c',
+			clientName: 'Meridian Bank',
+			avatarUrl: '/avatars/c1.svg',
+			requestText: 'Executive suite closer.',
+			budget: 320,
+			preferredKeywords: ['vault', 'door', 'light'],
+			tier: 'corporate',
+			seriesId: 'corp-1',
+			seriesPosition: 3,
+			paletteConstraint: ['navy', 'gold', 'cream']
+		};
+		store.phase = 'briefing';
+		store.draftPrompt = 'a navy and gold vault door in soft light';
+
+		await store.createArt();
+
+		const base = calculatePayout(
+			store.currentClient,
+			fakeDraft.accuracyScore,
+			scorePrompt(store.currentClient, store.draftPrompt).creativityScore
+		);
+		expect(store.currentCritique?.finalPayout).toBe(base + 300);
+	});
+
+	it('adds no series bonus when the third corporate piece is off brand', async () => {
+		const store = createStore({
+			generate: vi.fn(async ({ playerPrompt }) => ({ ...fakeArtwork, playerPrompt })),
+			critique: vi.fn(async () => fakeDraft)
+		});
+		store.seriesOnBrandFlags = { 'corp-1': [true, true] };
+		store.currentClient = {
+			id: 'corp-1c',
+			clientName: 'Meridian Bank',
+			avatarUrl: '/avatars/c1.svg',
+			requestText: 'Executive suite closer.',
+			budget: 320,
+			preferredKeywords: ['vault', 'door', 'light'],
+			tier: 'corporate',
+			seriesId: 'corp-1',
+			seriesPosition: 3,
+			paletteConstraint: ['navy', 'gold', 'cream']
+		};
+		store.phase = 'briefing';
+		store.draftPrompt = 'a vault door in soft light with no palette words';
+
+		await store.createArt();
+
+		const base = calculatePayout(
+			store.currentClient,
+			fakeDraft.accuracyScore,
+			scorePrompt(store.currentClient, store.draftPrompt).creativityScore
+		);
+		expect(store.currentCritique?.finalPayout).toBe(base);
 	});
 });

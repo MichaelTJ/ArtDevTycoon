@@ -541,3 +541,34 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Requests:** Prettier on progression task docs was applied on merge. Optional: mention save.ts in src/lib/game/README.md (orchestrator).
 
 **Known gaps:** Idle-income ticking (`lastIncomeTickAt`) unused by design — spec 16. No UI for reset-progress (`clearSave` exposed only). Specs 13–16 must extend `#persist()` when they add unlock/purchase actions. Manual mid-commission reload check not run here (no `npm run dev`); worth a quick orchestrator smoke test after merge.
+
+---
+
+## 2026-07-30 — Spec 15 Client prestige & demographics
+
+**Zone:** `src/lib/types/contracts.ts` (additive), `src/lib/data/clientTiers*`, corporate/billionaire/auction brief pools, `src/lib/data/briefs*`, `src/lib/game/auction*`, `src/lib/game/paletteSeries*`, `src/lib/game/save.ts` (`seriesOnBrandFlags`), `src/lib/stores/gameState*`, `ClientTierBadge` / `AuctionResultPanel`, components barrel + README, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Reputation-gated client tiers (walk-in / corporate / billionaire / auction-house). Corporate series play in order 1→2→3 with palette on-brand checks and a 300 completion bonus. Auction-house payouts use `resolveAuction` (uncapped by budget). `GameStore` branches invite/payout, persists `seriesOnBrandFlags`, and exposes `currentAuctionResult` for the results UI.
+
+**Public surface:**
+- `CLIENT_TIERS`, `ClientTier`; `clientBriefSchema` fields `tier` (default `walk-in`), `seriesId`, `seriesPosition`, `paletteConstraint`
+- `$lib/data/clientTiers` — `CLIENT_TIER_INFO`, `getClientTierInfo`, `unlockedClientTiers`
+- `CORPORATE_BRIEFS`, `BILLIONAIRE_BRIEFS`, `AUCTION_BRIEFS`
+- `pickBrief({ excludeIds?, unlockedTiers?, completedSeriesIds?, random? })`
+- `resolveAuction(qualityScore, reservePrice, random?)` → `AuctionResult`
+- `checkPaletteUsage`, `seriesCompletionBonus`, `fullyCompletedSeriesIds`
+- `ClientTierBadge`, `AuctionResultPanel`; `GameStore.currentAuctionResult`, `seriesOnBrandFlags`
+- Save: `seriesOnBrandFlags: Record<string, boolean[]>` (Zod default `{}`)
+
+**Tests:** Unit coverage for tiers, auction worked examples, palette series, pickBrief gating/order, GameStore invite/payout/bonus paths; component tests for both new panels + ClientCard still green. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run` (node 132 + client 117).
+
+**Decisions:**
+- `ClientBrief` is `z.input<typeof clientBriefSchema>` so existing literals omitting `tier` still type-check; runtime parse still defaults `tier` to `walk-in`.
+- Exported `keywordMatches` from `scoring.ts` (one-line) so palette checks reuse the exact brief-keyword matcher.
+- Reused existing `/avatars/c1.svg`…`c6.svg` paths for prestige clients (no new avatar assets).
+- `calculatePayout` has no multiplier param on this branch — non-auction call sites unchanged.
+- Wired `ClientTierBadge` into `ClientCard` and `AuctionResultPanel` into `+page.svelte` results (small UI edits outside the listed ownership paths, required for DoD §8).
+
+**Requests:** None.
+
+**Known gaps / merge notes:** Expect conflicts with specs 13/14 on `gameState.svelte.ts` (`inviteClient`, `createArt` payout branch, `#persist`, `GameStoreDeps`) and possibly `calculatePayout` if they add a multiplier — pass any medium/venue multiplier through on non-auction paths when merging. Also touched `ClientCard.svelte`, `+page.svelte`, `scoring.ts` (export), and `save.test.ts` outside the strict ownership list for wiring/additivity.

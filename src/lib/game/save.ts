@@ -28,6 +28,12 @@ export const saveDataSchema = z.object({
 
 	/** Spec 15. */
 	unlockedClientTiers: z.array(z.string().min(1)).default(['walk-in']),
+	/**
+	 * Spec 15. Parallel map of corporate `seriesId` → on-brand flags collected so far,
+	 * one boolean per completed series piece in order. Used to score the series bonus
+	 * without storing `playerPrompt` on `GalleryEntry`.
+	 */
+	seriesOnBrandFlags: z.record(z.string(), z.array(z.boolean())).default({}),
 
 	/** Spec 16. */
 	hiredStaffIds: z.array(z.string().min(1)).default([]),

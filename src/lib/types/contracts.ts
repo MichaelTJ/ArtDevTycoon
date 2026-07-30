@@ -49,6 +49,13 @@ export type LevelConfig = typeof LEVEL_1;
 /* Client briefs                                                              */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Prestige tiers unlocked by reputation (spec 15). Walk-ins are always available;
+ * higher tiers gate corporate series, eccentric billionaires, and auction houses.
+ */
+export const CLIENT_TIERS = ['walk-in', 'corporate', 'billionaire', 'auction-house'] as const;
+export type ClientTier = (typeof CLIENT_TIERS)[number];
+
 export const clientBriefSchema = z.object({
 	id: z.string().min(1),
 	clientName: z.string().min(1),
@@ -62,10 +69,24 @@ export const clientBriefSchema = z.object({
 	 * layer, so these are plain concepts rather than regex. A vision engine turns each
 	 * one into a yes/no question about the finished picture.
 	 */
-	preferredKeywords: z.array(z.string().min(1)).min(1)
+	preferredKeywords: z.array(z.string().min(1)).min(1),
+
+	// --- added by spec 15, all optional/defaulted so the 6 existing Level 1 briefs and
+	// every existing test that constructs a ClientBrief literal keep parsing unchanged ---
+	tier: z.enum(CLIENT_TIERS).default('walk-in'),
+	/** Links the 3 briefs of one corporate series together. Undefined outside `corporate`. */
+	seriesId: z.string().optional(),
+	/** 1-based position within its series, e.g. 1, 2, 3. Undefined outside `corporate`. */
+	seriesPosition: z.number().int().positive().optional(),
+	/** Colour words the corporate client expects across all 3 pieces in the series. */
+	paletteConstraint: z.array(z.string().min(1)).optional()
 });
 
-export type ClientBrief = z.infer<typeof clientBriefSchema>;
+/**
+ * Input shape so existing literals omitting `tier` / series fields still type-check.
+ * Runtime `clientBriefSchema.parse` always fills `tier` via its default.
+ */
+export type ClientBrief = z.input<typeof clientBriefSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Art critic evaluation                                                      */

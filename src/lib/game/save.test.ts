@@ -45,6 +45,7 @@ describe('save', () => {
 		expect(loaded.lifetimeCommissions).toBe(0);
 		expect(loaded.galleryHistory).toEqual([]);
 		expect(loaded.unlockedMediumTierIds).toEqual(['crayon']);
+		expect(loaded.seriesOnBrandFlags).toEqual({});
 		expect(loaded.hiredStaffIds).toEqual([]);
 		expect(loaded.lastIncomeTickAt).toBeNull();
 	});
@@ -74,6 +75,7 @@ describe('save', () => {
 			activeLayoutId: 'cluttered',
 			ownedAtmosphereIds: [],
 			unlockedClientTiers: ['walk-in'],
+			seriesOnBrandFlags: {},
 			hiredStaffIds: [],
 			lastIncomeTickAt: null,
 			savedAt: 1_700_000_000_000
@@ -108,6 +110,7 @@ describe('save', () => {
 		expect(loaded.activeLayoutId).toBe('cluttered');
 		expect(loaded.ownedAtmosphereIds).toEqual([]);
 		expect(loaded.unlockedClientTiers).toEqual(['walk-in']);
+		expect(loaded.seriesOnBrandFlags).toEqual({});
 		expect(loaded.lastIncomeTickAt).toBeNull();
 		expect(loaded.cash).toBe(200);
 	});

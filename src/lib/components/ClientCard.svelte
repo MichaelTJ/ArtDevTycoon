@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ClientBrief } from '$lib/types/contracts';
 	import Avatar from './Avatar.svelte';
+	import ClientTierBadge from './ClientTierBadge.svelte';
 	import { fly } from 'svelte/transition';
 	import { prefersReducedMotion } from 'svelte/motion';
 
@@ -9,6 +10,9 @@
 	}
 
 	let { brief }: Props = $props();
+
+	const tier = $derived(brief.tier ?? 'walk-in');
+	const isAuction = $derived(tier === 'auction-house');
 </script>
 
 <article
@@ -18,8 +22,13 @@
 	<div class="flex items-start gap-4">
 		<Avatar src={brief.avatarUrl} name={brief.clientName} size="lg" />
 		<div class="min-w-0 flex-1">
-			<h2 class="text-lg font-semibold text-stone-800">{brief.clientName}</h2>
-			<p class="mt-1 text-sm font-medium text-emerald-700">Budget: ${brief.budget}</p>
+			<div class="flex flex-wrap items-center gap-2">
+				<h2 class="text-lg font-semibold text-stone-800">{brief.clientName}</h2>
+				<ClientTierBadge {tier} />
+			</div>
+			<p class="mt-1 text-sm font-medium text-emerald-700">
+				{isAuction ? `Reserve: $${brief.budget}` : `Budget: $${brief.budget}`}
+			</p>
 			<div class="speech-bubble mt-3">
 				<p class="text-stone-800">{brief.requestText}</p>
 			</div>
