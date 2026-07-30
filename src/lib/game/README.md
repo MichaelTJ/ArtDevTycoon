@@ -15,6 +15,7 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `scoring.ts`        | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `ScoreBreakdown`                                                |
 | `levelRules.ts`     | `isLevelComplete`, `levelProgress`                                                                                                    |
 | `operations.ts`     | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types |
+| `save.ts`           | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` |
 
 ## Invariants
 
@@ -29,7 +30,15 @@ Import from `$lib/game` via the barrel in `index.ts`.
 - Operational helpers read only shapes from `$lib/types/contracts.ts` and preserve
   newest-first gallery ordering.
 
+## Persistence (`save.ts`)
+
+Banked meta-progression (`cash`, `reputation`, lifetime commissions, `galleryHistory`, and
+reserved unlock fields for specs 13–16) persists under `adt.save.v1`. The in-flight
+commission does not. Load/persist never throw — corrupt or unavailable storage falls back
+to `createDefaultSave`. Specs 13–16 extend `GameStore`'s `#persist()` rather than adding
+parallel writers.
+
 ## Not done yet
 
-- Level 2+ rules, additional prompt pipelines, and reputation-gated client tiers are
-  deferred. `reputationGain` accumulates for a future level but is unused in Level 1 UI.
+- Level 2+ rules and additional prompt pipelines are deferred. Reputation-gated client
+  tiers, medium unlocks, gallery upgrades, and staffing land in specs 13–16.

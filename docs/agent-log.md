@@ -445,6 +445,87 @@ second generation when cached. Record observed timings in a follow-up handoff no
 **Pre-existing failures outside zone:** None — full `npm run check`, `npm run lint`, and
 `npm run test:unit -- --run` are green after this change.
 
+---
+
+## 2026-07-29 — SD-Turbo agent (spec 06)
+
+**Zone:** `src/lib/engines/sdturbo/**`
+
+**Built:** Full SD-Turbo HD desktop engine — `SdturboEngine` implementing `ArtEngine`, ORT
+WebGPU worker with single-step diffusion (no CFG), promise-based RPC client, unit tests,
+and directory README. Replaced the spec-02 stub.
+
+**Public surface:** `SdturboEngine`, `SdTurboEngineDeps`, `isModelCached` from
+`$lib/engines/sdturbo/sdturboEngine`. Registry lazy-loads via existing
+`ENGINE_REGISTRY` entry; game code imports through `$lib/engines` manager only.
+
+**Tests:** 13 tests in the SD-Turbo zone (7 workerClient + 6 engine). Full suite: 195
+green. Commands:
+
+```powershell
+npm run check
+npm run lint
+npm run test:unit -- --run
+npm run test:unit -- --run --project=node src/lib/engines/sdturbo
+```
+
+**Decisions:**
+
+- **Model repository verified 2026-07-29:** `schmuell/sd-turbo-ort-web` on Hugging Face
+  with `text_encoder/model.onnx`, `unet/model.onnx`, `vae_decoder/model.onnx`, and
+  tokenizer artifacts. Cached under the `onnx` Cache API bucket (matching Microsoft's ORT
+  sd-turbo example).
+- **UNet runs exactly once** at timestep 999 with no classifier-free guidance, per the
+  distilled SD-Turbo contract.
+- **Critique disposes ORT sessions first** via `disposeSessions()` before lazily loading a
+  composed `JanusEngine`; sessions recreate on the next `generate()`.
+- **Seeded latents** use `mulberry32` for best-effort determinism; README documents that
+  driver differences prevent pixel-exact tests.
+- Reused `rawImageToBitmap` from `$lib/engines/janus/imageConversion` for worker output.
+
+**Requests:** None.
+
+**Known gaps:** Manual browser verification not performed in this session — no observed
+wall-clock generation time or peak memory recorded. Follow the steps in
+`src/lib/engines/sdturbo/README.md`: run `npm run dev`, pick **SD-Turbo HD** on a desktop
+GPU, complete one commission, confirm sharper 512px output, responsive UI, and memory
+frees when switching engines.
+
+---
+
+## 2026-07-29 — Cursor agent (cozy kitchen scene UI)
+
+**Zone:** `src/lib/data/environments.ts`, `src/lib/components/**`, `src/routes/+page.svelte`,
+`e2e/game-loop.e2e.ts`, `src/lib/engines/mock/reviewTemplates.ts`
+
+**Built:** Level 1 home kitchen scene — drawing-table workspace wrapping the existing
+commission flow, fridge magnet gallery (`FridgeGallery`), artwork full-view modal
+(`ArtworkFullView`), top `GameMenuBar` with compact HUD, and `environments.ts` config for
+levels 2–4 stubs (`SceneComingSoon`).
+
+**Public surface:** `getEnvironmentForLevel`, `ENVIRONMENTS` from `$lib/data/environments`;
+`GameMenuBar`, `GameScene`, `WorkspaceZone`, `FridgeGallery`, `ArtworkFullView` from
+`$lib/components`. HUD display name comes from `environment.levelDisplayName` (`Home
+Kitchen`) instead of `LEVEL_1.name` in contracts.
+
+**Tests:** `environments.test.ts` plus five new `.svelte.test.ts` files (harness components
+for snippet-based tests). E2e updated for `Home Kitchen` display name.
+
+**Decisions:**
+
+- Preserved dynamic engine button label (`Art engine · Crayon Mode`) and critiquing-phase
+  artwork preview from the current `+page.svelte`.
+- Added `critiqueMessages` to environment config so kitchen-themed copy applies during the
+  critiquing phase without hardcoding in the route.
+- `PortfolioStrip` kept exported but unmounted; fridge gallery replaces it in gameplay.
+
+**Requests:** None.
+
+**Known gaps:** Levels 2–4 render `SceneComingSoon` only. Decorative kitchen SVG is minimal
+(gradient + soft sunlight blob). Did not touch `src/lib/engines/sdturbo/**`.
+
+---
+
 ## 2026-07-30 — Spec 12 Progression persistence
 
 **Zone:** `src/lib/game/save.ts`, `src/lib/game/save.test.ts`, `src/lib/stores/gameState.svelte.ts`, `src/lib/stores/gameState.svelte.test.ts`, `src/lib/game/index.ts`, `docs/architecture.md` (§4 only), `docs/tasks/README.md`, `docs/agent-log.md`
@@ -457,6 +538,6 @@ second generation when cached. Record observed timings in a follow-up handoff no
 
 **Decisions:** `#persist()` builds via `createDefaultSave` then overwrites banked fields so reserved 13–16 defaults stay correct until those specs extend the method. `cash` is typed `$state<number>(...)` because `LEVEL_1.startingCash` is a literal `100` and hydration assigns a general `number`. Explicit `#persist()` call site (not an `$effect`) per spec.
 
-**Requests:** Full `npm run lint` fails Prettier on untracked `docs/tasks/12-progression-persistence.md` through `16-studio-automation.md` (pre-existing; outside intentional edits). Please run `npx prettier --write docs/tasks/12-progression-persistence.md docs/tasks/13-medium-tiers.md docs/tasks/14-gallery-real-estate.md docs/tasks/15-client-prestige.md docs/tasks/16-studio-automation.md` on merge. Optional: mention `save.ts` in `src/lib/game/README.md` (outside this zone).
+**Requests:** Prettier on progression task docs was applied on merge. Optional: mention save.ts in src/lib/game/README.md (orchestrator).
 
 **Known gaps:** Idle-income ticking (`lastIncomeTickAt`) unused by design — spec 16. No UI for reset-progress (`clearSave` exposed only). Specs 13–16 must extend `#persist()` when they add unlock/purchase actions. Manual mid-commission reload check not run here (no `npm run dev`); worth a quick orchestrator smoke test after merge.
