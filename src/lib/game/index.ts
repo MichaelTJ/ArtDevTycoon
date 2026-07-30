@@ -1,4 +1,9 @@
-export { sanitizePlayerPrompt, buildLevel1Prompt, MAX_PROMPT_LENGTH } from './promptPipeline';
+export {
+	sanitizePlayerPrompt,
+	buildPrompt,
+	buildLevel1Prompt,
+	MAX_PROMPT_LENGTH
+} from './promptPipeline';
 export { scorePrompt, calculatePayout, toGalleryScore, reputationGain } from './scoring';
 export type { ScoreBreakdown } from './scoring';
 export { isLevelComplete, levelProgress } from './levelRules';
