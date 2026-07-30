@@ -1,5 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { game } from '$lib/stores/gameState.svelte';
 import GameMenuBar from './GameMenuBar.svelte';
 
 const defaultProps = {
@@ -29,4 +30,11 @@ test('engine button is disabled when engineMenuDisabled is true', async () => {
 test('renders level name in compact HUD', async () => {
 	const screen = render(GameMenuBar, defaultProps);
 	await expect.element(screen.getByRole('heading', { name: 'Home Kitchen' })).toBeVisible();
+});
+
+test("toolkit button opens the Artist's Toolkit dialog", async () => {
+	game.reset();
+	const screen = render(GameMenuBar, defaultProps);
+	await screen.getByRole('button', { name: /Medium ·/ }).click();
+	await expect.element(screen.getByRole('dialog', { name: "Artist's Toolkit" })).toBeVisible();
 });

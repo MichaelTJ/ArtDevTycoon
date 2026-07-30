@@ -1,4 +1,4 @@
-import { LEVEL_1 } from '$lib/types/contracts';
+import { DEFAULT_MEDIUM_TIER_ID, getMediumTier, type MediumTier } from '$lib/data/mediumTiers';
 
 /** Longest prompt we accept. Matches `generateRequestSchema` in the contract. */
 export const MAX_PROMPT_LENGTH = 500;
@@ -28,18 +28,20 @@ export function sanitizePlayerPrompt(raw: string): string {
 }
 
 /**
- * Append the hidden Level 1 quality modifiers to the player's prompt.
- *
- * The player never sees the result — the whole joke of Level 1 is that their grand
- * ambitions come back rendered in crayon. Throws on empty input so a blank prompt can
- * never reach the image model.
+ * Append the active medium's hidden quality modifiers to the player's prompt. The player
+ * never sees the result — see `MediumTier.promptModifierSuffix`.
  *
  * @throws {Error} if the sanitised input is empty
  */
-export function buildLevel1Prompt(playerInput: string): string {
+export function buildPrompt(playerInput: string, tier: MediumTier): string {
 	const clean = sanitizePlayerPrompt(playerInput);
 	if (clean === '') {
 		throw new Error('Prompt cannot be empty.');
 	}
-	return `${clean}, ${LEVEL_1.promptModifiers}`;
+	return `${clean}, ${tier.promptModifierSuffix}`;
+}
+
+/** @deprecated Use `buildPrompt(playerInput, tier)`. Kept for existing callers/tests. */
+export function buildLevel1Prompt(playerInput: string): string {
+	return buildPrompt(playerInput, getMediumTier(DEFAULT_MEDIUM_TIER_ID));
 }

@@ -126,8 +126,8 @@ C:/Users/JensenM/Documents/My Apps/adt-wt-progression-save agent/progression-sav
 ```
 
 Spec 06 has no worktree yet; create one if and when you get to it. Spec 12 is merged
-into `main`. Progression worktrees 13-16 do not exist yet — create each with the
-`git worktree add` command shown at the top of its spec file when you start it.
+into `main`. Progression worktrees: `adt-wt-medium-tiers` (spec 13) is active; create 14–16
+with the `git worktree add` command shown at the top of each spec file when you start them.
 
 Each has `node_modules` junctioned to the main checkout, so `npm run check`, `npm run
 lint` and `npm run test:unit` all work inside a worktree with no extra install. Every

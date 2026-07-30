@@ -541,3 +541,33 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Requests:** Prettier on progression task docs was applied on merge. Optional: mention save.ts in src/lib/game/README.md (orchestrator).
 
 **Known gaps:** Idle-income ticking (`lastIncomeTickAt`) unused by design — spec 16. No UI for reset-progress (`clearSave` exposed only). Specs 13–16 must extend `#persist()` when they add unlock/purchase actions. Manual mid-commission reload check not run here (no `npm run dev`); worth a quick orchestrator smoke test after merge.
+
+## 2026-07-30 - Spec 13 Medium & material tiers
+
+**Zone:** `src/lib/data/mediumTiers.ts`, `ToolkitShop.svelte`, `promptPipeline.ts`, `scoring.ts` (multiplier param), `gameState.svelte.ts` (hydrate/persist/unlock/select), `GameMenuBar.svelte`, component barrel/README, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Purchasable medium ladder (crayon to oil). `MEDIUM_TIERS` + helpers; `buildPrompt(playerInput, tier)` with deprecated `buildLevel1Prompt` wrapper that stays byte-identical to crayon; `calculatePayout` optional `multiplier` (default 1); `GameStore` hydrates/persists `unlockedMediumTierIds` / `activeMediumTierId`, `unlockMediumTier` / `setActiveMediumTier`, and uses the active tier in `createArt` for prompt suffix + payout. `ToolkitShop` (props in / events out) opens from `GameMenuBar` as an overlay.
+
+**Public surface:**
+- `$lib/data/mediumTiers` - `MediumTier`, `MEDIUM_TIERS`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier`
+- `buildPrompt(playerInput, tier)` from `$lib/game/promptPipeline` (not yet re-exported from `$lib/game` barrel)
+- `calculatePayout(brief, accuracy, creativity, multiplier = 1)`
+- `GameStore.unlockMediumTier(id)`, `setActiveMediumTier(id)`, `activeMediumTier`, `unlockedMediumTierIds`, `activeMediumTierId`
+- `ToolkitShop` / `GameMenuBar` from `$lib/components`
+
+**Tests:** Owned slice green - node: `mediumTiers` + `promptPipeline` + `scoring` (27); client: `ToolkitShop` (6) + `GameMenuBar` (4) + `gameState` (23 file total). Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run`. Full suite: 238 passed / 5 failed (inherited, outside zone).
+
+**Decisions:**
+- `GameMenuBar` imports the `game` store to host the toolkit overlay because `+page.svelte` is outside this ownership zone; `ToolkitShop` itself stays presentational.
+- `buildPrompt` imported directly from `promptPipeline` in the store so `src/lib/game/index.ts` (out of zone) did not need a barrel edit.
+- `save.ts` unchanged - schema already had the fields from spec 12.
+
+**Requests:**
+- Re-export `buildPrompt` from `src/lib/game/index.ts`.
+- Mention `mediumTiers` in `src/lib/data/README.md`.
+- Optional: lift toolkit wiring into `+page.svelte` (EnginePicker-style) so `GameMenuBar` can drop its store import.
+
+**Known gaps:**
+- Inherited client-test flakes outside zone: `CapabilityNotice`, `LevelCompleteOverlay`, `ModelDownloadGate` (timeouts), `ResultsPanel` (image visibility). Not touched.
+- No per-medium workspace reskin (explicitly out of scope).
+- Specs 14/15 will also touch `scoring.ts` / `gameState` - edits here are additive only.
