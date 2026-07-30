@@ -11,11 +11,14 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | Module              | Exports                                                                                                                               |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `text.ts`           | `normalize`, `stem`, `STOPWORDS`                                                                                                      |
-| `promptPipeline.ts` | `sanitizePlayerPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                                      |
+| `promptPipeline.ts` | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                       |
 | `scoring.ts`        | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `ScoreBreakdown`                                                |
 | `levelRules.ts`     | `isLevelComplete`, `levelProgress`                                                                                                    |
 | `operations.ts`     | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types |
 | `save.ts`           | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` |
+| `idleIncome.ts`     | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                     |
+| `auction.ts`        | `resolveAuction`, `AuctionResult`                                                                                                     |
+| `paletteSeries.ts`  | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
 
 ## Invariants
 
@@ -33,12 +36,19 @@ Import from `$lib/game` via the barrel in `index.ts`.
 ## Persistence (`save.ts`)
 
 Banked meta-progression (`cash`, `reputation`, lifetime commissions, `galleryHistory`, and
-reserved unlock fields for specs 13–16) persists under `adt.save.v1`. The in-flight
-commission does not. Load/persist never throw — corrupt or unavailable storage falls back
-to `createDefaultSave`. Specs 13–16 extend `GameStore`'s `#persist()` rather than adding
+unlock fields for specs 13–16) persists under `adt.save.v1`. The in-flight commission does
+not. Load/persist never throw — corrupt or unavailable storage falls back to
+`createDefaultSave`. Specs 13–16 extend `GameStore`'s `#persist()` rather than adding
 parallel writers.
+
+## Idle income (`idleIncome.ts`)
+
+Elapsed-time accrual clamped to `MAX_IDLE_MS` (8 hours). `computeIdleEarnings` is pure;
+`GameStore.startIncomeTicker` does catch-up on mount plus a `setInterval` tick. A null
+`lastIncomeTickAt` on load is initialised to `now()` so old saves never pass null into
+the formula.
 
 ## Not done yet
 
-- Level 2+ rules and additional prompt pipelines are deferred. Reputation-gated client
-  tiers, medium unlocks, gallery upgrades, and staffing land in specs 13–16.
+- Level 2+ rules and additional prompt pipelines are deferred.
+- Staff firing, salaries, and on-scene staff sprites are out of scope for spec 16.
