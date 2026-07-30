@@ -2,13 +2,18 @@
 	interface Props {
 		oninvite: () => void;
 		disabled?: boolean;
+		message?: string;
 	}
 
-	let { oninvite, disabled = false }: Props = $props();
+	let {
+		oninvite,
+		disabled = false,
+		message = 'The studio is quiet. Dust floats in the window light.'
+	}: Props = $props();
 </script>
 
 <div class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm">
-	<p class="text-stone-800">The studio is quiet. Dust floats in the window light.</p>
+	<p class="text-stone-800">{message}</p>
 
 	<button
 		type="button"

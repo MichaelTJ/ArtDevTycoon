@@ -30,3 +30,6 @@ models
 *.onnx
 
 .tmp
+
+# Modifier explorer output (dev-only batch generations)
+data/modifier-explorer/

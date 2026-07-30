@@ -3,9 +3,15 @@
 		cash: number;
 		commissionsCompleted: number;
 		oncontinue: () => void;
+		message?: string;
 	}
 
-	let { cash, commissionsCompleted, oncontinue }: Props = $props();
+	let {
+		cash,
+		commissionsCompleted,
+		oncontinue,
+		message = 'Congratulations — your garage studio earned its keep. The commercial gallery is coming in Level 2.'
+	}: Props = $props();
 </script>
 
 <div
@@ -16,10 +22,7 @@
 >
 	<div class="w-full max-w-md rounded-xl border border-stone-300 bg-white p-6 shadow-lg">
 		<h2 id="level-complete-title" class="text-2xl font-bold text-stone-800">Level Complete!</h2>
-		<p class="mt-3 text-stone-800">
-			Congratulations — your garage studio earned its keep. The commercial gallery is coming in
-			Level 2.
-		</p>
+		<p class="mt-3 text-stone-800">{message}</p>
 
 		<dl class="mt-4 space-y-2 text-stone-800">
 			<div class="flex justify-between">

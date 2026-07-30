@@ -22,7 +22,7 @@ export const REVIEW_TEMPLATES = {
 		'{client} is delighted. Every note of the brief is here.',
 		'Astonishing, given the budget and the crayons. A small triumph.',
 		'This is exactly what {client} pictured, and slightly better.',
-		'The garage studio has produced something genuinely good.'
+		'The kitchen table has produced something genuinely good.'
 	]
 } as const;
 

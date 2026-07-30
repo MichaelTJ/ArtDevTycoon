@@ -5,9 +5,10 @@ validated at module load.
 
 ## Public surface
 
-| Module      | Exports                       |
-| ----------- | ----------------------------- |
-| `briefs.ts` | `LEVEL_1_BRIEFS`, `pickBrief` |
+| Module            | Exports                                  |
+| ----------------- | ---------------------------------------- |
+| `briefs.ts`       | `LEVEL_1_BRIEFS`, `pickBrief`            |
+| `environments.ts` | `ENVIRONMENTS`, `getEnvironmentForLevel` |
 
 Import briefs directly from `$lib/data/briefs` or re-export through a future data barrel
 if one is added.
@@ -27,3 +28,5 @@ if one is added.
 
 - Level 2+ brief pools, avatar assets beyond the six SVG placeholders, and any remote
   content loading are out of scope for spec 01.
+- Only `home-kitchen` has a real scene component; levels 2–4 are config stubs until
+  their gameplay ships.

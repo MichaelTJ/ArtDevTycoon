@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('a player can complete a full commission', async ({ page }) => {
 	await page.goto('/');
 	await expect(page.locator('main')).toHaveAttribute('data-engines-ready', 'true');
-	await expect(page.getByText('Garage Studio')).toBeVisible();
+	await expect(page.getByText('Home Kitchen')).toBeVisible();
 	await expect(page.getByLabel('Current cash')).toHaveText('$100');
 
 	await page.getByRole('button', { name: 'Wait for a Client' }).click();

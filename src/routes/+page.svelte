@@ -1,26 +1,31 @@
 <script lang="ts">
 	import {
 		ArtworkFrame,
+		ArtworkFullView,
 		CapabilityNotice,
 		ClientCard,
 		EnginePicker,
 		ErrorPanel,
+		GameMenuBar,
+		GameScene,
 		GeneratingPanel,
-		HudBar,
 		IdlePanel,
 		LevelCompleteOverlay,
 		ModelDownloadGate,
-		PortfolioStrip,
 		PromptComposer,
 		ResultsPanel
 	} from '$lib/components';
+	import { getEnvironmentForLevel } from '$lib/data/environments';
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
-	import { LEVEL_1, type EngineId } from '$lib/types/contracts';
+	import { LEVEL_1, type EngineId, type GalleryEntry } from '$lib/types/contracts';
 
 	let showEngineMenu = $state(false);
 	let downloadGateOpen = $state(false);
 	let pendingEngineId = $state<EngineId | null>(null);
+	let selectedEntry: GalleryEntry | null = $state(null);
+
+	const environment = $derived(getEnvironmentForLevel(LEVEL_1.id));
 
 	const capabilityReason = $derived(
 		engines.options.find((option) => option.id !== 'mock' && !option.available)
@@ -85,6 +90,14 @@
 		showEngineMenu = false;
 	}
 
+	function openFullView(entry: GalleryEntry): void {
+		selectedEntry = entry;
+	}
+
+	function closeFullView(): void {
+		selectedEntry = null;
+	}
+
 	async function handleEngineSelect(id: EngineId) {
 		const option = engines.options.find((entry) => entry.id === id);
 		if (!option?.available) {
@@ -126,7 +139,7 @@
 </script>
 
 <svelte:head>
-	<title>Art Gallery Tycoon — Garage Studio</title>
+	<title>Art Gallery Tycoon — {environment.levelDisplayName}</title>
 </svelte:head>
 
 <main
@@ -135,99 +148,91 @@
 	data-engines-ready={engines.ready}
 >
 	<div class="mx-auto flex max-w-5xl flex-col gap-6">
-		<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-			<button
-				type="button"
-				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
-				disabled={engines.switchingLocked ||
-					game.phase === 'generating' ||
-					game.phase === 'critiquing'}
-				title={engines.switchingLocked
-					? 'Finish the current commission before switching engines'
-					: engineButtonLabel}
-				aria-label={engineButtonLabel}
-				onclick={openEngineMenu}
-			>
-				{engineButtonLabel}
-			</button>
-
-			<div class="min-w-0 flex-1">
-				<HudBar
-					cash={game.cash}
-					levelName={LEVEL_1.name}
-					commissionsCompleted={game.commissionsCompleted}
-					targetCommissions={LEVEL_1.targetCommissions}
-					targetCash={LEVEL_1.targetCash}
-				/>
-			</div>
-		</div>
-
-		{#if !engines.realAiSupported && !engines.noticeDismissed}
-			<CapabilityNotice
-				supported={engines.realAiSupported}
-				reason={capabilityReason}
-				ondismiss={engines.dismissNotice}
-			/>
-		{/if}
-
-		<section class="flex flex-col gap-4">
-			{#if game.phase === 'idle'}
-				<IdlePanel oninvite={() => game.inviteClient()} />
-			{:else if game.phase === 'briefing'}
-				{#if game.currentClient}
-					<ClientCard brief={game.currentClient} />
-				{/if}
-				<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
-			{:else if game.phase === 'generating'}
-				{#if game.currentClient}
-					<ClientCard brief={game.currentClient} />
-				{/if}
-				<GeneratingPanel progress={game.generationProgress} stageLabel="Painting" />
-			{:else if game.phase === 'critiquing' && game.currentArtwork}
-				{#if game.currentClient}
-					<ClientCard brief={game.currentClient} />
-				{/if}
-				<ArtworkFrame
-					imageUrl={game.currentArtwork.imageUrl}
-					title="Fresh from the easel"
-					alt={game.currentArtwork.playerPrompt}
-					size="full"
-				/>
-				<GeneratingPanel
-					progress={game.generationProgress}
-					stageLabel="Waiting for the commissioner"
-					messages={[
-						'The client stepped out to look at your piece…',
-						'Squinting at it from across the room…',
-						'Comparing it to the brief…',
-						'Drafting something diplomatic to say…'
-					]}
-				/>
-			{:else if game.phase === 'results' && game.currentArtwork && game.currentCritique && game.currentClient}
-				<ResultsPanel
-					artwork={game.currentArtwork}
-					critique={game.currentCritique}
-					clientName={game.currentClient.clientName}
-					oncollect={() => game.collectCash()}
-				/>
-			{:else if game.phase === 'failed'}
-				{#if game.currentClient}
-					<ClientCard brief={game.currentClient} />
-				{/if}
-				{#if game.errorMessage}
-					<ErrorPanel
-						message={game.errorMessage}
-						onretry={() => game.retry()}
-						ondismiss={() => game.dismissError()}
+		<GameMenuBar
+			cash={game.cash}
+			levelName={environment.levelDisplayName}
+			commissionsCompleted={game.commissionsCompleted}
+			targetCommissions={LEVEL_1.targetCommissions}
+			targetCash={LEVEL_1.targetCash}
+			{engineButtonLabel}
+			engineMenuTitle={engines.switchingLocked
+				? 'Finish the current commission before switching engines'
+				: engineButtonLabel}
+			engineMenuDisabled={engines.switchingLocked ||
+				game.phase === 'generating' ||
+				game.phase === 'critiquing'}
+			onopenenginemenu={openEngineMenu}
+		>
+			{#snippet notice()}
+				{#if !engines.realAiSupported && !engines.noticeDismissed}
+					<CapabilityNotice
+						supported={engines.realAiSupported}
+						reason={capabilityReason}
+						ondismiss={engines.dismissNotice}
 					/>
 				{/if}
-				<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
-			{:else if game.phase === 'levelComplete'}
-				<IdlePanel disabled oninvite={() => {}} />
-			{/if}
-		</section>
+			{/snippet}
+		</GameMenuBar>
 
-		<PortfolioStrip entries={game.galleryHistory} />
+		<GameScene {environment} galleryEntries={game.galleryHistory} onselectentry={openFullView}>
+			{#snippet workspace()}
+				<div class="flex flex-col gap-4">
+					{#if game.phase === 'idle'}
+						<IdlePanel oninvite={() => game.inviteClient()} message={environment.idleMessage} />
+					{:else if game.phase === 'briefing'}
+						{#if game.currentClient}
+							<ClientCard brief={game.currentClient} />
+						{/if}
+						<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
+					{:else if game.phase === 'generating'}
+						{#if game.currentClient}
+							<ClientCard brief={game.currentClient} />
+						{/if}
+						<GeneratingPanel
+							progress={game.generationProgress}
+							stageLabel="Painting"
+							messages={environment.loadingMessages}
+						/>
+					{:else if game.phase === 'critiquing' && game.currentArtwork}
+						{#if game.currentClient}
+							<ClientCard brief={game.currentClient} />
+						{/if}
+						<ArtworkFrame
+							imageUrl={game.currentArtwork.imageUrl}
+							title="Fresh from the easel"
+							alt={game.currentArtwork.playerPrompt}
+							size="full"
+						/>
+						<GeneratingPanel
+							progress={game.generationProgress}
+							stageLabel="Waiting for the commissioner"
+							messages={environment.critiqueMessages}
+						/>
+					{:else if game.phase === 'results' && game.currentArtwork && game.currentCritique && game.currentClient}
+						<ResultsPanel
+							artwork={game.currentArtwork}
+							critique={game.currentCritique}
+							clientName={game.currentClient.clientName}
+							oncollect={() => game.collectCash()}
+						/>
+					{:else if game.phase === 'failed'}
+						{#if game.currentClient}
+							<ClientCard brief={game.currentClient} />
+						{/if}
+						{#if game.errorMessage}
+							<ErrorPanel
+								message={game.errorMessage}
+								onretry={() => game.retry()}
+								ondismiss={() => game.dismissError()}
+							/>
+						{/if}
+						<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
+					{:else if game.phase === 'levelComplete'}
+						<IdlePanel disabled oninvite={() => {}} message={environment.idleMessage} />
+					{/if}
+				</div>
+			{/snippet}
+		</GameScene>
 	</div>
 </main>
 
@@ -269,10 +274,15 @@
 	/>
 {/if}
 
+{#if selectedEntry}
+	<ArtworkFullView entry={selectedEntry} onclose={closeFullView} />
+{/if}
+
 {#if game.phase === 'levelComplete'}
 	<LevelCompleteOverlay
 		cash={game.cash}
 		commissionsCompleted={game.commissionsCompleted}
+		message={environment.winMessage}
 		oncontinue={() => game.reset()}
 	/>
 {/if}
