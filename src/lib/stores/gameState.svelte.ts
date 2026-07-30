@@ -15,6 +15,7 @@ import {
 	canUnlockVenue,
 	getVenue
 } from '$lib/data/galleryVenues';
+import { canHireStaff, getStaffRole, totalIncomePerSecond } from '$lib/data/staffRoles';
 import { EngineError } from '$lib/engines/errors';
 import type { EngineManager } from '$lib/engines/manager';
 import { buildPrompt } from '$lib/game/promptPipeline';
@@ -32,6 +33,7 @@ import {
 	type SaveData
 } from '$lib/game';
 import { resolveAuction, type AuctionResult } from '$lib/game/auction';
+import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
 import {
 	checkPaletteUsage,
 	fullyCompletedSeriesIds,
@@ -58,6 +60,8 @@ export interface GameStoreDeps {
 	clearSave?: () => void;
 	/** Injectable so auction payout tests stay deterministic. */
 	resolveAuction?: typeof resolveAuction;
+	/** Interval for passive income ticks; override in tests for faster accrual. */
+	tickIntervalMs?: number;
 }
 
 function briefTier(brief: ClientBrief) {
@@ -91,6 +95,11 @@ export class GameStore {
 	activeLayoutId = $state(DEFAULT_LAYOUT_ID);
 	ownedAtmosphereIds = $state<string[]>([]);
 
+	hiredStaffIds = $state<string[]>([]);
+	lastIncomeTickAt = $state<number>(0);
+	/** Set once on catch-up from `startIncomeTicker`; null means the modal stays hidden. */
+	idleEarningsToShow = $state<number | null>(null);
+
 	progress = $derived(
 		levelProgress({ cash: this.cash, commissionsCompleted: this.commissionsCompleted })
 	);
@@ -99,12 +108,29 @@ export class GameStore {
 
 	venue = $derived(getVenue(this.unlockedVenueId));
 
-	/** Capacity-capped, most-recent-first slice for the wall. `galleryHistory` stays full. */
-	displayedGalleryEntries = $derived(
-		[...this.galleryHistory]
-			.sort((a, b) => b.completedAt - a.completedAt)
-			.slice(0, this.venue.capacity)
-	);
+	incomePerSecond = $derived(totalIncomePerSecond(this.hiredStaffIds));
+
+	/**
+	 * Best owned layout when a Curator is hired; otherwise the player's manual selection.
+	 * Does not mutate `activeLayoutId` so firing (future) restores the player's choice.
+	 */
+	effectiveLayoutId = $derived.by(() => {
+		const curates = this.hiredStaffIds.some((id) => getStaffRole(id)?.autoCurates);
+		if (!curates) return this.activeLayoutId;
+		const owned = GALLERY_LAYOUTS.filter((l) => this.unlockedLayoutIds.includes(l.id)).sort(
+			(a, b) => b.curationMultiplier - a.curationMultiplier
+		);
+		return owned[0]?.id ?? this.activeLayoutId;
+	});
+
+	/** Capacity-capped gallery wall. Curator sorts by score; otherwise by recency. */
+	displayedGalleryEntries = $derived.by(() => {
+		const curates = this.hiredStaffIds.some((id) => getStaffRole(id)?.autoCurates);
+		const sorted = curates
+			? [...this.galleryHistory].sort((a, b) => b.score - a.score)
+			: [...this.galleryHistory].sort((a, b) => b.completedAt - a.completedAt);
+		return sorted.slice(0, this.venue.capacity);
+	});
 
 	/**
 	 * Single progression multiplier passed to `calculatePayout`. Composes
@@ -113,7 +139,7 @@ export class GameStore {
 	 */
 	presentationMultiplier = $derived(
 		this.activeMediumTier.payoutMultiplier *
-			getLayout(this.activeLayoutId).curationMultiplier *
+			getLayout(this.effectiveLayoutId).curationMultiplier *
 			(1 + totalAtmosphereBonus(this.ownedAtmosphereIds))
 	);
 
@@ -125,6 +151,10 @@ export class GameStore {
 	readonly #persistSave: (data: SaveData) => void;
 	readonly #clearSave: () => void;
 	readonly #resolveAuction: typeof resolveAuction;
+	readonly #tickIntervalMs: number;
+
+	#autoInviteTimer: ReturnType<typeof setTimeout> | null = null;
+	#incomeTicker: ReturnType<typeof setInterval> | null = null;
 
 	constructor(deps?: GameStoreDeps) {
 		this.#engine = deps?.engine ?? engines.manager;
@@ -135,6 +165,7 @@ export class GameStore {
 		this.#persistSave = deps?.persistSave ?? defaultPersistSave;
 		this.#clearSave = deps?.clearSave ?? defaultClearSave;
 		this.#resolveAuction = deps?.resolveAuction ?? resolveAuction;
+		this.#tickIntervalMs = deps?.tickIntervalMs ?? 1000;
 
 		const save = this.#loadSave(LEVEL_1.startingCash, this.#now);
 		this.cash = save.cash;
@@ -148,12 +179,18 @@ export class GameStore {
 		this.unlockedLayoutIds = [...save.unlockedLayoutIds];
 		this.activeLayoutId = save.activeLayoutId;
 		this.ownedAtmosphereIds = [...save.ownedAtmosphereIds];
+		this.hiredStaffIds = [...save.hiredStaffIds];
+		this.lastIncomeTickAt = save.lastIncomeTickAt ?? this.#now();
+
+		this.#scheduleAutoInvite();
 	}
 
 	inviteClient(): void {
 		if (this.phase !== 'idle') {
 			return;
 		}
+
+		this.#clearAutoInvite();
 
 		const excludeIds = this.galleryHistory.map((entry) => entry.briefId);
 		this.currentClient = pickBrief({
@@ -336,6 +373,69 @@ export class GameStore {
 			: 'idle';
 
 		this.#persist();
+		if (this.phase === 'idle') {
+			this.#scheduleAutoInvite();
+		}
+	}
+
+	/**
+	 * One-time hire. Roles are never un-hired or refunded. Returns false when already
+	 * hired or the player cannot afford the role.
+	 */
+	hireStaff(id: string): boolean {
+		const role = getStaffRole(id);
+		if (!role) return false;
+		if (this.hiredStaffIds.includes(id)) return false;
+		if (!canHireStaff(role, { cash: this.cash, reputation: this.reputation })) {
+			return false;
+		}
+		this.cash -= role.hireCost;
+		this.hiredStaffIds = [...this.hiredStaffIds, id];
+		this.#persist();
+		if (this.phase === 'idle') {
+			this.#scheduleAutoInvite();
+		}
+		return true;
+	}
+
+	/**
+	 * Catch up idle earnings once, then tick on an interval. Returns a cleanup that
+	 * clears the interval — call from page mount teardown.
+	 */
+	startIncomeTicker(): () => void {
+		this.#clearIncomeTicker();
+
+		const catchUp = computeIdleEarnings(this.lastIncomeTickAt, this.#now(), this.incomePerSecond);
+		if (catchUp.earned > 0) {
+			this.cash += catchUp.earned;
+			this.idleEarningsToShow = catchUp.earned;
+			this.lastIncomeTickAt = this.#now();
+			this.#persist();
+		} else {
+			this.lastIncomeTickAt = this.#now();
+		}
+
+		this.#incomeTicker = setInterval(() => {
+			const { earned } = computeIdleEarnings(
+				this.lastIncomeTickAt,
+				this.#now(),
+				this.incomePerSecond
+			);
+			this.lastIncomeTickAt = this.#now();
+			if (earned > 0) {
+				this.cash += earned;
+				this.#persist();
+			}
+		}, this.#tickIntervalMs);
+
+		return () => {
+			this.#clearIncomeTicker();
+		};
+	}
+
+	/** Clears the one-shot idle earnings modal flag after the player collects. */
+	dismissIdleEarnings(): void {
+		this.idleEarningsToShow = null;
 	}
 
 	/**
@@ -407,6 +507,8 @@ export class GameStore {
 	}
 
 	reset(): void {
+		this.#clearAutoInvite();
+		this.#clearIncomeTicker();
 		this.#clearSave();
 		this.phase = 'idle';
 		this.cash = LEVEL_1.startingCash;
@@ -427,6 +529,9 @@ export class GameStore {
 		this.unlockedLayoutIds = [DEFAULT_LAYOUT_ID];
 		this.activeLayoutId = DEFAULT_LAYOUT_ID;
 		this.ownedAtmosphereIds = [];
+		this.hiredStaffIds = [];
+		this.lastIncomeTickAt = this.#now();
+		this.idleEarningsToShow = null;
 	}
 
 	/**
@@ -447,7 +552,47 @@ export class GameStore {
 		data.unlockedLayoutIds = [...this.unlockedLayoutIds];
 		data.activeLayoutId = this.activeLayoutId;
 		data.ownedAtmosphereIds = [...this.ownedAtmosphereIds];
+		data.hiredStaffIds = [...this.hiredStaffIds];
+		data.lastIncomeTickAt = this.lastIncomeTickAt;
 		this.#persistSave(data);
+	}
+
+	#clearAutoInvite(): void {
+		if (this.#autoInviteTimer !== null) {
+			clearTimeout(this.#autoInviteTimer);
+			this.#autoInviteTimer = null;
+		}
+	}
+
+	#clearIncomeTicker(): void {
+		if (this.#incomeTicker !== null) {
+			clearInterval(this.#incomeTicker);
+			this.#incomeTicker = null;
+		}
+	}
+
+	/**
+	 * Schedules Marketing Director auto-invite only while idle and a hired role has
+	 * `autoInviteSpeedMultiplier > 1`. Uses max multiplier across roles, not the sum.
+	 */
+	#scheduleAutoInvite(): void {
+		this.#clearAutoInvite();
+		if (this.phase !== 'idle') return;
+
+		const bestMultiplier = this.hiredStaffIds.reduce((best, id) => {
+			const mult = getStaffRole(id)?.autoInviteSpeedMultiplier ?? 1;
+			return Math.max(best, mult);
+		}, 1);
+
+		if (bestMultiplier <= 1) return;
+
+		const delay = BASE_AUTO_INVITE_DELAY_MS / bestMultiplier;
+		this.#autoInviteTimer = setTimeout(() => {
+			this.#autoInviteTimer = null;
+			if (this.phase === 'idle') {
+				this.inviteClient();
+			}
+		}, delay);
 	}
 }
 

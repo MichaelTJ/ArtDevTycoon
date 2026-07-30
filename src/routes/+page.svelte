@@ -10,6 +10,7 @@
 		GameMenuBar,
 		GameScene,
 		GeneratingPanel,
+		IdleEarningsModal,
 		IdlePanel,
 		LevelCompleteOverlay,
 		ModelDownloadGate,
@@ -22,6 +23,7 @@
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
 	import { LEVEL_1, type EngineId, type GalleryEntry } from '$lib/types/contracts';
+	import { onMount } from 'svelte';
 
 	let showEngineMenu = $state(false);
 	let downloadGateOpen = $state(false);
@@ -29,7 +31,7 @@
 	let selectedEntry: GalleryEntry | null = $state(null);
 
 	const environment = $derived(getEnvironmentForLevel(LEVEL_1.id));
-	const galleryLayoutClassName = $derived(getLayout(game.activeLayoutId).gridClassName);
+	const galleryLayoutClassName = $derived(getLayout(game.effectiveLayoutId).gridClassName);
 
 	const capabilityReason = $derived(
 		engines.options.find((option) => option.id !== 'mock' && !option.available)
@@ -82,6 +84,8 @@
 	$effect(() => {
 		void engines.init();
 	});
+
+	onMount(() => game.startIncomeTicker());
 
 	function openEngineMenu(): void {
 		if (engines.switchingLocked) {
@@ -318,5 +322,12 @@
 		commissionsCompleted={game.commissionsCompleted}
 		message={environment.winMessage}
 		oncontinue={() => game.reset()}
+	/>
+{/if}
+
+{#if game.idleEarningsToShow}
+	<IdleEarningsModal
+		amount={game.idleEarningsToShow}
+		ondismiss={() => game.dismissIdleEarnings()}
 	/>
 {/if}

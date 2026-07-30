@@ -4,9 +4,11 @@
 	import { GALLERY_LAYOUTS } from '$lib/data/galleryLayouts';
 	import { GALLERY_VENUES } from '$lib/data/galleryVenues';
 	import { MEDIUM_TIERS } from '$lib/data/mediumTiers';
+	import { STAFF_ROLES } from '$lib/data/staffRoles';
 	import { game } from '$lib/stores/gameState.svelte';
 	import GalleryUpgradeShop from './GalleryUpgradeShop.svelte';
 	import HudBar from './HudBar.svelte';
+	import StaffOffice from './StaffOffice.svelte';
 	import ToolkitShop from './ToolkitShop.svelte';
 
 	interface Props {
@@ -37,6 +39,7 @@
 
 	let showToolkit = $state(false);
 	let showGalleryUpgrades = $state(false);
+	let showStaffOffice = $state(false);
 
 	const toolkitButtonLabel = $derived(
 		`Medium · ${game.activeMediumTier.icon} ${game.activeMediumTier.name}`
@@ -75,6 +78,16 @@
 				}}
 			>
 				🏛️ Gallery Upgrades
+			</button>
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="Staff Office"
+				onclick={() => {
+					showStaffOffice = true;
+				}}
+			>
+				🧑‍💼 Staff Office
 			</button>
 		</div>
 		<div class="min-w-0 flex-1">
@@ -137,6 +150,21 @@
 		}}
 		onclose={() => {
 			showGalleryUpgrades = false;
+		}}
+	/>
+{/if}
+
+{#if showStaffOffice}
+	<StaffOffice
+		roles={[...STAFF_ROLES]}
+		hiredIds={game.hiredStaffIds}
+		{cash}
+		reputation={game.reputation}
+		onhire={(id) => {
+			game.hireStaff(id);
+		}}
+		onclose={() => {
+			showStaffOffice = false;
 		}}
 	/>
 {/if}

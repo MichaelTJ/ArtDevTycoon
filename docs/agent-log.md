@@ -551,6 +551,7 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Built:** Purchasable medium ladder (crayon to oil). `MEDIUM_TIERS` + helpers; `buildPrompt(playerInput, tier)` with deprecated `buildLevel1Prompt` wrapper that stays byte-identical to crayon; `calculatePayout` optional `multiplier` (default 1); `GameStore` hydrates/persists `unlockedMediumTierIds` / `activeMediumTierId`, `unlockMediumTier` / `setActiveMediumTier`, and uses the active tier in `createArt` for prompt suffix + payout. `ToolkitShop` (props in / events out) opens from `GameMenuBar` as an overlay.
 
 **Public surface:**
+
 - `$lib/data/mediumTiers` - `MediumTier`, `MEDIUM_TIERS`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier`
 - `buildPrompt(playerInput, tier)` from `$lib/game/promptPipeline` (not yet re-exported from `$lib/game` barrel)
 - `calculatePayout(brief, accuracy, creativity, multiplier = 1)`
@@ -560,16 +561,19 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Tests:** Owned slice green - node: `mediumTiers` + `promptPipeline` + `scoring` (27); client: `ToolkitShop` (6) + `GameMenuBar` (4) + `gameState` (23 file total). Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run`. Full suite: 238 passed / 5 failed (inherited, outside zone).
 
 **Decisions:**
+
 - `GameMenuBar` imports the `game` store to host the toolkit overlay because `+page.svelte` is outside this ownership zone; `ToolkitShop` itself stays presentational.
 - `buildPrompt` imported directly from `promptPipeline` in the store so `src/lib/game/index.ts` (out of zone) did not need a barrel edit.
 - `save.ts` unchanged - schema already had the fields from spec 12.
 
 **Requests:**
+
 - Re-export `buildPrompt` from `src/lib/game/index.ts`.
 - Mention `mediumTiers` in `src/lib/data/README.md`.
 - Optional: lift toolkit wiring into `+page.svelte` (EnginePicker-style) so `GameMenuBar` can drop its store import.
 
 **Known gaps:**
+
 - Inherited client-test flakes outside zone: `CapabilityNotice`, `LevelCompleteOverlay`, `ModelDownloadGate` (timeouts), `ResultsPanel` (image visibility). Not touched.
 - No per-medium workspace reskin (explicitly out of scope).
 - Specs 14/15 will also touch `scoring.ts` / `gameState` - edits here are additive only.
@@ -611,6 +615,7 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Built:** Reputation-gated client tiers (walk-in / corporate / billionaire / auction-house). Corporate series play in order 1→2→3 with palette on-brand checks and a 300 completion bonus. Auction-house payouts use `resolveAuction` (uncapped by budget). `GameStore` branches invite/payout, persists `seriesOnBrandFlags`, and exposes `currentAuctionResult` for the results UI.
 
 **Public surface:**
+
 - `CLIENT_TIERS`, `ClientTier`; `clientBriefSchema` fields `tier` (default `walk-in`), `seriesId`, `seriesPosition`, `paletteConstraint`
 - `$lib/data/clientTiers` — `CLIENT_TIER_INFO`, `getClientTierInfo`, `unlockedClientTiers`
 - `CORPORATE_BRIEFS`, `BILLIONAIRE_BRIEFS`, `AUCTION_BRIEFS`
@@ -623,6 +628,7 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Tests:** Unit coverage for tiers, auction worked examples, palette series, pickBrief gating/order, GameStore invite/payout/bonus paths; component tests for both new panels + ClientCard still green. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run` (node 132 + client 117).
 
 **Decisions:**
+
 - `ClientBrief` is `z.input<typeof clientBriefSchema>` so existing literals omitting `tier` still type-check; runtime parse still defaults `tier` to `walk-in`.
 - Exported `keywordMatches` from `scoring.ts` (one-line) so palette checks reuse the exact brief-keyword matcher.
 - Reused existing `/avatars/c1.svg`…`c6.svg` paths for prestige clients (no new avatar assets).
@@ -632,3 +638,37 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Requests:** None.
 
 **Known gaps / merge notes:** Expect conflicts with specs 13/14 on `gameState.svelte.ts` (`inviteClient`, `createArt` payout branch, `#persist`, `GameStoreDeps`) and possibly `calculatePayout` if they add a multiplier — pass any medium/venue multiplier through on non-auction paths when merging. Also touched `ClientCard.svelte`, `+page.svelte`, `scoring.ts` (export), and `save.test.ts` outside the strict ownership list for wiring/additivity.
+
+## 2026-07-30 — Spec 16 Studio automation & staffing
+
+**Zone:** `src/lib/data/staffRoles*`, `src/lib/game/idleIncome*`, `src/lib/components/StaffOffice*`, `IdleEarningsModal*`, edits to `save*`, `gameState*`, `FridgeGallery`, `GameMenuBar*`, `components/index.ts`, `components/README.md`, `+page.svelte`, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Four hireable staff/automation roles with offline-safe idle cash accrual (`computeIdleEarnings` + `MAX_IDLE_MS`), Marketing Director auto-invite while idle, and Curator-aware gallery ordering / `effectiveLayoutId` for presentation. `GameStore.hireStaff` / `startIncomeTicker` / `idleEarningsToShow`; `StaffOffice` shop + `IdleEarningsModal` on page load; `loadSave` stamps `lastIncomeTickAt` when null.
+
+**Public surface:**
+
+- `$lib/data/staffRoles` — `STAFF_ROLES`, `getStaffRole`, `canHireStaff`, `totalIncomePerSecond`
+- `$lib/game/idleIncome` — `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`
+- `$lib/components` — `StaffOffice`, `IdleEarningsModal`
+- `GameStore` — `hiredStaffIds`, `lastIncomeTickAt`, `idleEarningsToShow`, `incomePerSecond`, `effectiveLayoutId`, `hireStaff`, `startIncomeTicker`, `dismissIdleEarnings`; curator-aware `displayedGalleryEntries` / `presentationMultiplier`
+- Save: confirmed `hiredStaffIds` + `lastIncomeTickAt`; null tick → `now()` on load
+
+**Tests:** staffRoles + idleIncome unit; GameStore hire/catch-up/auto-invite/curator; StaffOffice / IdleEarningsModal / GameMenuBar component tests. Commands: `npm run check` (0 errors); `npx eslint .` green; node project `183` passed; owned client tests `19` passed (`StaffOffice`, `IdleEarningsModal`, `GameMenuBar`, `FridgeGallery`). Full `npm run test:unit -- --run` previously green at `348` passed / `57` files; a later full client run showed timeout flakes across many files (including outside zone: `ModelDownloadGate`, `ResultsPanel`, `PromptComposer`, `GalleryUpgradeShop`) — inherited Chromium flake pattern, not Spec 16 regressions. `npm run lint` (prettier) fails only on inherited `src/lib/data/README.md`.
+
+**Decisions:**
+
+- `FridgeGallery` no longer re-sorts by `completedAt` — preserves store order so Curator score-ordering reaches the wall.
+- `effectiveLayoutId` feeds both `presentationMultiplier` and page `galleryLayoutClassName` without mutating `activeLayoutId`.
+- Income ticker started via `onMount` (cleanup returned from `startIncomeTicker`); auto-invite uses max speed multiplier, not sum.
+- `idleEarningsToShow` stays `null` when catch-up earns 0 (modal truthiness gate).
+
+**Requests:**
+
+- Format / update `src/lib/data/README.md` to mention `staffRoles` (out of ownership zone; Prettier currently fails on it).
+- Optional: re-export `computeIdleEarnings` / `BASE_AUTO_INVITE_DELAY_MS` from `src/lib/game/index.ts`.
+
+**Known gaps:**
+
+- No firing/salaries/sprites (explicitly out of scope).
+- Inherited Prettier failure: `src/lib/data/README.md` only.
+- Inherited intermittent client-test timeouts under full-suite load (same class noted by specs 13–15).

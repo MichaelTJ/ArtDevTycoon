@@ -45,3 +45,10 @@ test('gallery upgrades button opens the Gallery Upgrades dialog', async () => {
 	await screen.getByRole('button', { name: 'Gallery Upgrades' }).click();
 	await expect.element(screen.getByRole('dialog', { name: /Gallery Upgrades/i })).toBeVisible();
 });
+
+test('staff office button opens the Staff Office dialog', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, defaultProps);
+	await screen.getByRole('button', { name: 'Staff Office' }).click();
+	await expect.element(screen.getByRole('dialog', { name: 'Staff Office' })).toBeVisible();
+});
