@@ -105,9 +105,13 @@ Wave B  (after 13, 14, 15 are all merged)
 `calculatePayout`) and `src/lib/stores/gameState.svelte.ts`. Each spec's edits there are
 small and additive (a new parameter, a few new fields), but merge them one at a time and
 re-run `npm run check`/`test:unit` after each merge rather than merging all three at once
-— the same discipline as any wave-1 pair in the section above. 15 is also the only
-progression spec allowed to touch `src/lib/types/contracts.ts` (an additive extension to
-`clientBriefSchema`); do not run it concurrently with any other agent editing that file.
+— the same discipline as any wave-1 pair in the section above. Spec 14 adds the
+`multiplier` parameter itself if 13 has not landed yet, and stubs
+`activeMediumTier.payoutMultiplier` at `1` until medium tiers merge — after both are on
+`main`, confirm `presentationMultiplier` is medium × layout × (1 + atmosphere). 15 is
+also the only progression spec allowed to touch `src/lib/types/contracts.ts` (an additive
+extension to `clientBriefSchema`); do not run it concurrently with any other agent
+editing that file.
 
 16 depends on all three because it automates things they each own: the Apprentice's
 income needs spec 13's medium concept to make sense narratively (no code dependency), the

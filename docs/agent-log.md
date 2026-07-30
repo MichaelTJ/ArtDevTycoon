@@ -541,3 +541,36 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Requests:** Prettier on progression task docs was applied on merge. Optional: mention save.ts in src/lib/game/README.md (orchestrator).
 
 **Known gaps:** Idle-income ticking (`lastIncomeTickAt`) unused by design — spec 16. No UI for reset-progress (`clearSave` exposed only). Specs 13–16 must extend `#persist()` when they add unlock/purchase actions. Manual mid-commission reload check not run here (no `npm run dev`); worth a quick orchestrator smoke test after merge.
+
+---
+
+## 2026-07-30 — Spec 14 Gallery real estate & presentation
+
+**Zone:** `src/lib/data/galleryVenues.ts`, `galleryLayouts.ts`, `galleryAtmosphere.ts` (+ tests), `src/lib/components/GalleryUpgradeShop.svelte` (+ test), edits to `scoring.ts`, `gameState.svelte.ts`, `FridgeGallery.svelte`, `GameMenuBar.svelte`, `components/index.ts`, `components/README.md`, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Three purchasable gallery systems — Venue (linear capacity), Layout (switchable curation multiplier + CSS class), Atmosphere (stacking payout bonuses). `GameStore` exposes `presentationMultiplier` (medium × layout × (1 + atmosphere)), `displayedGalleryEntries` (capacity-capped; `galleryHistory` uncapped), and unlock/buy/select methods that persist via `#persist()`. `calculatePayout` gained optional `multiplier = 1` (spec 13 signature). `GalleryUpgradeShop` is a three-tab presentational overlay; `GameMenuBar` shows an optional "Gallery Upgrades" button; `FridgeGallery` accepts optional `layoutClassName` with layout CSS.
+
+**Public surface:**
+
+- `$lib/data/galleryVenues` — `GALLERY_VENUES`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue`
+- `$lib/data/galleryLayouts` — `GALLERY_LAYOUTS`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout`
+- `$lib/data/galleryAtmosphere` — `ATMOSPHERE_ITEMS`, `getAtmosphereItem`, `totalAtmosphereBonus`
+- `$lib/components` — `GalleryUpgradeShop`; `FridgeGallery.layoutClassName?`; `GameMenuBar.onopengalleryupgrades?`
+- `GameStore` — `unlockedVenueId`, `unlockedLayoutIds`, `activeLayoutId`, `ownedAtmosphereIds`, `venue`, `displayedGalleryEntries`, `presentationMultiplier`, `activeMediumTier` (stub), `unlockVenue`, `unlockLayout`, `setActiveLayout`, `buyAtmosphereItem`
+
+**Tests:** Data unit tests + scoring multiplier cases + GameStore unlock/display/persist/payout cases + component tests for shop tabs, FridgeGallery layout prop, GameMenuBar button. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run` (262 passed).
+
+**Decisions:**
+
+- Spec 13 is **not** in this worktree. Stubbed `activeMediumTier.payoutMultiplier` at `1` via `MEDIUM_TIER_STUB` so `presentationMultiplier` still composes correctly. Merge **either order** works: if 13 lands first it owns the real `activeMediumTier`; if 14 lands first, 13 should replace the stub and keep multiplying into `presentationMultiplier` (not pass medium alone to `calculatePayout`).
+- `onopengalleryupgrades` is optional so `+page.svelte` keeps typechecking without a page edit (outside ownership).
+- Venue unlock is strictly next-tier-only; layouts are free to switch once owned; atmosphere has no active slot.
+
+**Requests:** Orchestrator page wiring (outside this zone):
+
+1. Mount `GalleryUpgradeShop` from `+page.svelte` when the menu bar button fires; pass data arrays + store fields + callbacks to `game.unlockVenue` / `unlockLayout` / `setActiveLayout` / `buyAtmosphereItem`.
+2. Pass `game.displayedGalleryEntries` (not full `galleryHistory`) and `getLayout(game.activeLayoutId).gridClassName` into `FridgeGallery` via `GameScene` / `KitchenScene` (may need optional props on those intermediaries).
+3. When merging with spec 13: keep a single `presentationMultiplier` seat; replace the medium stub; resolve duplicate `calculatePayout` multiplier edits (identical signature).
+4. Optional: document the three new data modules in `src/lib/data/README.md`.
+
+**Known gaps:** Page/scene not wired (ownership). No per-venue visual re-skins. Manual drag-and-drop curation deferred. Spec 13 medium factor still stubbed at 1 until that branch merges.

@@ -30,3 +30,15 @@ test('renders level name in compact HUD', async () => {
 	const screen = render(GameMenuBar, defaultProps);
 	await expect.element(screen.getByRole('heading', { name: 'Home Kitchen' })).toBeVisible();
 });
+
+test('gallery upgrades button calls onopengalleryupgrades when provided', async () => {
+	const onopengalleryupgrades = vi.fn();
+	const screen = render(GameMenuBar, { ...defaultProps, onopengalleryupgrades });
+	await screen.getByRole('button', { name: 'Gallery Upgrades' }).click();
+	expect(onopengalleryupgrades).toHaveBeenCalledTimes(1);
+});
+
+test('hides gallery upgrades button when callback is omitted', async () => {
+	const screen = render(GameMenuBar, defaultProps);
+	expect(screen.getByRole('button', { name: 'Gallery Upgrades' }).elements().length).toBe(0);
+});

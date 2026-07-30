@@ -8,32 +8,42 @@ in, callbacks out** — no global state, no `fetch`, no imports from `$lib/store
 
 Import everything from `$lib/components` (barrel `index.ts`):
 
-| Component              | Props                                                                                                            | Callbacks                   |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `OperationsPanel`      | `summary`, `needs`, `entries`, `totalMatching`, `query` (bindable)                                               | `onquerychange?()`          |
-| `Avatar`               | `src`, `name`, `size?` (`sm`/`md`/`lg`)                                                                          | —                           |
-| `ScoreBadge`           | `label`, `score`, `max?`                                                                                         | —                           |
-| `HudBar`               | `cash`, `levelName`, `commissionsCompleted`, `targetCommissions`, `targetCash`, `variant?` (`default`/`compact`) | —                           |
-| `ClientCard`           | `brief: ClientBrief`                                                                                             | —                           |
-| `PromptComposer`       | `value?` (bindable), `disabled?`, `maxLength?`                                                                   | `onsubmit(prompt)`          |
-| `GeneratingPanel`      | `messages?`, `intervalMs?`, `progress?`, `stageLabel?`                                                           | —                           |
-| `ArtworkFrame`         | `imageUrl`, `title`, `alt`, `size?` (`thumb`/`full`)                                                             | —                           |
-| `ResultsPanel`         | `artwork`, `critique`, `clientName`                                                                              | `oncollect()`               |
-| `PortfolioStrip`       | `entries`, `emptyMessage?`                                                                                       | —                           |
-| `ErrorPanel`           | `message`                                                                                                        | `onretry()`, `ondismiss?()` |
-| `IdlePanel`            | `disabled?`, `message?`                                                                                          | `oninvite()`                |
-| `LevelCompleteOverlay` | `cash`, `commissionsCompleted`, `message?`                                                                       | `oncontinue()`              |
-| `CapabilityNotice`     | `supported`, `reason`                                                                                            | `ondismiss()`               |
-| `EnginePicker`         | `options: EngineOption[]`, `activeId`                                                                            | `onselect(id)`              |
-| `ModelDownloadGate`    | `engineName`, `approxMb`, `state?`, `progress?`, `stage?`, `detail?`, `errorMessage?`                            | `onconfirm()`, `oncancel()` |
-| `GameMenuBar`          | `cash`, `levelName`, progress fields, `engineButtonLabel`, `engineMenuTitle`, `engineMenuDisabled`               | `onopenenginemenu()`        |
-| `GameScene`            | `environment`, `galleryEntries`                                                                                  | `onselectentry(entry)`      |
-| `WorkspaceZone`        | `label`, `children` snippet                                                                                      | —                           |
-| `FridgeGallery`        | `entries`, `label?`, `emptyMessage?`                                                                             | `onselect(entry)`           |
-| `ArtworkFullView`      | `entry: GalleryEntry`                                                                                            | `onclose()`                 |
+| Component              | Props                                                                                                                        | Callbacks                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `OperationsPanel`      | `summary`, `needs`, `entries`, `totalMatching`, `query` (bindable)                                                           | `onquerychange?()`                                                            |
+| `Avatar`               | `src`, `name`, `size?` (`sm`/`md`/`lg`)                                                                                      | —                                                                             |
+| `ScoreBadge`           | `label`, `score`, `max?`                                                                                                     | —                                                                             |
+| `HudBar`               | `cash`, `levelName`, `commissionsCompleted`, `targetCommissions`, `targetCash`, `variant?` (`default`/`compact`)             | —                                                                             |
+| `ClientCard`           | `brief: ClientBrief`                                                                                                         | —                                                                             |
+| `PromptComposer`       | `value?` (bindable), `disabled?`, `maxLength?`                                                                               | `onsubmit(prompt)`                                                            |
+| `GeneratingPanel`      | `messages?`, `intervalMs?`, `progress?`, `stageLabel?`                                                                       | —                                                                             |
+| `ArtworkFrame`         | `imageUrl`, `title`, `alt`, `size?` (`thumb`/`full`)                                                                         | —                                                                             |
+| `ResultsPanel`         | `artwork`, `critique`, `clientName`                                                                                          | `oncollect()`                                                                 |
+| `PortfolioStrip`       | `entries`, `emptyMessage?`                                                                                                   | —                                                                             |
+| `ErrorPanel`           | `message`                                                                                                                    | `onretry()`, `ondismiss?()`                                                   |
+| `IdlePanel`            | `disabled?`, `message?`                                                                                                      | `oninvite()`                                                                  |
+| `LevelCompleteOverlay` | `cash`, `commissionsCompleted`, `message?`                                                                                   | `oncontinue()`                                                                |
+| `CapabilityNotice`     | `supported`, `reason`                                                                                                        | `ondismiss()`                                                                 |
+| `EnginePicker`         | `options: EngineOption[]`, `activeId`                                                                                        | `onselect(id)`                                                                |
+| `ModelDownloadGate`    | `engineName`, `approxMb`, `state?`, `progress?`, `stage?`, `detail?`, `errorMessage?`                                        | `onconfirm()`, `oncancel()`                                                   |
+| `GameMenuBar`          | `cash`, `levelName`, progress fields, `engineButtonLabel`, `engineMenuTitle`, `engineMenuDisabled`, `onopengalleryupgrades?` | `onopenenginemenu()`, `onopengalleryupgrades?()`                              |
+| `GameScene`            | `environment`, `galleryEntries`                                                                                              | `onselectentry(entry)`                                                        |
+| `WorkspaceZone`        | `label`, `children` snippet                                                                                                  | —                                                                             |
+| `FridgeGallery`        | `entries`, `label?`, `emptyMessage?`, `layoutClassName?`                                                                     | `onselect(entry)`                                                             |
+| `GalleryUpgradeShop`   | `venues`/`layouts`/`atmosphereItems`, unlock/active/owned ids, `cash`, `reputation`                                          | `onunlockvenue`/`onunlocklayout`/`onselectlayout`/`onbuyatmosphere`/`onclose` |
+| `ArtworkFullView`      | `entry: GalleryEntry`                                                                                                        | `onclose()`                                                                   |
 
 Types (`ClientBrief`, `Artwork`, `Critique`, `GalleryEntry`, `EngineOption`) come from
 `$lib/types/contracts`. Operations types come from `$lib/game/operations`.
+
+### `GalleryUpgradeShop`
+
+Presentational overlay for venue / layout / atmosphere purchases (spec 14). Three tabs
+with `role="tab"` / `aria-selected`. The parent mounts it (typically from
+`GameMenuBar`'s `onopengalleryupgrades`) and wires callbacks to
+`game.unlockVenue` / `unlockLayout` / `setActiveLayout` / `buyAtmosphereItem`. Pass
+`GALLERY_VENUES`, `GALLERY_LAYOUTS`, and `ATMOSPHERE_ITEMS` as props — the shop does not
+import the data modules itself so tests can inject fakes.
 
 ### `OperationsPanel`
 

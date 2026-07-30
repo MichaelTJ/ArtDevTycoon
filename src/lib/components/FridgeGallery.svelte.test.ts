@@ -46,3 +46,13 @@ test('clicking a magnet calls onselect with the entry', async () => {
 	await screen.getByRole('button', { name: /Sunset Sail/ }).click();
 	expect(onselect).toHaveBeenCalledWith(entry);
 });
+
+test('accepts an optional layoutClassName without changing entry count', async () => {
+	const screen = render(FridgeGallery, {
+		entries: [makeEntry('1', 100, 'One', 10), makeEntry('2', 200, 'Two', 20)],
+		layoutClassName: 'layout-grid',
+		onselect: vi.fn()
+	});
+	expect(screen.getByRole('listitem').elements().length).toBe(2);
+	await expect.element(screen.getByText('One')).toBeVisible();
+});
