@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { getMediumTier } from '$lib/data/mediumTiers';
 import { EngineError } from '$lib/engines/errors';
 import { createDefaultSave, type SaveData } from '$lib/game';
 import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
@@ -56,6 +57,8 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('idle');
 		expect(store.cash).toBe(LEVEL_1.startingCash);
 		expect(store.galleryHistory).toEqual([]);
+		expect(store.unlockedMediumTierIds).toEqual(['crayon']);
+		expect(store.activeMediumTierId).toBe('crayon');
 	});
 
 	it('hydrates cash and reputation from injected loadSave', () => {
@@ -384,5 +387,94 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('levelComplete');
 		expect(store.commissionsCompleted).toBe(5);
 		expect(store.cash).toBeGreaterThanOrEqual(LEVEL_1.targetCash);
+	});
+
+	it('unlockMediumTier succeeds when the player can afford pencil', () => {
+		const persistSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(),
+				critique: vi.fn()
+			},
+			{
+				persistSave,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					cash: 300,
+					reputation: 5
+				})
+			}
+		);
+
+		expect(store.unlockMediumTier('pencil')).toBe(true);
+		expect(store.cash).toBe(50);
+		expect(store.activeMediumTierId).toBe('pencil');
+		expect(store.unlockedMediumTierIds).toContain('pencil');
+		expect(persistSave).toHaveBeenCalledOnce();
+	});
+
+	it('unlockMediumTier fails when cash is insufficient', () => {
+		const persistSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(),
+				critique: vi.fn()
+			},
+			{
+				persistSave,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					cash: 100,
+					reputation: 5
+				})
+			}
+		);
+
+		expect(store.unlockMediumTier('pencil')).toBe(false);
+		expect(store.cash).toBe(100);
+		expect(store.activeMediumTierId).toBe('crayon');
+		expect(persistSave).not.toHaveBeenCalled();
+	});
+
+	it('unlockMediumTier refuses to re-buy crayon', () => {
+		const store = createStore({
+			generate: vi.fn(),
+			critique: vi.fn()
+		});
+
+		expect(store.unlockMediumTier('crayon')).toBe(false);
+	});
+
+	it('setActiveMediumTier no-ops for locked tiers', () => {
+		const store = createStore({
+			generate: vi.fn(),
+			critique: vi.fn()
+		});
+
+		store.setActiveMediumTier('oil');
+		expect(store.activeMediumTierId).toBe('crayon');
+	});
+
+	it('createArt uses the active medium prompt suffix', async () => {
+		const generate = vi.fn(
+			async ({ playerPrompt, prompt: builtPrompt }: { playerPrompt: string; prompt: string }) => {
+				void builtPrompt;
+				return {
+					...fakeArtwork,
+					playerPrompt
+				};
+			}
+		);
+		const store = createStore({ generate, critique: vi.fn(async () => fakeDraft) });
+		store.unlockedMediumTierIds = ['crayon', 'oil'];
+		store.activeMediumTierId = 'oil';
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+
+		await store.createArt();
+
+		expect(generate).toHaveBeenCalledOnce();
+		const args = generate.mock.calls[0][0];
+		expect(args.prompt.endsWith(getMediumTier('oil').promptModifierSuffix)).toBe(true);
 	});
 });

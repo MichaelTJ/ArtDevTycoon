@@ -90,4 +90,12 @@ describe('calculatePayout', () => {
 		expect(calculatePayout(c1, 99, 99)).toBe(c1.budget);
 		expect(calculatePayout(c2, 99, 99)).toBe(c2.budget);
 	});
+
+	it('applies an optional payout multiplier', () => {
+		const brief = { ...c1, budget: 100 };
+		expect(calculatePayout(brief, 10, 10, 1.0)).toBe(100);
+		expect(calculatePayout(brief, 10, 10, 1.5)).toBe(150);
+		expect(calculatePayout(brief, 6, 4, 1.5)).toBe(81);
+		expect(calculatePayout(brief, 1, 1, 2.2)).toBe(22);
+	});
 });

@@ -14,6 +14,7 @@ export { default as LevelCompleteOverlay } from './LevelCompleteOverlay.svelte';
 export { default as CapabilityNotice } from './CapabilityNotice.svelte';
 export { default as EnginePicker } from './EnginePicker.svelte';
 export { default as ModelDownloadGate } from './ModelDownloadGate.svelte';
+export { default as ToolkitShop } from './ToolkitShop.svelte';
 export { default as GameMenuBar } from './GameMenuBar.svelte';
 export { default as GameScene } from './GameScene.svelte';
 export { default as WorkspaceZone } from './WorkspaceZone.svelte';

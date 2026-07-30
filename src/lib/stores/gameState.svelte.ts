@@ -1,8 +1,9 @@
+import { canUnlockMediumTier, DEFAULT_MEDIUM_TIER_ID, getMediumTier } from '$lib/data/mediumTiers';
 import { pickBrief } from '$lib/data/briefs';
 import { EngineError } from '$lib/engines/errors';
 import type { EngineManager } from '$lib/engines/manager';
+import { buildPrompt } from '$lib/game/promptPipeline';
 import {
-	buildLevel1Prompt,
 	calculatePayout,
 	clearSave as defaultClearSave,
 	createDefaultSave,
@@ -49,10 +50,14 @@ export class GameStore {
 	galleryHistory = $state<GalleryEntry[]>([]);
 	draftPrompt = $state('');
 	generationProgress = $state<number | null>(null);
+	unlockedMediumTierIds = $state<string[]>([DEFAULT_MEDIUM_TIER_ID]);
+	activeMediumTierId = $state(DEFAULT_MEDIUM_TIER_ID);
 
 	progress = $derived(
 		levelProgress({ cash: this.cash, commissionsCompleted: this.commissionsCompleted })
 	);
+
+	activeMediumTier = $derived(getMediumTier(this.activeMediumTierId));
 
 	readonly #engine: Pick<EngineManager, 'generate' | 'critique'>;
 	readonly #setSwitchingLocked: (locked: boolean) => void;
@@ -76,6 +81,8 @@ export class GameStore {
 		this.reputation = save.reputation;
 		this.commissionsCompleted = save.lifetimeCommissions;
 		this.galleryHistory = [...save.galleryHistory];
+		this.unlockedMediumTierIds = [...save.unlockedMediumTierIds];
+		this.activeMediumTierId = save.activeMediumTierId;
 	}
 
 	inviteClient(): void {
@@ -101,7 +108,7 @@ export class GameStore {
 
 		const client = this.currentClient;
 		const playerPrompt = this.draftPrompt.trim();
-		const builtPrompt = buildLevel1Prompt(playerPrompt);
+		const builtPrompt = buildPrompt(playerPrompt, this.activeMediumTier);
 
 		this.phase = 'generating';
 		this.errorMessage = null;
@@ -126,7 +133,12 @@ export class GameStore {
 			});
 
 			const { creativityScore } = scorePrompt(client, playerPrompt);
-			const finalPayout = calculatePayout(client, draft.accuracyScore, creativityScore);
+			const finalPayout = calculatePayout(
+				client,
+				draft.accuracyScore,
+				creativityScore,
+				this.activeMediumTier.payoutMultiplier
+			);
 			const critique = critiqueSchema.parse({
 				title: draft.title,
 				accuracyScore: draft.accuracyScore,
@@ -146,6 +158,30 @@ export class GameStore {
 		} finally {
 			this.#setSwitchingLocked(false);
 		}
+	}
+
+	/**
+	 * Permanently unlock a medium tier for cash + reputation. Newly unlocked tiers become
+	 * active immediately. Returns false when already owned or the player cannot afford it.
+	 */
+	unlockMediumTier(id: string): boolean {
+		const tier = getMediumTier(id);
+		if (this.unlockedMediumTierIds.includes(id)) return false;
+		if (!canUnlockMediumTier(tier, { cash: this.cash, reputation: this.reputation })) {
+			return false;
+		}
+		this.cash -= tier.unlockCost;
+		this.unlockedMediumTierIds = [...this.unlockedMediumTierIds, id];
+		this.activeMediumTierId = id;
+		this.#persist();
+		return true;
+	}
+
+	/** Switch the active medium among already-unlocked tiers. Free; no-ops if locked. */
+	setActiveMediumTier(id: string): void {
+		if (!this.unlockedMediumTierIds.includes(id)) return;
+		this.activeMediumTierId = id;
+		this.#persist();
 	}
 
 	collectCash(): void {
@@ -221,6 +257,8 @@ export class GameStore {
 		this.galleryHistory = [];
 		this.draftPrompt = '';
 		this.generationProgress = null;
+		this.unlockedMediumTierIds = [DEFAULT_MEDIUM_TIER_ID];
+		this.activeMediumTierId = DEFAULT_MEDIUM_TIER_ID;
 	}
 
 	/**
@@ -234,6 +272,8 @@ export class GameStore {
 		data.reputation = this.reputation;
 		data.lifetimeCommissions = this.commissionsCompleted;
 		data.galleryHistory = [...this.galleryHistory];
+		data.unlockedMediumTierIds = [...this.unlockedMediumTierIds];
+		data.activeMediumTierId = this.activeMediumTierId;
 		this.#persistSave(data);
 	}
 }

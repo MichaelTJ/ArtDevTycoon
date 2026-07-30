@@ -1,6 +1,12 @@
+import { getMediumTier } from '$lib/data/mediumTiers';
 import { LEVEL_1 } from '$lib/types/contracts';
 import { describe, expect, it } from 'vitest';
-import { buildLevel1Prompt, MAX_PROMPT_LENGTH, sanitizePlayerPrompt } from './promptPipeline';
+import {
+	buildLevel1Prompt,
+	buildPrompt,
+	MAX_PROMPT_LENGTH,
+	sanitizePlayerPrompt
+} from './promptPipeline';
 
 describe('sanitizePlayerPrompt', () => {
 	it('collapses whitespace and trims', () => {
@@ -29,8 +35,19 @@ describe('buildLevel1Prompt', () => {
 		expect(result.endsWith(LEVEL_1.promptModifiers)).toBe(true);
 	});
 
+	it('matches buildPrompt with the crayon tier byte-for-byte', () => {
+		expect(buildLevel1Prompt('x')).toBe(buildPrompt('x', getMediumTier('crayon')));
+	});
+
 	it('throws when input is empty or whitespace', () => {
 		expect(() => buildLevel1Prompt('   ')).toThrow(Error);
 		expect(() => buildLevel1Prompt('')).toThrow(Error);
+	});
+});
+
+describe('buildPrompt', () => {
+	it('appends the active tier suffix', () => {
+		const oil = getMediumTier('oil');
+		expect(buildPrompt('a dragon', oil)).toBe(`a dragon, ${oil.promptModifierSuffix}`);
 	});
 });
