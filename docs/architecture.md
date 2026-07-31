@@ -16,6 +16,13 @@ client's budget. Five commissions and $500 unlocks Level 2. The joke the whole d
 rests on is that the player never sees the modifiers, so their grand ambitions keep
 coming back rendered in crayon.
 
+Walk-in briefs escalate in abstractness as lifetime commissions rise (spec 18): Mum's
+first asks are concrete ("Paint me a cat"), then evocative, then pure mood ("I miss the
+old days"). Abstract briefs are scored by interpretation clusters — whether the player
+committed to a valid concrete reading — not by echoing the vague request words. Vision
+engines ask yes/no questions about the chosen cluster's keywords via
+`critiqueTargetsForBrief`.
+
 ## 2. What kind of app this is
 
 **A browser and mobile game with no backend.** It builds to static files via

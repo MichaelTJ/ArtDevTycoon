@@ -56,6 +56,24 @@ export type LevelConfig = typeof LEVEL_1;
 export const CLIENT_TIERS = ['walk-in', 'corporate', 'billionaire', 'auction-house'] as const;
 export type ClientTier = (typeof CLIENT_TIERS)[number];
 
+/**
+ * How figurative a walk-in request is (spec 18). 0 = paint-the-thing, 2 = pure mood/memory.
+ */
+export const ABSTRACTNESS_LEVELS = [0, 1, 2] as const;
+export type AbstractnessLevel = (typeof ABSTRACTNESS_LEVELS)[number];
+
+/** One valid concrete reading of an abstract brief — critic scores against these keywords. */
+export const interpretationClusterSchema = z.object({
+	/** Stable id for tests and critic copy, e.g. 'nostalgia-photo'. */
+	id: z.string().min(1),
+	/** Short critic-facing label, e.g. 'a faded family photograph'. */
+	label: z.string().min(1),
+	/** Concrete visual concepts that count as committing to this interpretation. */
+	keywords: z.array(z.string().min(1)).min(2).max(6)
+});
+
+export type InterpretationCluster = z.infer<typeof interpretationClusterSchema>;
+
 export const clientBriefSchema = z.object({
 	id: z.string().min(1),
 	clientName: z.string().min(1),
@@ -79,7 +97,19 @@ export const clientBriefSchema = z.object({
 	/** 1-based position within its series, e.g. 1, 2, 3. Undefined outside `corporate`. */
 	seriesPosition: z.number().int().positive().optional(),
 	/** Colour words the corporate client expects across all 3 pieces in the series. */
-	paletteConstraint: z.array(z.string().min(1)).optional()
+	paletteConstraint: z.array(z.string().min(1)).optional(),
+
+	// --- added by spec 18, all optional/defaulted so every existing brief literal keeps parsing ---
+	/**
+	 * 0 (default) = concrete subject; score via preferredKeywords as today.
+	 * 1 = evocative / memory. 2 = pure mood — player must invent the scene.
+	 */
+	abstractness: z.union([z.literal(0), z.literal(1), z.literal(2)]).default(0),
+	/**
+	 * Valid concrete readings of an abstract brief. Content for abstractness >= 1 supplies
+	 * these; prestige pools may omit them and keep legacy keyword scoring.
+	 */
+	interpretationClusters: z.array(interpretationClusterSchema).optional()
 });
 
 /**
@@ -134,7 +164,7 @@ export type Critique = z.infer<typeof critiqueSchema>;
  * - `mock`           procedural art and text scoring; no download, works everywhere
  * - `janus-webgpu`   Janus-Pro-1B; one model does both generation and critique
  * - `sdturbo-webgpu` SD-Turbo 512px images, paired with Janus for critique; desktop
- * - `remote`         a user-supplied API endpoint; reserved for a later phase
+ * - `remote`         JanusLink on the player's PC (My PC) — Tailscale HTTPS + Bearer key
  */
 export const ENGINE_IDS = ['mock', 'janus-webgpu', 'sdturbo-webgpu', 'remote'] as const;
 export type EngineId = (typeof ENGINE_IDS)[number];

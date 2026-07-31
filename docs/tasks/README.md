@@ -17,15 +17,15 @@ picks one.
 
 ## The specs
 
-| #   | Spec                                                | Owns                                                                                    | Depends on |
-| --- | --------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------- |
-| 01  | [Domain layer](./01-domain.md)                      | `src/lib/game/**`, `src/lib/data/**`                                                    | nothing    |
-| 02  | [Engine layer](./02-engine-layer.md)                | `src/lib/engines/*.ts`, `src/lib/engines/mock/**`                                       | 01         |
-| 03  | [UI component library](./03-ui-components.md)       | `src/lib/components/**`, `static/avatars/**`                                            | nothing    |
-| 04  | [Integration](./04-integration.md)                  | `src/lib/stores/**`, `src/routes/+page.svelte`, `src/routes/+layout.svelte`, `e2e/**`   | 01, 02, 03 |
-| 05  | [Janus WebGPU engine](./05-janus-engine.md)         | `src/lib/engines/janus/**`                                                              | 02         |
-| 06  | [SD-Turbo engine](./06-sdturbo-engine.md)           | `src/lib/engines/sdturbo/**`                                                            | 02, 05     |
-| 07  | [ComfyUI + Janus remote engine](./07-api-engine.md) | `src/lib/engines/remote/**`, `static/comfyui/**`, plus registry, manager, store, picker | 02, 03, 04 |
+| #   | Spec                                                | Owns                                                                                   | Depends on |
+| --- | --------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------- |
+| 01  | [Domain layer](./01-domain.md)                      | `src/lib/game/**`, `src/lib/data/**`                                                   | nothing    |
+| 02  | [Engine layer](./02-engine-layer.md)                | `src/lib/engines/*.ts`, `src/lib/engines/mock/**`                                      | 01         |
+| 03  | [UI component library](./03-ui-components.md)       | `src/lib/components/**`, `static/avatars/**`                                           | nothing    |
+| 04  | [Integration](./04-integration.md)                  | `src/lib/stores/**`, `src/routes/+page.svelte`, `src/routes/+layout.svelte`, `e2e/**`  | 01, 02, 03 |
+| 05  | [Janus WebGPU engine](./05-janus-engine.md)         | `src/lib/engines/janus/**`                                                             | 02         |
+| 06  | [SD-Turbo engine](./06-sdturbo-engine.md)           | `src/lib/engines/sdturbo/**`                                                           | 02, 05     |
+| 07  | [JanusLink My PC remote engine](./07-api-engine.md) | `src/lib/engines/remote/**`, `MyPcSetup.svelte`, plus registry, manager, store, picker | 02, 03, 04 |
 
 ### Future specs (stubs — not ready to implement)
 
@@ -58,14 +58,16 @@ Wave 4  (optional, after 05 is merged)
    └── 06 SD-Turbo        → worktree ../adt-wt-sdturbo   branch agent/sdturbo
 
 Wave 5  (optional, any time after wave 3 — no dependency on 05 or 06)
-   └── 07 ComfyUI + Janus  → worktree ../adt-wt-remote    branch agent/remote
+   └── 07 JanusLink My PC  → worktree ../adt-wt-remote    branch agent/remote
 ```
 
-Spec 07 connects to **Janus-Pro running in the player's local ComfyUI** (checked-in workflow
-JSON + `/prompt` API). It does not need the in-browser Janus or SD-Turbo engines merged, but it
-does need the engine manager (02) and picker UI (03, 04). Do not run it concurrently with another
-agent touching `src/lib/engines/registry.ts`, `src/lib/engines/manager.ts`,
-`src/lib/stores/engineStore.svelte.ts`, or `src/lib/components/EnginePicker.svelte`.
+Spec 07 connects to **Janus-Pro on the player's home GPU via JanusLink**
+([ADTLocalServe](https://github.com/MichaelTJ/ADTLocalServe) — FastAPI + Tailscale phone-app,
+Bearer auth from the static game). It does not need the in-browser Janus or SD-Turbo engines
+merged, but it does need the engine manager (02) and picker UI (03, 04). Do not run it
+concurrently with another agent touching `src/lib/engines/registry.ts`,
+`src/lib/engines/manager.ts`, `src/lib/stores/engineStore.svelte.ts`, or
+`src/lib/components/EnginePicker.svelte`.
 
 The waves are ordered so the game is **playable and shippable at the end of wave 3**,
 on the mock engine, with real AI arriving as an enhancement rather than a prerequisite.
@@ -121,6 +123,46 @@ Expected merge hotspots with 13/14 on `gameState.svelte.ts`: `inviteClient` /
 income needs spec 13's medium concept to make sense narratively (no code dependency), the
 Curator reorders spec 14's gallery display, and the roster only becomes fully visible once
 spec 15's client tiers exist. Do not start 16 until 13, 14 and 15 are all on `main`.
+
+## Presentation specs (17+)
+
+After the tycoon loop and progression shops work, presentation specs make the game feel
+like a place you inhabit rather than a stack of menus. They sit on top of specs 01–04 and
+12–16 and do **not** depend on AI engine specs 05–11.
+
+| #   | Spec                                         | Owns (new)                                                                 | Depends on   |
+| --- | -------------------------------------------- | -------------------------------------------------------------------------- | ------------ |
+| 17  | [Phaser studio floor](./17-phaser-studio.md) | `src/lib/studio/**`, `StudioFloor.svelte`, `static/studio/**` (CC0 assets) | 01–04, 12–16 |
+| 18  | [Progressive abstract prompts](./18-abstract-prompts.md) | `kitchenBriefs.ts`, `abstractCritique.ts`, `AbstractBriefHint.svelte`, scoring/pickBrief/engine critique targets | 01–04, 12–16 |
+
+```
+Wave C  (after 16 is merged — presentation)
+   └── 17 Phaser studio floor → worktree ../adt-wt-phaser-studio   branch agent/phaser-studio
+
+Wave D  (after 01–04 + 12–16 merged — content & critique; parallel pair, disjoint zones)
+   ├── 18a Abstract prompts domain → worktree ../adt-wt-abstract-prompts      branch agent/abstract-prompts
+   └── 18b Abstract prompts wire   → worktree ../adt-wt-abstract-prompts-wire branch agent/abstract-prompts-wire
+```
+
+Spec 17 adds Phaser 3 as an npm dependency (allowed exception in that spec), mounts a
+walkable tilemap kitchen, and bridges to `GameStore` via `StudioBridge`. Domain rules and
+engines stay in SvelteKit. Do not run it concurrently with another agent editing
+`src/routes/+page.svelte` or `src/lib/stores/gameState.svelte.ts`.
+
+Spec 18 makes walk-in briefs escalate from Mum's concrete kitchen asks ("Paint me a cat")
+to pure mood ("I miss the old days"), and scores abstract briefs via interpretation
+clusters instead of parroting vague request words. The orchestrator lands the additive
+`contracts.ts` fields first; then Wave D runs two agents in parallel:
+
+- **18a** owns `src/lib/data/**`, `src/lib/game/**` (kitchen briefs, `abstractCritique`,
+  `scorePrompt` / `calculatePayout` / `pickBrief` gating).
+- **18b** owns engines' critique target wiring, `gameState.inviteClient` progress arg,
+  `AbstractBriefHint.svelte` + mount, and the architecture blurb.
+
+Do not run 18a/18b concurrently with another agent editing `src/lib/game/scoring.ts`,
+`src/lib/data/briefs.ts`, `src/lib/stores/gameState.svelte.ts`, or the Janus/remote/mock
+`critique` methods. Merge 18a before 18b if either branch conflicts; prefer merging 18a
+first so 18b's imports resolve on `main` during conflict fixups.
 
 ## Worktrees are already set up
 

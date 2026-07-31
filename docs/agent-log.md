@@ -672,3 +672,24 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - No firing/salaries/sprites (explicitly out of scope).
 - Inherited Prettier failure: `src/lib/data/README.md` only.
 - Inherited intermittent client-test timeouts under full-suite load (same class noted by specs 13–15).
+
+---
+
+## 2026-08-01 — Spec 18b — abstract prompts UI
+
+**Zone:** `src/lib/components/AbstractBriefHint.svelte*`, `src/lib/components/index.ts`, `src/lib/components/README.md`, `src/routes/+page.svelte`, `docs/architecture.md` (§9 blurb only), `docs/agent-log.md`
+
+**Built:** Presentational `AbstractBriefHint` shown during briefing when `currentClient.abstractness >= 1`, with exact band-1 / band-2 coaching copy from spec 18 §8. Band 0 renders nothing. Architecture §1 gains the exact spec §9 abstractness paragraph.
+
+**Public surface:**
+
+- `$lib/components` — `AbstractBriefHint` (`abstractness: AbstractnessLevel`)
+- Mounted in `+page.svelte` briefing workspace (between `ClientCard` and `PromptComposer`); `StudioHudOverlay` is absent in this worktree
+
+**Tests:** `AbstractBriefHint.svelte.test.ts` — band 2 / band 1 copy visible, band 0 empty (3/3). `npm run check` 0 errors/warnings. Owned files ESLint + Prettier clean. Full `npm run test:unit -- --run`: 63 files / 378 tests passed.
+
+**Decisions:** Mounted in `+page.svelte` because `StudioHudOverlay.svelte` does not exist here; parent still gates with `(abstractness ?? 0) >= 1` and passes `currentClient.abstractness ?? 0`.
+
+**Requests:** None from this slice.
+
+**Known gaps:** Domain / engine / `pickBrief` wiring for abstract briefs is owned by other Spec 18 waves — this slice is UI + architecture blurb only. Inherited `npm run lint` Prettier failures outside zone (`docs/tasks/**`, `modifier-explorer/**`, `durableImage.test.ts`, `gameState.svelte.test.ts`) — not fixed per ownership.
