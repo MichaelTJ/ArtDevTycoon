@@ -20,21 +20,33 @@ import { EngineError } from '$lib/engines/errors';
 import type { EngineManager } from '$lib/engines/manager';
 import { buildPrompt } from '$lib/game/promptPipeline';
 import {
+	applySkillGains,
+	buildProgressMeters,
 	calculatePayout,
 	clearSave as defaultClearSave,
 	createDefaultSave,
+	createEmptySkillXp,
 	ensureDurableImageUrl,
 	isLevelComplete,
 	levelProgress,
 	loadSave as defaultLoadSave,
 	persistSave as defaultPersistSave,
+	previewSkillGains,
 	reputationGain,
 	scorePrompt,
+	skillPayoutMultiplier,
+	skillProgress,
+	SKILL_IDS,
 	toGalleryScore,
-	type SaveData
+	type NextUnlock,
+	type SaveData,
+	type SkillGainPreview,
+	type SkillProgress,
+	type SkillXpMap
 } from '$lib/game';
 import { resolveAuction, type AuctionResult } from '$lib/game/auction';
 import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
+import { DEFAULT_WORK_ESTIMATE_MS } from '$lib/studio/workProgress';
 import {
 	checkPaletteUsage,
 	fullyCompletedSeriesIds,
@@ -51,6 +63,12 @@ import {
 } from '$lib/types/contracts';
 import { engines } from './engineStore.svelte';
 
+export interface CollectedGains {
+	skills: SkillGainPreview;
+	reputation: number;
+	cash: number;
+}
+
 export interface GameStoreDeps {
 	engine?: Pick<EngineManager, 'generate' | 'critique'>;
 	setSwitchingLocked?: (locked: boolean) => void;
@@ -63,6 +81,11 @@ export interface GameStoreDeps {
 	resolveAuction?: typeof resolveAuction;
 	/** Interval for passive income ticks; override in tests for faster accrual. */
 	tickIntervalMs?: number;
+	/**
+	 * Spec 17: Marketing Director arrival. Defaults to `inviteClient`.
+	 * The studio floor overrides this to summon a walking client first.
+	 */
+	autoInviteAction?: () => void;
 }
 
 function briefTier(brief: ClientBrief) {
@@ -88,6 +111,13 @@ export class GameStore {
 	seriesOnBrandFlags = $state<Record<string, boolean[]>>({});
 	draftPrompt = $state('');
 	generationProgress = $state<number | null>(null);
+	/**
+	 * Wall-clock ms of the last finished generate+critique. Used as the studio desk
+	 * progress-bar estimate for the next commission.
+	 */
+	lastWorkDurationMs = $state(DEFAULT_WORK_ESTIMATE_MS);
+	/** `Date.now()` when the current generate+critique started; null when not working. */
+	workStartedAt = $state<number | null>(null);
 	unlockedMediumTierIds = $state<string[]>([DEFAULT_MEDIUM_TIER_ID]);
 	activeMediumTierId = $state(DEFAULT_MEDIUM_TIER_ID);
 
@@ -100,6 +130,13 @@ export class GameStore {
 	lastIncomeTickAt = $state<number>(0);
 	/** Set once on catch-up from `startIncomeTicker`; null means the modal stays hidden. */
 	idleEarningsToShow = $state<number | null>(null);
+
+	/** Spec 20 — lifetime craft XP. */
+	skillXp = $state<SkillXpMap>(createEmptySkillXp());
+	/** Previewed XP while in `results`; cleared on collect / reset. */
+	pendingSkillGains = $state<SkillGainPreview | null>(null);
+	/** One-shot pulse after collect; UI clears via `clearLastCollectedGains`. */
+	lastCollectedGains = $state<CollectedGains | null>(null);
 
 	progress = $derived(
 		levelProgress({ cash: this.cash, commissionsCompleted: this.commissionsCompleted })
@@ -135,14 +172,35 @@ export class GameStore {
 
 	/**
 	 * Single progression multiplier passed to `calculatePayout`. Composes
-	 * medium × layout × (1 + atmosphere). Specs 13/16 must multiply into this seat,
-	 * not call `calculatePayout` with a parallel factor.
+	 * medium × layout × (1 + atmosphere) × craft-skill bonus. Specs 13/16/20 multiply
+	 * into this seat, not via a parallel `calculatePayout` factor.
 	 */
 	presentationMultiplier = $derived(
 		this.activeMediumTier.payoutMultiplier *
 			getLayout(this.effectiveLayoutId).curationMultiplier *
-			(1 + totalAtmosphereBonus(this.ownedAtmosphereIds))
+			(1 + totalAtmosphereBonus(this.ownedAtmosphereIds)) *
+			skillPayoutMultiplier(this.skillXp)
 	);
+
+	skillProgressList = $derived.by((): SkillProgress[] =>
+		SKILL_IDS.map((id) => skillProgress(id, this.skillXp[id]))
+	);
+
+	progressMeters = $derived.by(() =>
+		buildProgressMeters({
+			cash: this.cash,
+			reputation: this.reputation,
+			commissionsCompleted: this.commissionsCompleted,
+			targetCash: LEVEL_1.targetCash,
+			targetCommissions: LEVEL_1.targetCommissions,
+			unlockedVenueId: this.unlockedVenueId,
+			unlockedMediumTierIds: this.unlockedMediumTierIds,
+			hiredStaffIds: this.hiredStaffIds
+		})
+	);
+
+	/** Convenience alias for HUD reputation meter. */
+	reputationMeter = $derived.by((): NextUnlock => this.progressMeters.reputation);
 
 	readonly #engine: Pick<EngineManager, 'generate' | 'critique'>;
 	readonly #setSwitchingLocked: (locked: boolean) => void;
@@ -153,6 +211,7 @@ export class GameStore {
 	readonly #clearSave: () => void;
 	readonly #resolveAuction: typeof resolveAuction;
 	readonly #tickIntervalMs: number;
+	#autoInviteAction: () => void;
 
 	#autoInviteTimer: ReturnType<typeof setTimeout> | null = null;
 	#incomeTicker: ReturnType<typeof setInterval> | null = null;
@@ -169,6 +228,7 @@ export class GameStore {
 		this.#clearSave = deps?.clearSave ?? defaultClearSave;
 		this.#resolveAuction = deps?.resolveAuction ?? resolveAuction;
 		this.#tickIntervalMs = deps?.tickIntervalMs ?? 1000;
+		this.#autoInviteAction = deps?.autoInviteAction ?? (() => this.inviteClient());
 
 		const save = this.#loadSave(LEVEL_1.startingCash, this.#now);
 		this.cash = save.cash;
@@ -183,8 +243,19 @@ export class GameStore {
 		this.activeLayoutId = save.activeLayoutId;
 		this.ownedAtmosphereIds = [...save.ownedAtmosphereIds];
 		this.hiredStaffIds = [...save.hiredStaffIds];
+		this.skillXp = {
+			prompting: save.skillXpPrompting,
+			imagination: save.skillXpImagination,
+			hustle: save.skillXpHustle
+		};
 		this.lastIncomeTickAt = save.lastIncomeTickAt ?? this.#now();
 
+		this.#scheduleAutoInvite();
+	}
+
+	/** Spec 17: override Marketing Director arrival. Default remains `inviteClient`. */
+	setAutoInviteAction(fn: () => void): void {
+		this.#autoInviteAction = fn;
 		this.#scheduleAutoInvite();
 	}
 
@@ -224,6 +295,7 @@ export class GameStore {
 		this.errorMessage = null;
 		this.generationProgress = null;
 		this.currentAuctionResult = null;
+		this.workStartedAt = this.#now();
 		this.#setSwitchingLocked(true);
 
 		// Yield so the UI can paint the generating state before instant mock work finishes.
@@ -284,14 +356,23 @@ export class GameStore {
 
 			this.currentCritique = critique;
 			this.currentAuctionResult = auctionResult;
+			this.pendingSkillGains = previewSkillGains({
+				accuracyScore: critique.accuracyScore,
+				creativityScore: critique.creativityScore,
+				finalPayout: critique.finalPayout
+			});
+			const started = this.workStartedAt ?? this.#now();
+			this.lastWorkDurationMs = Math.max(250, this.#now() - started);
 			this.phase = 'results';
 		} catch (error) {
+			this.pendingSkillGains = null;
 			this.errorMessage =
 				error instanceof EngineError
 					? error.message
 					: 'Something went wrong creating your art. Please try again.';
 			this.phase = 'failed';
 		} finally {
+			this.workStartedAt = null;
 			this.#setSwitchingLocked(false);
 		}
 	}
@@ -353,9 +434,25 @@ export class GameStore {
 
 			const imageUrl = await ensureDurableImageUrl(artwork.imageUrl);
 
+			const gains =
+				this.pendingSkillGains ??
+				previewSkillGains({
+					accuracyScore: critique.accuracyScore,
+					creativityScore: critique.creativityScore,
+					finalPayout: critique.finalPayout
+				});
+			const repGain = reputationGain(critique.accuracyScore, critique.creativityScore);
+
 			this.cash += critique.finalPayout;
-			this.reputation += reputationGain(critique.accuracyScore, critique.creativityScore);
+			this.reputation += repGain;
 			this.commissionsCompleted += 1;
+			this.skillXp = applySkillGains(this.skillXp, gains);
+			this.lastCollectedGains = {
+				skills: gains,
+				reputation: repGain,
+				cash: critique.finalPayout
+			};
+			this.pendingSkillGains = null;
 
 			const entry: GalleryEntry = {
 				id: artwork.id,
@@ -448,6 +545,11 @@ export class GameStore {
 	/** Clears the one-shot idle earnings modal flag after the player collects. */
 	dismissIdleEarnings(): void {
 		this.idleEarningsToShow = null;
+	}
+
+	/** Clears the post-collect XP/rep pulse once the HUD has animated it. */
+	clearLastCollectedGains(): void {
+		this.lastCollectedGains = null;
 	}
 
 	/**
@@ -544,6 +646,9 @@ export class GameStore {
 		this.hiredStaffIds = [];
 		this.lastIncomeTickAt = this.#now();
 		this.idleEarningsToShow = null;
+		this.skillXp = createEmptySkillXp();
+		this.pendingSkillGains = null;
+		this.lastCollectedGains = null;
 	}
 
 	/**
@@ -566,6 +671,9 @@ export class GameStore {
 		data.ownedAtmosphereIds = [...this.ownedAtmosphereIds];
 		data.hiredStaffIds = [...this.hiredStaffIds];
 		data.lastIncomeTickAt = this.lastIncomeTickAt;
+		data.skillXpPrompting = this.skillXp.prompting;
+		data.skillXpImagination = this.skillXp.imagination;
+		data.skillXpHustle = this.skillXp.hustle;
 		this.#persistSave(data);
 	}
 
@@ -584,8 +692,9 @@ export class GameStore {
 	}
 
 	/**
-	 * Schedules Marketing Director auto-invite only while idle and a hired role has
-	 * `autoInviteSpeedMultiplier > 1`. Uses max multiplier across roles, not the sum.
+	 * Schedules the next client arrival while idle. Always runs on a base timer;
+	 * Marketing Director (and any future roles) speed it up via
+	 * `autoInviteSpeedMultiplier` (max across roles, not the sum).
 	 */
 	#scheduleAutoInvite(): void {
 		this.#clearAutoInvite();
@@ -596,13 +705,11 @@ export class GameStore {
 			return Math.max(best, mult);
 		}, 1);
 
-		if (bestMultiplier <= 1) return;
-
 		const delay = BASE_AUTO_INVITE_DELAY_MS / bestMultiplier;
 		this.#autoInviteTimer = setTimeout(() => {
 			this.#autoInviteTimer = null;
 			if (this.phase === 'idle') {
-				this.inviteClient();
+				this.#autoInviteAction();
 			}
 		}, delay);
 	}

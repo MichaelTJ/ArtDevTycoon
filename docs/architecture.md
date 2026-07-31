@@ -55,6 +55,21 @@ not our infrastructure — decides what is possible, and devices vary enormously
   lib/engines/mock/  runs on the main thread — it is instant and has no model
 ```
 
+### 3.1 Studio floor (spec 17)
+
+Level 1’s walkable kitchen is a **Phaser 3** canvas mounted by `StudioFloor.svelte`.
+Phaser is presentation-only: tilemap, player/client sprites, desk work animation, and
+easel thumbnails. All commission rules stay in `GameStore`. The only seam is
+`StudioBridge` (`src/lib/studio/bridge.ts`) — outbound intents (`talk-to-client`, …)
+and inbound commands (`summon-client`, `sync`). Static CC0 art lives under
+`/studio` and is credited in `static/studio/CREDITS.md`. Set `STUDIO_FLOOR_ENABLED`
+to `false` to fall back to the CSS `KitchenScene`.
+
+Spec 19 authors distinct venue floor plans via `getRoomForVenue` (6×6 Mum kitchen through
+28×16 mega-museum). Mum is a resident wander NPC in the fridge kitchen — she never uses
+the door — while non-Mum briefs still `spawn-visitor` through the entrance; Phaser
+rebuilds the tilemap when `activeVenueId` changes.
+
 Pure game rules in `src/lib/game/**` depend on nothing — no Svelte, no DOM, no engine.
 That is what makes them exhaustively unit-testable and reusable by every engine.
 
@@ -66,12 +81,12 @@ Every AI backend implements one interface, `ArtEngine` in
 `src/lib/types/contracts.ts`. An engine manager probes the device once and picks the
 best tier it can actually run.
 
-| Tier | Engine           | Download      | Needs           | Role                                                           |
-| ---- | ---------------- | ------------- | --------------- | -------------------------------------------------------------- |
-| 0    | `mock`           | none          | nothing         | Procedural SVG art, text-based scoring. **Always available.**  |
-| 1    | `janus-webgpu`   | ~1 GB         | WebGPU          | **Default.** Janus-Pro-1B does _both_ generation and critique. |
-| 2    | `sdturbo-webgpu` | ~1.5 GB extra | WebGPU, desktop | SD-Turbo paints at 512px; Janus still critiques.               |
-| 3    | `remote`         | none          | user's own key  | Reserved for a later phase.                                    |
+| Tier | Engine           | Download      | Needs                       | Role                                                          |
+| ---- | ---------------- | ------------- | --------------------------- | ------------------------------------------------------------- |
+| 0    | `mock`           | none          | nothing                     | Procedural SVG art, text-based scoring. **Always available.** |
+| 1    | `janus-webgpu`   | ~1 GB         | WebGPU                      | Janus-Pro-1B does _both_ generation and critique in-browser.  |
+| 1    | `remote`         | none          | JanusLink + Tailscale + key | Same Janus jobs on the player's home GPU (My PC). No WebGPU.  |
+| 2    | `sdturbo-webgpu` | ~1.5 GB extra | WebGPU, desktop             | SD-Turbo paints at 512px; Janus still critiques.              |
 
 Selection rules:
 
@@ -97,6 +112,12 @@ still does not persist; a reload always lands back on `idle`. The reasoning that
 session-only state the right call for a five-commission Level-1 loop does not extend to
 permanent purchases, and losing a half-typed prompt on refresh is an acceptable, honest
 trade against silently erasing $5,000 of banked upgrades.
+
+Spec 20 surfaces cash / reputation / commission goals as HUD progress meters and adds
+three persisted craft skills (Prompting, Imagination, Hustle) that gain XP when a
+commission is collected. Skill levels grant a small payout multiplier
+(`skillPayoutMultiplier`, capped +15%). Pending gains preview on the results panel so
+collecting cash feels like banking progress, not only dollars.
 
 ### Why Janus does both jobs
 
@@ -195,6 +216,7 @@ player never loses their typed prompt.
 | `src/lib/stores/**`, `src/routes/**` (except `+layout.ts`), `e2e/**` | State machine, screen, end-to-end          | 04           |
 | `src/lib/engines/janus/**`                                           | Janus-Pro-1B worker engine                 | 05           |
 | `src/lib/engines/sdturbo/**`                                         | SD-Turbo desktop engine                    | 06           |
+| `src/lib/studio/**`, `static/studio/**`                              | Phaser studio floor + CC0 assets           | 17           |
 
 ---
 
@@ -211,15 +233,14 @@ audit resolution; check the bundle instead.
 ## 9. Deliberately deferred
 
 Upgrades, staff, gallery customisation, complex client types and extra art mediums are
-out of scope. Leave seams — `LEVEL_1` is a config object so a `LEVEL_2` can slot in
-beside it, and `ArtEngine` already accommodates the `remote` tier — but implement none
-of it.
+out of scope for the original Level 1 architecture note — they landed in specs 12–16.
+The walkable Phaser studio floor is spec 17. Leave seams for Level 2+ room art; do not
+invent unique tilesets for art-room / studio / gallery until those levels ship.
 
-`GameState.reputation` is tracked from Level 1 onward (the domain layer already
-computes a `reputationGain` per commission) but is not surfaced in any UI and gates
-nothing. It is there so Level 2 — where reputation is expected to unlock better
-clients — has a running total to build on instead of a retrofit. Do not wire it into
-any Level 1 UI or win condition.
+`GameState.reputation` is tracked from Level 1 onward (via `reputationGain` per
+commission). Specs 13–16 gate shops and client tiers on it; Spec 20 surfaces it on the
+HUD next-unlock meter and Progress panel. It is still not a Level 1 win condition —
+only commissions + cash are.
 
 ---
 

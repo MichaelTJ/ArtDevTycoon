@@ -46,3 +46,18 @@ export {
 } from './save';
 export { ensureDurableImageUrl } from './durableImage';
 export { MAX_IDLE_MS, BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from './idleIncome';
+export {
+	SKILL_IDS,
+	SKILL_DEFS,
+	SKILL_LEVEL_CAP,
+	createEmptySkillXp,
+	xpToNextLevel,
+	xpThresholdForLevel,
+	skillProgress,
+	previewSkillGains,
+	applySkillGains,
+	skillPayoutMultiplier
+} from './skills';
+export type { SkillId, SkillDef, SkillXpMap, SkillProgress, SkillGainPreview } from './skills';
+export { buildProgressMeters, lockedReputationGates } from './nextUnlock';
+export type { UnlockTrack, NextUnlock, ProgressionSnapshot } from './nextUnlock';

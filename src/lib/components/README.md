@@ -8,36 +8,51 @@ in, callbacks out** — no global state, no `fetch`, no imports from `$lib/store
 
 Import everything from `$lib/components` (barrel `index.ts`):
 
-| Component              | Props                                                                                                            | Callbacks                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `OperationsPanel`      | `summary`, `needs`, `entries`, `totalMatching`, `query` (bindable)                                               | `onquerychange?()`                                                            |
-| `Avatar`               | `src`, `name`, `size?` (`sm`/`md`/`lg`)                                                                          | —                                                                             |
-| `ScoreBadge`           | `label`, `score`, `max?`                                                                                         | —                                                                             |
-| `HudBar`               | `cash`, `levelName`, `commissionsCompleted`, `targetCommissions`, `targetCash`, `variant?` (`default`/`compact`) | —                                                                             |
-| `ClientCard`           | `brief: ClientBrief` (shows `ClientTierBadge`)                                                                   | —                                                                             |
-| `ClientTierBadge`      | `tier: ClientTier`                                                                                               | —                                                                             |
-| `AbstractBriefHint`    | `abstractness: AbstractnessLevel` (renders nothing when `0`)                                                     | —                                                                             |
-| `PromptComposer`       | `value?` (bindable), `disabled?`, `maxLength?`                                                                   | `onsubmit(prompt)`                                                            |
-| `GeneratingPanel`      | `messages?`, `intervalMs?`, `progress?`, `stageLabel?`                                                           | —                                                                             |
-| `ArtworkFrame`         | `imageUrl`, `title`, `alt`, `size?` (`thumb`/`full`)                                                             | —                                                                             |
-| `ResultsPanel`         | `artwork`, `critique`, `clientName`                                                                              | `oncollect()`                                                                 |
-| `AuctionResultPanel`   | `bidderCount`, `bids`, `winningBid`                                                                              | `oncollect()`                                                                 |
-| `PortfolioStrip`       | `entries`, `emptyMessage?`                                                                                       | —                                                                             |
-| `ErrorPanel`           | `message`                                                                                                        | `onretry()`, `ondismiss?()`                                                   |
-| `IdlePanel`            | `disabled?`, `message?`                                                                                          | `oninvite()`                                                                  |
-| `LevelCompleteOverlay` | `cash`, `commissionsCompleted`, `message?`                                                                       | `oncontinue()`                                                                |
-| `CapabilityNotice`     | `supported`, `reason`                                                                                            | `ondismiss()`                                                                 |
-| `EnginePicker`         | `options: EngineOption[]`, `activeId`                                                                            | `onselect(id)`                                                                |
-| `ModelDownloadGate`    | `engineName`, `approxMb`, `state?`, `progress?`, `stage?`, `detail?`, `errorMessage?`                            | `onconfirm()`, `oncancel()`                                                   |
-| `ToolkitShop`          | `tiers: MediumTier[]`, `unlockedTierIds`, `activeTierId`, `cash`, `reputation`                                   | `onunlock(id)`, `onselect(id)`, `onclose()`                                   |
-| `GalleryUpgradeShop`   | `venues`/`layouts`/`atmosphereItems`, unlock/active/owned ids, `cash`, `reputation`                              | `onunlockvenue`/`onunlocklayout`/`onselectlayout`/`onbuyatmosphere`/`onclose` |
-| `StaffOffice`          | `roles: StaffRole[]`, `hiredIds`, `cash`, `reputation`                                                           | `onhire(id)`, `onclose()`                                                     |
-| `IdleEarningsModal`    | `amount`                                                                                                         | `ondismiss()`                                                                 |
-| `GameMenuBar`          | `cash`, `levelName`, progress fields, `engineButtonLabel`, `engineMenuTitle`, `engineMenuDisabled`               | `onopenenginemenu()`                                                          |
-| `GameScene`            | `environment`, `galleryEntries`, `galleryLayoutClassName?`                                                       | `onselectentry(entry)`                                                        |
-| `WorkspaceZone`        | `label`, `children` snippet                                                                                      | —                                                                             |
-| `FridgeGallery`        | `entries` (order preserved), `label?`, `emptyMessage?`, `layoutClassName?`                                       | `onselect(entry)`                                                             |
-| `ArtworkFullView`      | `entry: GalleryEntry`                                                                                            | `onclose()`                                                                   |
+| Component              | Props                                                                                                                             | Callbacks                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `OperationsPanel`      | `summary`, `needs`, `entries`, `totalMatching`, `query` (bindable)                                                                | `onquerychange?()`                                                              |
+| `Avatar`               | `src`, `name`, `size?` (`sm`/`md`/`lg`)                                                                                           | —                                                                               |
+| `ScoreBadge`           | `label`, `score`, `max?`                                                                                                          | —                                                                               |
+| `HudBar`               | `cash`, `levelName`, commissions/cash targets, `reputation`, `reputationMeter`, `skillSummaries?`, `skillsEmphasize?`, `variant?` | —                                                                               |
+| `ProgressMeter`        | `label`, `value`, `max`, `hint?`, `delta?`, `emphasize?`, `variant?`                                                              | —                                                                               |
+| `ProgressPanel`        | `cash`, `reputation`, career/standing meters, `skills`                                                                            | `onclose()`                                                                     |
+| `WorkGainToast`        | `gains`, `reputation`, `cash`, `mode` (`pending`/`collected`)                                                                     | —                                                                               |
+| `ClientCard`           | `brief: ClientBrief` (shows `ClientTierBadge`)                                                                                    | —                                                                               |
+| `ClientTierBadge`      | `tier: ClientTier`                                                                                                                | —                                                                               |
+| `AbstractBriefHint`    | `abstractness: AbstractnessLevel` (renders nothing when `0`)                                                                      | —                                                                               |
+| `PromptComposer`       | `value?` (bindable), `disabled?`, `maxLength?`                                                                                    | `onsubmit(prompt)`                                                              |
+| `GeneratingPanel`      | `messages?`, `intervalMs?`, `progress?`, `stageLabel?`                                                                            | —                                                                               |
+| `ArtworkFrame`         | `imageUrl`, `title`, `alt`, `size?` (`thumb`/`full`)                                                                              | —                                                                               |
+| `ResultsPanel`         | `artwork`, `critique`, `clientName`, `pendingSkillGains?`, `pendingReputation?`                                                   | `oncollect()`                                                                   |
+| `AuctionResultPanel`   | `bidderCount`, `bids`, `winningBid`                                                                                               | `oncollect()`                                                                   |
+| `PortfolioStrip`       | `entries`, `emptyMessage?`                                                                                                        | —                                                                               |
+| `ErrorPanel`           | `message`                                                                                                                         | `onretry()`, `ondismiss?()`                                                     |
+| `IdlePanel`            | `disabled?`, `message?`                                                                                                           | `oninvite()`                                                                    |
+| `LevelCompleteOverlay` | `cash`, `commissionsCompleted`, `message?`                                                                                        | `oncontinue()`                                                                  |
+| `CapabilityNotice`     | `supported`, `reason`                                                                                                             | `ondismiss()`                                                                   |
+| `EnginePicker`         | `options: EngineOption[]`, `activeId`                                                                                             | `onselect(id)`, `onconfigure?(id)` (My PC setup)                                |
+| `ModelDownloadGate`    | `engineName`, `approxMb`, `state?`, `progress?`, `stage?`, `detail?`, `errorMessage?`                                             | `onconfirm()`, `oncancel()`                                                     |
+| `MyPcSetup`            | `baseUrl`/`apiKey` (bindable), `testState`, `testError`                                                                           | `ontest()`, `onconnect()`, `oncancel()`                                         |
+| `ToolkitShop`          | `tiers: MediumTier[]`, `unlockedTierIds`, `activeTierId`, `cash`, `reputation`                                                    | `onunlock(id)`, `onselect(id)`, `onclose()`                                     |
+| `GalleryUpgradeShop`   | `venues`/`layouts`/`atmosphereItems`, unlock/active/owned ids, `cash`, `reputation`                                               | `onunlockvenue`/`onunlocklayout`/`onselectlayout`/`onbuyatmosphere`/`onclose`   |
+| `StaffOffice`          | `roles: StaffRole[]`, `hiredIds`, `cash`, `reputation`                                                                            | `onhire(id)`, `onclose()`                                                       |
+| `IdleEarningsModal`    | `amount`                                                                                                                          | `ondismiss()`                                                                   |
+| `GameMenuBar`          | `cash`, `levelName`, progress fields, engine button props; opens Toolkit / Gallery / Staff / **Progress**                         | `onopenenginemenu()`                                                            |
+| `GameScene`            | `environment`, `galleryEntries`, `galleryLayoutClassName?`                                                                        | `onselectentry(entry)`                                                          |
+| `WorkspaceZone`        | `label`, `children` snippet                                                                                                       | —                                                                               |
+| `FridgeGallery`        | `entries` (order preserved), `label?`, `emptyMessage?`, `layoutClassName?`                                                        | `onselect(entry)`                                                               |
+| `ArtworkFullView`      | `entry: GalleryEntry`                                                                                                             | `onclose()`                                                                     |
+| `StudioFloor`          | `bridge: StudioBridge`, `class?`                                                                                                  | — (Phaser emits via bridge)                                                     |
+| `StudioHudOverlay`     | phase, client/artwork/critique, `draftPrompt` (bindable), `clientSummoned`, `pendingSkillGains?`, `studioDebug?`                  | `oninvite` / `ontalk` / `onsubmit` / `oncollect` / `onretry` / `ondismisserror` |
+
+### Studio floor (spec 17)
+
+When `STUDIO_FLOOR_ENABLED` is true (default), `+page` mounts `StudioFloor` +
+`StudioHudOverlay` for Level 1 instead of `KitchenScene`. `GameScene` still hosts the
+CSS kitchen when the flag is false, and Coming Soon for levels 2–4. Phaser is created
+via dynamic import in `StudioFloor` and destroyed on unmount. E2E uses `?studioDebug=1`
+for a Talk button so pathfinding stays out of Playwright. `AbstractBriefHint` mounts
+inside `StudioHudOverlay` during briefing when abstractness ≥ 1.
 
 Types (`ClientBrief`, `Artwork`, `Critique`, `GalleryEntry`, `EngineOption`) come from
 `$lib/types/contracts`. Operations types come from `$lib/game/operations`. Medium tiers

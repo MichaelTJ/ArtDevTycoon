@@ -78,11 +78,17 @@ describe('save', () => {
 			seriesOnBrandFlags: {},
 			hiredStaffIds: [],
 			lastIncomeTickAt: null,
+			skillXpPrompting: 0,
+			skillXpImagination: 0,
+			skillXpHustle: 0,
 			savedAt: 1_700_000_000_000
 		};
 		persistSave(saved);
 
-		expect(loadSave(100, () => 42)).toEqual({ ...saved, lastIncomeTickAt: 42 });
+		expect(loadSave(100, () => 42)).toEqual({
+			...saved,
+			lastIncomeTickAt: 42
+		});
 	});
 
 	it('preserves a concrete lastIncomeTickAt on load', () => {
@@ -127,6 +133,22 @@ describe('save', () => {
 		expect(loaded.seriesOnBrandFlags).toEqual({});
 		expect(loaded.lastIncomeTickAt).toBe(55);
 		expect(loaded.cash).toBe(200);
+		expect(loaded.skillXpPrompting).toBe(0);
+		expect(loaded.skillXpImagination).toBe(0);
+		expect(loaded.skillXpHustle).toBe(0);
+	});
+
+	it('round-trips skill XP fields', () => {
+		const data = createDefaultSave(100, () => 1);
+		data.skillXpPrompting = 15;
+		data.skillXpImagination = 8;
+		data.skillXpHustle = 4;
+		persistSave(data);
+
+		const loaded = loadSave(100, () => 0);
+		expect(loaded.skillXpPrompting).toBe(15);
+		expect(loaded.skillXpImagination).toBe(8);
+		expect(loaded.skillXpHustle).toBe(4);
 	});
 
 	it('falls back to default when localStorage.getItem throws', () => {

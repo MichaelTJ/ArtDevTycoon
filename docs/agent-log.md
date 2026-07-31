@@ -673,6 +673,65 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - Inherited Prettier failure: `src/lib/data/README.md` only.
 - Inherited intermittent client-test timeouts under full-suite load (same class noted by specs 13–15).
 
+## 2026-07-31 — Spec 07 JanusLink My PC remote engine
+
+**Zone:** `src/lib/engines/remote/**`, `src/lib/components/MyPcSetup*`, edits to registry/manager/engineStore/EnginePicker/`+page.svelte`/READMEs/`docs/tasks/07-api-engine.md`/`docs/architecture.md` (remote tier row) / `contracts.ts` comment only
+
+**Built:** Rewrote spec 07 away from ComfyUI to JanusLink ([ADTLocalServe](https://github.com/MichaelTJ/ADTLocalServe)). Registered `remote` as **My PC** — static-game browser client talks to the player's Tailscale `phone-app` with Bearer auth (no `+server.ts`; cookies are SameSite=lax and unusable cross-origin). Setup dialog, store wiring (`testRemoteConnection` / `connectRemote`), picker `onconfigure`.
+
+**Public surface:**
+
+- `$lib/engines/remote/remoteEngine` — `RemoteEngine` (`ArtEngine`, id `remote`)
+- `$lib/engines/remote/remoteConfig` — `loadRemoteConfig` / `saveRemoteConfig` / `clearRemoteConfig`
+- `$lib/engines/remote/janusLinkClient` — `createJanusLinkClient`
+- `$lib/components` — `MyPcSetup`; `EnginePicker` gains optional `onconfigure`
+
+**Tests:** remoteConfig / janusLinkClient / remoteEngine (node); MyPcSetup / EnginePicker (client). Commands: `npm run check` (0 errors); node remote+manager+engineStore green; client MyPcSetup+EnginePicker green.
+
+**Decisions:**
+
+- Bearer API key only (not cookie pairing) so adapter-static stays intact.
+- Did not copy ADTLocalServe `game-integration/` drop-in (it assumes a Node game server + loopback `pair/start`).
+- Tier 1 alongside in-browser Janus; probe health-checks the configured host.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual E2E against a live JanusLink install not run in this session (needs GPU PC + Tailscale + `JANUS_ALLOWED_ORIGINS`).
+- Specs 08–11 still stubs for other providers.
+
+## 2026-07-31 — Spec 17 Phaser studio floor
+
+**Zone:** `src/lib/studio/**`, `StudioFloor` / `StudioHudOverlay`, `static/studio/**`, edits to `gameState` (`setAutoInviteAction`), `GameScene`, `+page`, e2e, `package.json` (phaser only), architecture §3.1 / ownership row, tasks README
+
+**Built:** Walkable Level 1 kitchen on Phaser 3.88.2. Player moves with WASD/arrows (touch pad on coarse pointers); clients walk in on invite / Marketing Director; E (or `?studioDebug=1` Talk) opens briefing; desk work loop during generate/critique; venue-scaled fridge magnets / easels show displayed art. Svelte HUD keeps the existing commission panels. `STUDIO_FLOOR_ENABLED` falls back to `KitchenScene`.
+
+**Public surface:**
+
+- `$lib/studio/bridge` — `StudioBridge`, snapshot/command types
+- `$lib/studio/createGame` — `createPhaserGame(parent, bridge)`
+- `$lib/studio/config` — `STUDIO_FLOOR_ENABLED`, speeds, tile constants
+- `$lib/studio/rooms` / `easelLayout` — room grids + venue slot anchors
+- `$lib/components` — `StudioFloor`, `StudioHudOverlay`
+
+**Tests:** bridge / rooms / easelLayout (node); StudioFloor / StudioHudOverlay (client); `setAutoInviteAction` in gameState; e2e via `/?studioDebug=1`. Commands: `npm run check` green; scoped unit tests green; `npm run test:e2e` 6/6 green.
+
+**Decisions:**
+
+- No new `GamePhase` — summon is visual; talk calls existing `inviteClient()`.
+- Kenney Tiny Dungeon (CC0) for tiles/characters; ADT-authored work pencil frames + E prompt (`static/studio/CREDITS.md`).
+- Dynamic-import Phaser inside `StudioFloor` so SSR never loads WebGL.
+- Furniture Kit / Toon Characters packs 404’d from mirrors; Tiny Dungeon alone covers floors, props, and NPCs.
+
+**Requests:** None (phaser already added).
+
+**Known gaps:**
+
+- Levels 2–4 reuse the kitchen room stub (TODO in `rooms.ts`).
+- Full-suite `npm run lint` still fails on inherited Prettier drift in `src/lib/modifier-explorer/**` (outside zone).
+- Inherited intermittent client-test flake (`ResultsPanel` / route.fulfill) under full-suite load.
+
 ## 2026-08-01 — Spec 18a — abstract prompts domain
 
 **Zone:** `src/lib/data/kitchenBriefs*`, `src/lib/data/briefs*`, `src/lib/game/abstractCritique*`, `src/lib/game/scoring*`, `src/lib/game/index.ts`, `src/lib/game/README.md`, `src/lib/data/README.md`, `src/lib/engines/critiqueProtocol*`, `src/lib/engines/mock/mockEngine*`, `src/lib/engines/janus/janusEngine*`, `src/lib/engines/README.md`, `src/lib/stores/gameState.svelte*`, `docs/agent-log.md`
@@ -692,34 +751,87 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Decisions:**
 
 - Spec table listed ratio 0.75 for `a faded sepia photograph in a family album`, but that prompt hits all four `nostalgia-photo` keywords so the algorithm yields 1.0 / accuracy 10. Kept algorithmic truth for that prompt; added `a faded sepia photograph of relatives` (3/4) to cover the 0.75 -> accuracy 8 ladder.
-- `remoteEngine.ts` is absent from this worktree — skipped (note below).
+- `remoteEngine.ts` was absent from the worktree — skipped; wire `critiqueTargetsForBrief` on main when remote lands.
 - Prestige `inviteClient` test sets `lifetimeCommissions: 4` so the opener guarantee does not block corporate/billionaire/auction draws.
 
-**Requests:** None (no new deps). Orchestrator may format the 10 out-of-zone Prettier offenders so `npm run lint` is green.
+**Requests:** None (no new deps).
 
 **Known gaps:**
 
-- `src/lib/engines/remote/remoteEngine.ts` missing — not wired; apply the same `critiqueTargetsForBrief` swap when that file exists.
-- Section 8 `AbstractBriefHint` UI and section 9 architecture blurb intentionally skipped (other agents).
-- Prettier failures outside zone: `docs/tasks/18-abstract-prompts.md`, `docs/tasks/README.md`, `durableImage.test.ts`, `modifier-explorer/**`, `src/routes/modifier-explorer/+page.svelte`.
-
----
+- Apply `critiqueTargetsForBrief` to `remoteEngine` once that file is on main.
+- Prettier failures outside zone noted by the implementing agent.
 
 ## 2026-08-01 — Spec 18b — abstract prompts UI
 
-**Zone:** `src/lib/components/AbstractBriefHint.svelte*`, `src/lib/components/index.ts`, `src/lib/components/README.md`, `src/routes/+page.svelte`, `docs/architecture.md` (§9 blurb only), `docs/agent-log.md`
+**Zone:** `src/lib/components/AbstractBriefHint.svelte*`, `src/lib/components/index.ts`, `src/lib/components/README.md`, `src/routes/+page.svelte` / `StudioHudOverlay`, `docs/architecture.md` (§9 blurb only), `docs/agent-log.md`
 
-**Built:** Presentational `AbstractBriefHint` shown during briefing when `currentClient.abstractness >= 1`, with exact band-1 / band-2 coaching copy from spec 18 §8. Band 0 renders nothing. Architecture §1 gains the exact spec §9 abstractness paragraph.
+**Built:** Presentational `AbstractBriefHint` shown during briefing when `currentClient.abstractness >= 1`, with exact band-1 / band-2 coaching copy from spec 18 §8. Band 0 renders nothing. Architecture §1 gains the exact spec §9 abstractness paragraph. On main with Phaser studio, the hint mounts inside `StudioHudOverlay`.
 
 **Public surface:**
 
 - `$lib/components` — `AbstractBriefHint` (`abstractness: AbstractnessLevel`)
-- Mounted in `+page.svelte` briefing workspace (between `ClientCard` and `PromptComposer`); `StudioHudOverlay` is absent in this worktree
 
-**Tests:** `AbstractBriefHint.svelte.test.ts` — band 2 / band 1 copy visible, band 0 empty (3/3). `npm run check` 0 errors/warnings. Owned files ESLint + Prettier clean. Full `npm run test:unit -- --run`: 63 files / 378 tests passed.
+**Tests:** `AbstractBriefHint.svelte.test.ts` — band 2 / band 1 copy visible, band 0 empty (3/3).
 
-**Decisions:** Mounted in `+page.svelte` because `StudioHudOverlay.svelte` does not exist here; parent still gates with `(abstractness ?? 0) >= 1` and passes `currentClient.abstractness ?? 0`.
+**Decisions:** Worktree mounted in `+page.svelte` (no StudioHudOverlay there); main remounts into `StudioHudOverlay` briefing.
 
 **Requests:** None from this slice.
 
-**Known gaps:** Domain / engine / `pickBrief` wiring for abstract briefs is owned by other Spec 18 waves — this slice is UI + architecture blurb only. Inherited `npm run lint` Prettier failures outside zone (`docs/tasks/**`, `modifier-explorer/**`, `durableImage.test.ts`, `gameState.svelte.test.ts`) — not fixed per ownership.
+**Known gaps:** None for the UI slice.
+
+## 2026-08-01 — Spec 19 office spaces & resident Mum
+
+**Zone:** `src/lib/studio/**` (npcWander, venueRooms, rooms, easelLayout, bridge, createGame, scenes), `StudioFloor.svelte` (+ test if needed), `+page.svelte` summon/dismiss/spawn-visitor only, `static/studio/CREDITS.md`, architecture §3.1 blurb, agent-log
+
+**Built:** Fridge kitchen shrunk to exact 6×6 with Mum as a resident patrol NPC (never door enter/leave). Distinct venue floor plans: garage 12×10, storefront 18×12 (work+window), gallery-hall 22×14 (atelier+gallery), mega-museum 28×16 (atelier+gallery+foyer). Phaser rebuilds on `activeVenueId` change. Bridge gains `residentClientArmed` + `spawn-visitor`; kitchen summon arms Mum, non-Mum invites spawn a door visitor while Mum keeps wandering. `easelLayout` stays in-bounds on 6×6.
+
+**Public surface:**
+
+- `getRoomForVenue` / `roomIdForVenue` — venue → authored `RoomDef`
+- `nextWanderTarget` / `stepToward` — pure Mum patrol helpers
+- `StudioSnapshot.residentClientArmed`, command `spawn-visitor`
+- `createPhaserGame(parent, bridge, { initialVenueId? })`
+- `RoomDef.zones` / `residents` / `palette`
+
+**Tests:** npcWander, venueRooms, rooms (6×6 + venue table), easelLayout (6×6 bounds), bridge (`residentClientArmed: false` fixtures). Command: `npm run test:unit -- --run src/lib/studio` → 6 files / 18 tests passed. `npm run check` green after remoteEngine `critiqueTargetsForBrief` wire-up (spec 18a gap) and a skill-XP fixture fill in `save.test.ts` (partial spec 20 schema already on tree).
+
+**Decisions:**
+
+- No `mum.png` yet — tint `clients` frame 0 with `0xffc9a8` (documented in studio README / CREDITS).
+- Added `mega-museum` to the `RoomId` union so hall vs mega stay distinct under `getRoomForVenue`.
+- Prefer `spawn-visitor` after `inviteClient()` when the brief is not Mum in a Mum-resident room.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Optional dedicated Mum spritesheet.
+- Pathfinding around furniture for Mum (waypoint slide only, per spec).
+- Inherited `npm run check` failures outside ownership zone.
+
+## 2026-08-01 — Spec 20 progression feedback & craft skills
+
+**Zone:** `src/lib/game/skills*`, `nextUnlock*`, `save.ts` skill XP fields, `gameState` wiring, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`, `HudBar` / `GameMenuBar` / `ResultsPanel` / `StudioHudOverlay`, `+page` pending-gains props, docs
+
+**Built:** HUD progress meters for commissions, cash goal, and reputation-to-next-unlock; three persisted craft skills (Prompting, Imagination, Hustle) that gain XP on collect with a soft payout bonus (`skillPayoutMultiplier`, capped +15%). Progress panel from the menu bar; results show pending XP/rep via `WorkGainToast`; skill meters emphasize while generating/critiquing and show deltas on results/collect.
+
+**Public surface:**
+
+- `$lib/game` — `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, `buildProgressMeters`, skill/unlock types
+- `$lib/components` — `ProgressMeter`, `ProgressPanel`, `WorkGainToast`; extended `HudBar` / `ResultsPanel` / `StudioHudOverlay`
+- `GameStore` — `skillXp`, `pendingSkillGains`, `lastCollectedGains`, `skillProgressList`, `progressMeters`, `clearLastCollectedGains()`
+
+**Tests:** skills / nextUnlock / save (skill XP) unit; GameStore hydrate/apply/multiplier; ProgressMeter / ProgressPanel / WorkGainToast / HudBar / GameMenuBar / ResultsPanel component tests. Commands: `npm run check` (0 errors); scoped unit suite 101 passed; eslint on owned Svelte/TS green.
+
+**Decisions:**
+
+- Skill XP persists as three integer fields on `saveDataSchema` (Zod defaults) rather than a nested map — matches existing flat save style.
+- Auction payouts stay bid-driven (no skill multiplier); auction still awards skill XP from the winning bid as `finalPayout`.
+- `presentationMultiplier` absorbs `skillPayoutMultiplier` so there is still one payout multiplier seat.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- No Phaser desk XP bars (Svelte menus only, per spec).
+- Skill trees / respec deliberately out of scope.

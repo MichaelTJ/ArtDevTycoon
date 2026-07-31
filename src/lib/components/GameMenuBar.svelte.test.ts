@@ -52,3 +52,11 @@ test('staff office button opens the Staff Office dialog', async () => {
 	await screen.getByRole('button', { name: 'Staff Office' }).click();
 	await expect.element(screen.getByRole('dialog', { name: 'Staff Office' })).toBeVisible();
 });
+
+test('progress button opens the Progress dialog', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, defaultProps);
+	await screen.getByRole('button', { name: 'Progress' }).click();
+	await expect.element(screen.getByRole('dialog', { name: 'Progress' })).toBeVisible();
+	await expect.element(screen.getByText('Craft skills')).toBeVisible();
+});

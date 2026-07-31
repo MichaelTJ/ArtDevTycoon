@@ -20,6 +20,8 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `idleIncome.ts`       | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                     |
 | `auction.ts`          | `resolveAuction`, `AuctionResult`                                                                                                     |
 | `paletteSeries.ts`    | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
+| `skills.ts`           | `SKILL_IDS`, `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, skill types                            |
+| `nextUnlock.ts`       | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                   |
 
 ## Invariants
 
@@ -40,11 +42,17 @@ Import from `$lib/game` via the barrel in `index.ts`.
 
 ## Persistence (`save.ts`)
 
-Banked meta-progression (`cash`, `reputation`, lifetime commissions, `galleryHistory`, and
-unlock fields for specs 13–16) persists under `adt.save.v1`. The in-flight commission does
-not. Load/persist never throw — corrupt or unavailable storage falls back to
-`createDefaultSave`. Specs 13–16 extend `GameStore`'s `#persist()` rather than adding
-parallel writers.
+Banked meta-progression (`cash`, `reputation`, lifetime commissions, `galleryHistory`,
+unlock fields for specs 13–16, and Spec 20 craft XP) persists under `adt.save.v1`. The
+in-flight commission does not. Load/persist never throw — corrupt or unavailable storage
+falls back to `createDefaultSave`. Specs 13–16/20 extend `GameStore`'s `#persist()` rather
+than adding parallel writers.
+
+## Craft skills (`skills.ts`)
+
+Prompting / Imagination / Hustle accumulate XP on `collectCash`. Levels are derived from
+XP (cap 10). `skillPayoutMultiplier` soft-boosts non-auction payouts by up to +15%.
+`nextUnlock.ts` derives HUD meters toward the next reputation/cash/commission gate.
 
 ## Idle income (`idleIncome.ts`)
 

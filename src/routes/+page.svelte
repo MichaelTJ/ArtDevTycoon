@@ -1,43 +1,54 @@
-<script lang="ts">
+﻿<script lang="ts">
 	import {
-		AbstractBriefHint,
-		ArtworkFrame,
 		ArtworkFullView,
-		AuctionResultPanel,
 		CapabilityNotice,
-		ClientCard,
 		EnginePicker,
-		ErrorPanel,
+		FridgeGallery,
 		GameMenuBar,
 		GameScene,
-		GeneratingPanel,
 		IdleEarningsModal,
-		IdlePanel,
 		LevelCompleteOverlay,
 		ModelDownloadGate,
-		PromptComposer,
-		ResultsPanel,
-		ScoreBadge
+		MyPcSetup,
+		StudioFloor,
+		StudioHudOverlay
 	} from '$lib/components';
 	import { getEnvironmentForLevel } from '$lib/data/environments';
 	import { getLayout } from '$lib/data/galleryLayouts';
+	import { getStaffRole } from '$lib/data/staffRoles';
+	import { STUDIO_FLOOR_ENABLED } from '$lib/studio/config';
+	import { StudioBridge } from '$lib/studio/bridge';
+	import { getRoomForVenue } from '$lib/studio/venueRooms';
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
 	import { LEVEL_1, type EngineId, type GalleryEntry } from '$lib/types/contracts';
-	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { onDestroy, onMount } from 'svelte';
 
 	let showEngineMenu = $state(false);
 	let downloadGateOpen = $state(false);
 	let pendingEngineId = $state<EngineId | null>(null);
 	let selectedEntry: GalleryEntry | null = $state(null);
+	let clientSummoned = $state(false);
+
+	const studioBridge = new StudioBridge();
+	const studioDebug = $derived(page.url.searchParams.get('studioDebug') === '1');
 
 	const environment = $derived(getEnvironmentForLevel(LEVEL_1.id));
 	const galleryLayoutClassName = $derived(getLayout(game.effectiveLayoutId).gridClassName);
 
+	const autoInviteArmed = $derived(
+		game.hiredStaffIds.some((id) => (getStaffRole(id)?.autoInviteSpeedMultiplier ?? 1) > 1)
+	);
+
+	const kitchenHasMum = $derived(
+		getRoomForVenue(game.unlockedVenueId).residents.some((r) => r.clientName === 'Mum')
+	);
+
 	const capabilityReason = $derived(
 		engines.options.find((option) => option.id !== 'mock' && !option.available)
 			?.unavailableReason ??
-			'Real AI models need WebGPU and a one-time download from the engine menu.'
+			'Real AI needs WebGPU in the browser, or My PC (JanusLink) from the engine menu.'
 	);
 
 	const pendingEngine = $derived(
@@ -50,9 +61,9 @@
 
 	const engineButtonLabel = $derived.by(() => {
 		if (engines.state === 'loading') {
-			return `Loading ${activeEngineLabel}…`;
+			return `Loading ${activeEngineLabel}ΓÇª`;
 		}
-		return `Art engine · ${activeEngineLabel}`;
+		return `Art engine ┬╖ ${activeEngineLabel}`;
 	});
 
 	const loadStage = $derived.by((): 'downloading' | 'loading' | 'compiling' => {
@@ -82,11 +93,105 @@
 		return 'prompt';
 	});
 
+	function syncStudio(): void {
+		const client = game.currentClient;
+		studioBridge.sync({
+			phase: game.phase,
+			client: client
+				? { id: client.id, clientName: client.clientName, avatarUrl: client.avatarUrl }
+				: null,
+			displayedEntries: game.displayedGalleryEntries,
+			activeVenueId: game.unlockedVenueId,
+			autoInviteArmed,
+			estimatedWorkMs: game.lastWorkDurationMs,
+			workStartedAt: game.workStartedAt,
+			residentClientArmed: clientSummoned && kitchenHasMum && game.phase === 'idle'
+		});
+	}
+
+	function summonClient(): void {
+		if (game.phase !== 'idle' || clientSummoned) return;
+		clientSummoned = true;
+		studioBridge.send({ type: 'summon-client' });
+		syncStudio();
+	}
+
+	function talkToClient(): void {
+		if (game.phase !== 'idle') return;
+		game.inviteClient();
+		clientSummoned = false;
+		syncStudio();
+		if (kitchenHasMum && game.currentClient?.clientName !== 'Mum') {
+			studioBridge.send({ type: 'spawn-visitor' });
+		}
+	}
+
+	async function deliverToClient(): Promise<void> {
+		if (game.phase !== 'results') return;
+		await game.collectCash();
+		clientSummoned = false;
+		studioBridge.send({ type: 'dismiss-client' });
+		syncStudio();
+	}
+
+	function dismissError(): void {
+		game.dismissError();
+		clientSummoned = false;
+		studioBridge.send({ type: 'dismiss-client' });
+		syncStudio();
+	}
+
 	$effect(() => {
 		void engines.init();
 	});
 
-	onMount(() => game.startIncomeTicker());
+	$effect(() => {
+		void game.phase;
+		void game.currentClient;
+		void game.displayedGalleryEntries;
+		void game.unlockedVenueId;
+		void autoInviteArmed;
+		void game.lastWorkDurationMs;
+		void game.workStartedAt;
+		void clientSummoned;
+		void kitchenHasMum;
+		syncStudio();
+		if (game.phase !== 'idle') {
+			clientSummoned = false;
+		}
+	});
+
+	onMount(() => {
+		const stopIncome = game.startIncomeTicker();
+		game.setAutoInviteAction(() => summonClient());
+		const unsub = studioBridge.subscribe((event) => {
+			if (event.type === 'ready') {
+				syncStudio();
+				return;
+			}
+			if (event.type === 'talk-to-client') {
+				talkToClient();
+				return;
+			}
+			if (event.type === 'deliver-to-client') {
+				void deliverToClient();
+				return;
+			}
+			if (event.type === 'open-gallery-entry') {
+				const entry = game.displayedGalleryEntries.find((e) => e.id === event.entryId);
+				if (entry) openFullView(entry);
+			}
+		});
+		return () => {
+			stopIncome();
+			unsub();
+			game.setAutoInviteAction(() => game.inviteClient());
+		};
+	});
+
+	onDestroy(() => {
+		studioBridge.setCommandHandler(null);
+	});
 
 	function openEngineMenu(): void {
 		if (engines.switchingLocked) {
@@ -109,7 +214,17 @@
 
 	async function handleEngineSelect(id: EngineId) {
 		const option = engines.options.find((entry) => entry.id === id);
-		if (!option?.available) {
+		if (!option) {
+			return;
+		}
+
+		if (id === 'remote' && !option.available) {
+			showEngineMenu = false;
+			engines.openRemoteSetup();
+			return;
+		}
+
+		if (!option.available) {
 			return;
 		}
 
@@ -127,6 +242,13 @@
 
 		await engines.select(id);
 		showEngineMenu = false;
+	}
+
+	function handleEngineConfigure(id: string): void {
+		if (id === 'remote') {
+			showEngineMenu = false;
+			engines.openRemoteSetup();
+		}
 	}
 
 	async function confirmDownload(): Promise<void> {
@@ -148,7 +270,7 @@
 </script>
 
 <svelte:head>
-	<title>Art Gallery Tycoon — {environment.levelDisplayName}</title>
+	<title>Art Gallery Tycoon ΓÇö {environment.levelDisplayName}</title>
 </svelte:head>
 
 <main
@@ -183,98 +305,78 @@
 			{/snippet}
 		</GameMenuBar>
 
-		<GameScene
-			{environment}
-			galleryEntries={game.displayedGalleryEntries}
-			{galleryLayoutClassName}
-			onselectentry={openFullView}
-		>
-			{#snippet workspace()}
-				<div class="flex flex-col gap-4">
-					{#if game.phase === 'idle'}
-						<IdlePanel oninvite={() => game.inviteClient()} message={environment.idleMessage} />
-					{:else if game.phase === 'briefing'}
-						{#if game.currentClient}
-							<ClientCard brief={game.currentClient} />
-							{#if (game.currentClient.abstractness ?? 0) >= 1}
-								<AbstractBriefHint abstractness={game.currentClient.abstractness ?? 0} />
-							{/if}
-						{/if}
-						<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
-					{:else if game.phase === 'generating'}
-						{#if game.currentClient}
-							<ClientCard brief={game.currentClient} />
-						{/if}
-						<GeneratingPanel
-							progress={game.generationProgress}
-							stageLabel="Painting"
-							messages={environment.loadingMessages}
-						/>
-					{:else if game.phase === 'critiquing' && game.currentArtwork}
-						{#if game.currentClient}
-							<ClientCard brief={game.currentClient} />
-						{/if}
-						<ArtworkFrame
-							imageUrl={game.currentArtwork.imageUrl}
-							title="Fresh from the easel"
-							alt={game.currentArtwork.playerPrompt}
-							size="full"
-						/>
-						<GeneratingPanel
-							progress={game.generationProgress}
-							stageLabel="Waiting for the commissioner"
-							messages={environment.critiqueMessages}
-						/>
-					{:else if game.phase === 'results' && game.currentArtwork && game.currentCritique && game.currentClient}
-						{#if game.currentAuctionResult}
-							<div class="flex flex-col gap-4">
-								{#if game.currentClient}
-									<ClientCard brief={game.currentClient} />
-								{/if}
-								<ArtworkFrame
-									imageUrl={game.currentArtwork.imageUrl}
-									title={game.currentCritique.title}
-									alt={game.currentCritique.title}
-									size="full"
-								/>
-								<h2 class="text-xl font-bold text-stone-800">{game.currentCritique.title}</h2>
-								<div class="flex flex-wrap gap-2">
-									<ScoreBadge label="Accuracy" score={game.currentCritique.accuracyScore} />
-									<ScoreBadge label="Creativity" score={game.currentCritique.creativityScore} />
-								</div>
-								<AuctionResultPanel
-									bidderCount={game.currentAuctionResult.bidderCount}
-									bids={game.currentAuctionResult.bids}
-									winningBid={game.currentAuctionResult.winningBid}
-									oncollect={() => void game.collectCash()}
-								/>
-							</div>
-						{:else}
-							<ResultsPanel
-								artwork={game.currentArtwork}
-								critique={game.currentCritique}
-								clientName={game.currentClient.clientName}
-								oncollect={() => void game.collectCash()}
-							/>
-						{/if}
-					{:else if game.phase === 'failed'}
-						{#if game.currentClient}
-							<ClientCard brief={game.currentClient} />
-						{/if}
-						{#if game.errorMessage}
-							<ErrorPanel
-								message={game.errorMessage}
-								onretry={() => game.retry()}
-								ondismiss={() => game.dismissError()}
-							/>
-						{/if}
-						<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
-					{:else if game.phase === 'levelComplete'}
-						<IdlePanel disabled oninvite={() => {}} message={environment.idleMessage} />
-					{/if}
+		{#if STUDIO_FLOOR_ENABLED && environment.id === 'home-kitchen'}
+			<div class="studio-shell grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+				<div class="flex flex-col gap-3">
+					<StudioFloor bridge={studioBridge} initialVenueId={game.unlockedVenueId} />
+					<FridgeGallery
+						entries={game.displayedGalleryEntries}
+						label={environment.galleryLabel}
+						emptyMessage={environment.emptyGalleryMessage}
+						layoutClassName={galleryLayoutClassName}
+						onselect={openFullView}
+					/>
 				</div>
-			{/snippet}
-		</GameScene>
+				<StudioHudOverlay
+					phase={game.phase}
+					idleMessage={environment.idleMessage}
+					loadingMessages={environment.loadingMessages}
+					critiqueMessages={environment.critiqueMessages}
+					currentClient={game.currentClient}
+					currentArtwork={game.currentArtwork}
+					currentCritique={game.currentCritique}
+					currentAuctionResult={game.currentAuctionResult}
+					errorMessage={game.errorMessage}
+					generationProgress={game.generationProgress}
+					bind:draftPrompt={game.draftPrompt}
+					{clientSummoned}
+					{studioDebug}
+					floorInteract={true}
+					pendingSkillGains={game.pendingSkillGains}
+					oninvite={summonClient}
+					ontalk={talkToClient}
+					ondeliver={() => void deliverToClient()}
+					onsubmit={() => void game.createArt()}
+					oncollect={() => void deliverToClient()}
+					onretry={() => game.retry()}
+					ondismisserror={dismissError}
+				/>
+			</div>
+		{:else}
+			<GameScene
+				{environment}
+				galleryEntries={game.displayedGalleryEntries}
+				{galleryLayoutClassName}
+				onselectentry={openFullView}
+			>
+				{#snippet workspace()}
+					<StudioHudOverlay
+						phase={game.phase}
+						idleMessage={environment.idleMessage}
+						loadingMessages={environment.loadingMessages}
+						critiqueMessages={environment.critiqueMessages}
+						currentClient={game.currentClient}
+						currentArtwork={game.currentArtwork}
+						currentCritique={game.currentCritique}
+						currentAuctionResult={game.currentAuctionResult}
+						errorMessage={game.errorMessage}
+						generationProgress={game.generationProgress}
+						bind:draftPrompt={game.draftPrompt}
+						clientSummoned={false}
+						studioDebug={false}
+						floorInteract={false}
+						pendingSkillGains={game.pendingSkillGains}
+						oninvite={() => game.inviteClient()}
+						ontalk={() => game.inviteClient()}
+						ondeliver={() => void game.collectCash()}
+						onsubmit={() => void game.createArt()}
+						oncollect={() => void game.collectCash()}
+						onretry={() => game.retry()}
+						ondismisserror={() => game.dismissError()}
+					/>
+				{/snippet}
+			</GameScene>
+		{/if}
 	</div>
 </main>
 
@@ -290,6 +392,7 @@
 				options={engines.options}
 				activeId={engines.activeId}
 				onselect={(id) => handleEngineSelect(id as EngineId)}
+				onconfigure={handleEngineConfigure}
 			/>
 			<button
 				type="button"
@@ -300,6 +403,18 @@
 			</button>
 		</div>
 	</div>
+{/if}
+
+{#if engines.showRemoteSetup}
+	<MyPcSetup
+		bind:baseUrl={engines.remoteBaseUrl}
+		bind:apiKey={engines.remoteApiKey}
+		testState={engines.remoteTestState}
+		testError={engines.remoteTestError}
+		ontest={() => void engines.testRemoteConnection()}
+		onconnect={() => void engines.connectRemote()}
+		oncancel={() => engines.closeRemoteSetup()}
+	/>
 {/if}
 
 {#if downloadGateOpen && pendingEngine}

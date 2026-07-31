@@ -1,7 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { getMediumTier } from '$lib/data/mediumTiers';
 import { EngineError } from '$lib/engines/errors';
-import { calculatePayout, createDefaultSave, scorePrompt, type SaveData } from '$lib/game';
+import {
+	calculatePayout,
+	createDefaultSave,
+	previewSkillGains,
+	scorePrompt,
+	skillPayoutMultiplier,
+	xpThresholdForLevel,
+	type SaveData
+} from '$lib/game';
 import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
 import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
 import { GameStore } from './gameState.svelte';
@@ -1010,15 +1018,37 @@ describe('GameStore', () => {
 		}
 	});
 
-	it('without marketing director, advancing timers does not auto-invite', () => {
+	it('setAutoInviteAction overrides Marketing Director arrival without changing phase', () => {
+		vi.useFakeTimers();
+		try {
+			const action = vi.fn();
+			const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+			store.setAutoInviteAction(action);
+			store.cash = 2200;
+			store.reputation = 14;
+			expect(store.hireStaff('marketing-director')).toBe(true);
+
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS / 3);
+			expect(action).toHaveBeenCalledOnce();
+			expect(store.phase).toBe('idle');
+			expect(store.currentClient).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('auto-invites on the base timer without marketing director', () => {
 		vi.useFakeTimers();
 		try {
 			const store = createStore({ generate: vi.fn(), critique: vi.fn() });
 			expect(store.phase).toBe('idle');
 
-			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS);
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS - 1);
 			expect(store.phase).toBe('idle');
-			expect(store.currentClient).toBeNull();
+
+			vi.advanceTimersByTime(1);
+			expect(store.phase).toBe('briefing');
+			expect(store.currentClient).not.toBeNull();
 		} finally {
 			vi.useRealTimers();
 		}
@@ -1103,6 +1133,76 @@ describe('GameStore', () => {
 		expect(store.hiredStaffIds).toEqual([]);
 		expect(store.incomePerSecond).toBe(0);
 		expect(store.idleEarningsToShow).toBeNull();
+	});
+
+	it('hydrates skill XP from save into skillProgressList', () => {
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					skillXpPrompting: 15
+				})
+			}
+		);
+
+		const prompting = store.skillProgressList.find((s) => s.id === 'prompting');
+		expect(prompting?.level).toBe(2);
+	});
+
+	it('sets pendingSkillGains in results and applies XP on collectCash', async () => {
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique: vi.fn(async () => ({
+				title: 'Morning Coffee',
+				accuracyScore: 8,
+				criticReview: 'Solid.'
+			}))
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table with warm light steam';
+		await store.createArt();
+
+		expect(store.phase).toBe('results');
+		expect(store.pendingSkillGains).not.toBeNull();
+		expect(store.currentCritique).not.toBeNull();
+
+		const expected = previewSkillGains({
+			accuracyScore: store.currentCritique!.accuracyScore,
+			creativityScore: store.currentCritique!.creativityScore,
+			finalPayout: store.currentCritique!.finalPayout
+		});
+		expect(store.pendingSkillGains).toEqual(expected);
+
+		await store.collectCash();
+
+		expect(store.pendingSkillGains).toBeNull();
+		expect(store.skillXp.prompting).toBe(expected.prompting);
+		expect(store.skillXp.imagination).toBe(expected.imagination);
+		expect(store.skillXp.hustle).toBe(expected.hustle);
+		expect(store.lastCollectedGains?.skills).toEqual(expected);
+		store.clearLastCollectedGains();
+		expect(store.lastCollectedGains).toBeNull();
+	});
+
+	it('folds skillPayoutMultiplier into non-auction presentationMultiplier', () => {
+		const empty = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(empty.presentationMultiplier).toBe(1);
+
+		const level4 = xpThresholdForLevel(4);
+		const skilled = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
+					skillXpPrompting: level4,
+					skillXpImagination: level4,
+					skillXpHustle: level4
+				})
+			}
+		);
+		expect(skillPayoutMultiplier(skilled.skillXp)).toBe(1.09);
+		expect(skilled.presentationMultiplier).toBeCloseTo(1.09, 5);
 	});
 });
 

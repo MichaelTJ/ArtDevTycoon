@@ -68,3 +68,17 @@ test('artwork image alt equals critique title', async () => {
 	});
 	await expect.element(screen.getByRole('img', { name: 'Regal Whisker Study' })).toBeVisible();
 });
+
+test('shows pending skill and reputation gains before collect', async () => {
+	const screen = render(ResultsPanel, {
+		artwork,
+		critique,
+		clientName: 'Cat Enthusiast',
+		oncollect: vi.fn(),
+		pendingSkillGains: { prompting: 8, imagination: 6, hustle: 3 },
+		pendingReputation: 2
+	});
+	await expect.element(screen.getByText(/On collect/)).toBeVisible();
+	await expect.element(screen.getByText(/\+2 rep/)).toBeVisible();
+	await expect.element(screen.getByText(/\+8\/\+6\/\+3 XP/)).toBeVisible();
+});

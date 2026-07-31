@@ -1,7 +1,9 @@
 <script lang="ts">
+	import type { SkillGainPreview } from '$lib/game';
 	import type { Artwork, Critique } from '$lib/types/contracts';
 	import ArtworkFrame from './ArtworkFrame.svelte';
 	import ScoreBadge from './ScoreBadge.svelte';
+	import WorkGainToast from './WorkGainToast.svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { prefersReducedMotion } from 'svelte/motion';
 
@@ -10,15 +12,29 @@
 		critique: Critique;
 		clientName: string;
 		oncollect: () => void;
+		/** When false, hide Collect Cash — studio floor delivers via interact. Default true. */
+		showCollectButton?: boolean;
+		pendingSkillGains?: SkillGainPreview | null;
+		pendingReputation?: number;
 	}
 
-	let { artwork, critique, clientName, oncollect }: Props = $props();
+	let {
+		artwork,
+		critique,
+		clientName,
+		oncollect,
+		showCollectButton = true,
+		pendingSkillGains = null,
+		pendingReputation = 0
+	}: Props = $props();
 
 	const titleId = 'results-panel-title';
 	let collectButton: HTMLButtonElement | undefined = $state();
 
 	$effect(() => {
-		collectButton?.focus();
+		if (showCollectButton) {
+			collectButton?.focus();
+		}
 	});
 </script>
 
@@ -51,12 +67,25 @@
 
 	<p class="mt-4 text-3xl font-bold text-emerald-700">+${critique.finalPayout}</p>
 
-	<button
-		type="button"
-		bind:this={collectButton}
-		class="mt-4 min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-		onclick={oncollect}
-	>
-		Collect Cash
-	</button>
+	{#if pendingSkillGains}
+		<div class="mt-3">
+			<WorkGainToast
+				gains={pendingSkillGains}
+				reputation={pendingReputation}
+				cash={critique.finalPayout}
+				mode="pending"
+			/>
+		</div>
+	{/if}
+
+	{#if showCollectButton}
+		<button
+			type="button"
+			bind:this={collectButton}
+			class="mt-4 min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+			onclick={oncollect}
+		>
+			Collect Cash
+		</button>
+	{/if}
 </div>

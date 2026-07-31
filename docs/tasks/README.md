@@ -130,10 +130,12 @@ After the tycoon loop and progression shops work, presentation specs make the ga
 like a place you inhabit rather than a stack of menus. They sit on top of specs 01–04 and
 12–16 and do **not** depend on AI engine specs 05–11.
 
-| #   | Spec                                         | Owns (new)                                                                 | Depends on   |
-| --- | -------------------------------------------- | -------------------------------------------------------------------------- | ------------ |
-| 17  | [Phaser studio floor](./17-phaser-studio.md) | `src/lib/studio/**`, `StudioFloor.svelte`, `static/studio/**` (CC0 assets) | 01–04, 12–16 |
-| 18  | [Progressive abstract prompts](./18-abstract-prompts.md) | `kitchenBriefs.ts`, `abstractCritique.ts`, `AbstractBriefHint.svelte`, scoring/pickBrief/engine critique targets | 01–04, 12–16 |
+| #   | Spec                                                          | Owns (new)                                                                                                                    | Depends on             |
+| --- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| 17  | [Phaser studio floor](./17-phaser-studio.md)                  | `src/lib/studio/**`, `StudioFloor.svelte`, `static/studio/**` (CC0 assets)                                                    | 01–04, 12–16           |
+| 18  | [Progressive abstract prompts](./18-abstract-prompts.md)      | `kitchenBriefs.ts`, `abstractCritique.ts`, `AbstractBriefHint.svelte`, scoring/pickBrief/engine critique targets              | 01–04, 12–16           |
+| 19  | [Office spaces & resident Mum](./19-office-spaces.md)         | `src/lib/studio/rooms*`, `npcWander`, `venueRooms`, Phaser scene rebuild / Mum NPC; small `+page` summon wiring               | 17, 18                 |
+| 20  | [Progression feedback & skills](./20-progression-feedback.md) | `skills.ts`, `nextUnlock.ts`, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`; HudBar + GameMenuBar meters; save skill XP | 12–16, 17; wait for 19 |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -142,6 +144,12 @@ Wave C  (after 16 is merged — presentation)
 Wave D  (after 01–04 + 12–16 merged — content & critique; parallel pair, disjoint zones)
    ├── 18a Abstract prompts domain → worktree ../adt-wt-abstract-prompts      branch agent/abstract-prompts
    └── 18b Abstract prompts wire   → worktree ../adt-wt-abstract-prompts-wire branch agent/abstract-prompts-wire
+
+Wave E  (after 17 and 18 are merged — do not overlap Wave D studio/`+page` edits)
+   └── 19 Office spaces & Mum → main tree (or ../adt-wt-office-spaces)  branch agent/office-spaces
+
+Wave F  (after 19 has committed — HUD/progression feedback; do not overlap 19's +page/studio edits)
+   └── 20 Progression feedback & skills → main tree (or ../adt-wt-progression-feedback)  branch agent/progression-feedback
 ```
 
 Spec 17 adds Phaser 3 as an npm dependency (allowed exception in that spec), mounts a
@@ -163,6 +171,20 @@ Do not run 18a/18b concurrently with another agent editing `src/lib/game/scoring
 `src/lib/data/briefs.ts`, `src/lib/stores/gameState.svelte.ts`, or the Janus/remote/mock
 `critique` methods. Merge 18a before 18b if either branch conflicts; prefer merging 18a
 first so 18b's imports resolve on `main` during conflict fixups.
+
+Spec 19 shrinks Mum's kitchen to a real `6×6` tile room, makes Mum a resident wander NPC
+(first client; she never door-enters or leaves), and authors distinct floor plans /
+textures / multi-room zones for garage → mega-museum venues. It edits Phaser studio
+files and a thin `+page` summon path — **wait until Wave D (18) has committed and merged**
+before starting, and do not run it beside any other agent on `src/lib/studio/**` or
+`src/routes/+page.svelte`.
+
+Spec 20 makes scoring and meta-progress readable: HUD progress meters for commissions,
+cash goal, and reputation-to-next-unlock; three persisted craft skills (Prompting,
+Imagination, Hustle) that gain XP on collect; pending gains on the results panel. It
+touches `HudBar` / `GameMenuBar` / `ResultsPanel` / `save.ts` / `gameState` — **wait until
+Wave E (19) has committed** so studio/`+page` wiring is stable, and do not run it beside
+another agent on those menu or store files.
 
 ## Worktrees are already set up
 

@@ -40,6 +40,11 @@ export const saveDataSchema = z.object({
 	/** Epoch ms of the last time idle income was collected/ticked. Null until spec 16. */
 	lastIncomeTickAt: z.number().int().nonnegative().nullable().default(null),
 
+	/** Spec 20. Lifetime craft XP. Missing keys default to 0. */
+	skillXpPrompting: z.number().int().min(0).default(0),
+	skillXpImagination: z.number().int().min(0).default(0),
+	skillXpHustle: z.number().int().min(0).default(0),
+
 	/** Epoch ms this blob was written. Not shown to the player; useful for debugging. */
 	savedAt: z.number().int().nonnegative()
 });

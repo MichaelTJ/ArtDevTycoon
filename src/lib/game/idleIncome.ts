@@ -1,7 +1,7 @@
 /** Cap how much offline time counts, so leaving a tab open for a week isn't a windfall. */
 export const MAX_IDLE_MS = 8 * 60 * 60 * 1000; // 8 hours
 
-/** Base delay before Marketing Director auto-invites while idle. */
+/** Base delay before the next client walks in while idle (Marketing Director shortens this). */
 export const BASE_AUTO_INVITE_DELAY_MS = 6000;
 
 /**

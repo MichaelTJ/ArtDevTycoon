@@ -4,15 +4,19 @@
 		bids: number[];
 		winningBid: number;
 		oncollect: () => void;
+		/** When false, hide Collect Cash — studio floor delivers via interact. Default true. */
+		showCollectButton?: boolean;
 	}
 
-	let { bidderCount, bids, winningBid, oncollect }: Props = $props();
+	let { bidderCount, bids, winningBid, oncollect, showCollectButton = true }: Props = $props();
 
 	const titleId = 'auction-result-title';
 	let collectButton: HTMLButtonElement | undefined = $state();
 
 	$effect(() => {
-		collectButton?.focus();
+		if (showCollectButton) {
+			collectButton?.focus();
+		}
 	});
 </script>
 
@@ -38,12 +42,14 @@
 
 	<p class="mt-4 text-3xl font-bold text-emerald-700">+${winningBid}</p>
 
-	<button
-		type="button"
-		bind:this={collectButton}
-		class="mt-4 min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-		onclick={oncollect}
-	>
-		Collect Cash
-	</button>
+	{#if showCollectButton}
+		<button
+			type="button"
+			bind:this={collectButton}
+			class="mt-4 min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+			onclick={oncollect}
+		>
+			Collect Cash
+		</button>
+	{/if}
 </section>
