@@ -8,25 +8,30 @@ except where an injected `random` callback is passed through from callers.
 
 Import from `$lib/game` via the barrel in `index.ts`.
 
-| Module              | Exports                                                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `text.ts`           | `normalize`, `stem`, `STOPWORDS`                                                                                                      |
-| `promptPipeline.ts` | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                       |
-| `scoring.ts`        | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `ScoreBreakdown`                                                |
-| `levelRules.ts`     | `isLevelComplete`, `levelProgress`                                                                                                    |
-| `operations.ts`     | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types |
-| `save.ts`           | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` |
-| `idleIncome.ts`     | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                     |
-| `auction.ts`        | `resolveAuction`, `AuctionResult`                                                                                                     |
-| `paletteSeries.ts`  | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
+| Module                | Exports                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `text.ts`             | `normalize`, `stem`, `STOPWORDS`                                                                                                      |
+| `promptPipeline.ts`   | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                       |
+| `scoring.ts`          | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `keywordMatches`, `ScoreBreakdown`                              |
+| `abstractCritique.ts` | `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`                       |
+| `levelRules.ts`       | `isLevelComplete`, `levelProgress`                                                                                                    |
+| `operations.ts`       | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types |
+| `save.ts`             | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` |
+| `idleIncome.ts`       | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                     |
+| `auction.ts`          | `resolveAuction`, `AuctionResult`                                                                                                     |
+| `paletteSeries.ts`    | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
 
 ## Invariants
 
 - Keyword scoring uses stemming plus a 4-character minimum substring rule so `gold` matches
   `golden` and `sword` matches `longsword`, without short tokens matching everything.
+- Abstract briefs (`abstractness >= 1` with clusters) score via the best interpretation
+  cluster; parroting vague request words yields accuracy 1. Vision engines ask
+  `critiqueTargetsForBrief` keywords (empty → accuracy 1).
 - Creativity ignores stopwords so filler like "please draw me" does not inflate scores.
-- Payout weights accuracy 70% / creativity 30% and is always clamped to `[0, brief.budget]`;
-  the floor of 1 on both scores guarantees a non-zero payout on every commission.
+- Payout weights accuracy 70% / creativity 30% for concrete briefs, and 50% / 50% when
+  interpretation scoring applies. Always clamped to `[0, brief.budget]`; the floor of 1
+  on both scores guarantees a non-zero payout on every commission.
 - Level 1 completion requires both `LEVEL_1.targetCommissions` and `LEVEL_1.targetCash`.
 - `buildLevel1Prompt` appends hidden modifiers from `LEVEL_1.promptModifiers`; the result
   must never be shown to the player.

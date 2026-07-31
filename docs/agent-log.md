@@ -672,3 +672,33 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - No firing/salaries/sprites (explicitly out of scope).
 - Inherited Prettier failure: `src/lib/data/README.md` only.
 - Inherited intermittent client-test timeouts under full-suite load (same class noted by specs 13–15).
+
+## 2026-08-01 ? Spec 18a ? abstract prompts domain
+
+**Zone:** `src/lib/data/kitchenBriefs*`, `src/lib/data/briefs*`, `src/lib/game/abstractCritique*`, `src/lib/game/scoring*`, `src/lib/game/index.ts`, `src/lib/game/README.md`, `src/lib/data/README.md`, `src/lib/engines/critiqueProtocol*`, `src/lib/engines/mock/mockEngine*`, `src/lib/engines/janus/janusEngine*`, `src/lib/engines/README.md`, `src/lib/stores/gameState.svelte*`, `docs/agent-log.md`
+
+**Built:** Progressive kitchen walk-in ladder (Mum concrete to evocative to pure mood) with interpretation-cluster scoring. `pickBrief` gates bands by `commissionsCompleted` and forces Mum openers on the first invite. Engines ask `critiqueTargetsForBrief`; mock names the committed cluster in review copy. `GameStore.inviteClient` passes lifetime commissions into `pickBrief`.
+
+**Public surface:**
+
+- `KITCHEN_BRIEFS` / `LEVEL_1_BRIEFS`; `maxWalkInAbstractness`, `isBriefEligibleForProgress`
+- `pickBrief({ excludeIds?, unlockedTiers?, completedSeriesIds?, commissionsCompleted?, random? })`
+- `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`
+- `scorePrompt` abstract branch; `calculatePayout` 0.5/0.5 when interpretation scoring; `creativityFromPrompt`
+- Engines: `critiqueTargetsForBrief` re-export; Janus empty targets => accuracy 1; mock abstract review templates
+
+**Tests:** kitchenBriefs, abstractCritique worked examples, scoring (c1 cat + c6 parrot/cluster + abstract payout 130/72), pickBrief band gates, mock/janus critique targets, GameStore opener + abstractness-2 invite. Commands: `npm run check` (0 errors); `npm run test:unit -- --run` (64 files / 408 tests passed). `npm run lint` fails only on pre-existing Prettier outside this zone.
+
+**Decisions:**
+
+- Spec table listed ratio 0.75 for `a faded sepia photograph in a family album`, but that prompt hits all four `nostalgia-photo` keywords so the algorithm yields 1.0 / accuracy 10. Kept algorithmic truth for that prompt; added `a faded sepia photograph of relatives` (3/4) to cover the 0.75 -> accuracy 8 ladder.
+- `remoteEngine.ts` is absent from this worktree ? skipped (note below).
+- Prestige `inviteClient` test sets `lifetimeCommissions: 4` so the opener guarantee does not block corporate/billionaire/auction draws.
+
+**Requests:** None (no new deps). Orchestrator may format the 10 out-of-zone Prettier offenders so `npm run lint` is green.
+
+**Known gaps:**
+
+- `src/lib/engines/remote/remoteEngine.ts` missing ? not wired; apply the same `critiqueTargetsForBrief` swap when that file exists.
+- Section 8 `AbstractBriefHint` UI and section 9 architecture blurb intentionally skipped (other agents).
+- Prettier failures outside zone: `docs/tasks/18-abstract-prompts.md`, `docs/tasks/README.md`, `durableImage.test.ts`, `modifier-explorer/**`, `src/routes/modifier-explorer/+page.svelte`.

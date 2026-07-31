@@ -16,6 +16,7 @@ import {
 	buildReviewPrompt,
 	buildTitle,
 	cleanReview,
+	critiqueTargetsForBrief,
 	parseYesNo
 } from '../critiqueProtocol';
 import { EngineError, toEngineError } from '../errors';
@@ -169,7 +170,10 @@ export class JanusEngine implements ArtEngine {
 		}
 
 		try {
-			const keywords = input.brief.preferredKeywords.slice(0, MAX_KEYWORD_QUESTIONS);
+			const keywords = critiqueTargetsForBrief(input.brief, input.playerPrompt).slice(
+				0,
+				MAX_KEYWORD_QUESTIONS
+			);
 			const questions = keywords.map(buildKeywordQuestion);
 			const reviewPrompt = buildReviewPrompt(input.brief.requestText);
 
@@ -189,8 +193,10 @@ export class JanusEngine implements ArtEngine {
 				bitmap.close();
 			}
 
-			const hits = answers.filter(parseYesNo).length;
-			const accuracyScore = accuracyFromHits(hits, questions.length);
+			const accuracyScore =
+				keywords.length === 0
+					? 1
+					: accuracyFromHits(answers.filter(parseYesNo).length, questions.length);
 			const title = buildTitle(input.playerPrompt, hashString(input.artwork.id));
 			const fallback = fallbackReview(input.brief.clientName, accuracyScore, hashString(review));
 			const criticReview = cleanReview(review, fallback);

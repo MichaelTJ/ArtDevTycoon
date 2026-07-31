@@ -1,18 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_1_BRIEFS } from '$lib/data/briefs';
+import { KITCHEN_BRIEFS } from '$lib/data/kitchenBriefs';
 import { artworkSchema, critiqueDraftSchema } from '$lib/types/contracts';
 import { EngineError } from '../errors';
 import { MockEngine } from './mockEngine';
 
-const c1 = LEVEL_1_BRIEFS.find((b) => b.id === 'c1')!;
+const c1 = KITCHEN_BRIEFS.find((b) => b.id === 'c1')!;
+const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
 
 describe('MockEngine', () => {
 	const engine = new MockEngine();
 
 	it('returns identical Artwork and CritiqueDraft for identical input', async () => {
 		const generateInput = {
-			playerPrompt: 'a cozy coffee cup on a wooden table',
-			prompt: 'a cozy coffee cup on a wooden table, flat color, crayon'
+			playerPrompt: 'a fluffy cat',
+			prompt: 'a fluffy cat, flat color, crayon'
 		};
 		const artworkA = await engine.generate(generateInput);
 		const artworkB = await engine.generate(generateInput);
@@ -40,25 +41,25 @@ describe('MockEngine', () => {
 
 	it('parses critique output against critiqueDraftSchema', async () => {
 		const artwork = await engine.generate({
-			playerPrompt: 'a cozy coffee cup on a wooden table',
-			prompt: 'a cozy coffee cup on a wooden table, flat color'
+			playerPrompt: 'a fluffy cat',
+			prompt: 'a fluffy cat, flat color'
 		});
 		const critique = await engine.critique({
 			brief: c1,
-			playerPrompt: 'a cozy coffee cup on a wooden table',
+			playerPrompt: 'a fluffy cat',
 			artwork
 		});
 		expect(() => critiqueDraftSchema.parse(critique)).not.toThrow();
 	});
 
-	it('scores c1 coffee prompt at 10 and dragon at 1', async () => {
+	it('scores c1 cat prompt at 10 and dog at 1', async () => {
 		const goodArt = await engine.generate({
-			playerPrompt: 'a cozy coffee cup on a wooden table',
-			prompt: 'a cozy coffee cup on a wooden table, flat color'
+			playerPrompt: 'cat',
+			prompt: 'cat, flat color'
 		});
 		const goodCritique = await engine.critique({
 			brief: c1,
-			playerPrompt: 'a cozy coffee cup on a wooden table',
+			playerPrompt: 'cat',
 			artwork: goodArt
 		});
 		expect(goodCritique.accuracyScore).toBe(10);
@@ -75,18 +76,53 @@ describe('MockEngine', () => {
 		expect(badCritique.accuracyScore).toBe(1);
 	});
 
+	it('scores abstract parrot at accuracy 1 and full cluster at 10', async () => {
+		const art = await engine.generate({
+			playerPrompt: 'placeholder',
+			prompt: 'placeholder, flat color'
+		});
+		const parrot = await engine.critique({
+			brief: c6,
+			playerPrompt: 'I miss the old days',
+			artwork: art
+		});
+		expect(parrot.accuracyScore).toBe(1);
+
+		const full = await engine.critique({
+			brief: c6,
+			playerPrompt: 'sunday dinner with family around the tablecloth',
+			artwork: art
+		});
+		expect(full.accuracyScore).toBe(10);
+	});
+
+	it('names the interpretation cluster in abstract reviews', async () => {
+		const artwork = await engine.generate({
+			playerPrompt: 'a faded sepia photograph in a family album',
+			prompt: 'a faded sepia photograph in a family album, flat color'
+		});
+		const critique = await engine.critique({
+			brief: c6,
+			playerPrompt: 'a faded sepia photograph in a family album',
+			artwork
+		});
+		expect(critique.criticReview.toLowerCase()).toMatch(/photograph|faded/);
+	});
+
 	it('substitutes all template placeholders in reviews', async () => {
-		for (const brief of LEVEL_1_BRIEFS) {
+		for (const brief of KITCHEN_BRIEFS) {
+			const prompt =
+				brief.interpretationClusters?.[0]?.keywords.join(' ') ?? brief.preferredKeywords.join(' ');
 			const artwork = await engine.generate({
-				playerPrompt: brief.preferredKeywords.join(' '),
-				prompt: `${brief.preferredKeywords.join(' ')}, flat color`
+				playerPrompt: prompt,
+				prompt: `${prompt}, flat color`
 			});
 			const critique = await engine.critique({
 				brief,
-				playerPrompt: brief.preferredKeywords.join(' '),
+				playerPrompt: prompt,
 				artwork
 			});
-			expect(critique.criticReview).not.toMatch(/\{(client|missed|matched)\}/);
+			expect(critique.criticReview).not.toMatch(/\{(client|missed|matched|label)\}/);
 		}
 	});
 

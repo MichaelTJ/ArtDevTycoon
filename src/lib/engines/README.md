@@ -8,13 +8,13 @@ and degrades gracefully when a real engine fails mid-commission.
 
 Import from `$lib/engines`:
 
-| Export                                                                                                     | Role                                            |
-| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `EngineManager`                                                                                            | Probe, select, generate, critique with fallback |
-| `ENGINE_REGISTRY`                                                                                          | Lazy factory descriptors for all tiers          |
-| `detectCapability`, `meetsRequirements`                                                                    | Device gating                                   |
-| `EngineError`, `toEngineError`                                                                             | Player-safe failures                            |
-| `buildKeywordQuestion`, `buildReviewPrompt`, `parseYesNo`, `accuracyFromHits`, `buildTitle`, `cleanReview` | Shared vision-critique helpers for real engines |
+| Export                                                                                                                                | Role                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `EngineManager`                                                                                                                       | Probe, select, generate, critique with fallback |
+| `ENGINE_REGISTRY`                                                                                                                     | Lazy factory descriptors for all tiers          |
+| `detectCapability`, `meetsRequirements`                                                                                               | Device gating                                   |
+| `EngineError`, `toEngineError`                                                                                                        | Player-safe failures                            |
+| `buildKeywordQuestion`, `buildReviewPrompt`, `parseYesNo`, `accuracyFromHits`, `buildTitle`, `cleanReview`, `critiqueTargetsForBrief` | Shared vision-critique helpers for real engines |
 
 The `mock` engine (`MockEngine`) lives at `$lib/engines/mock/mockEngine` and is wired
 through the registry; consumers should use `EngineManager`, not construct engines
@@ -40,6 +40,10 @@ directly.
   only when the engine is available and already cached (`requiresDownload: false`).
 - **Runtime failures fall back to `mock` once**, except `'cancelled'`, which propagates.
 - **Critique without vision** routes to `mock` when `capabilities.critique === false`.
+- **Critique targets** come from `critiqueTargetsForBrief(brief, playerPrompt)`, not a
+  raw `preferredKeywords` slice. Empty targets (abstract parrot / no cluster) → accuracy 1
+  for vision engines; mock keeps using `scorePrompt` and names the cluster label in review
+  copy when a reading was committed.
 - **Determinism:** `hashString`, `mulberry32`, and seeded template picks keep mock output
   stable for tests and replays.
 

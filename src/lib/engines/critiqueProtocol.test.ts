@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { accuracyFromHits, buildTitle, cleanReview, parseYesNo } from './critiqueProtocol';
+import { KITCHEN_BRIEFS } from '$lib/data/kitchenBriefs';
+import {
+	accuracyFromHits,
+	buildTitle,
+	cleanReview,
+	critiqueTargetsForBrief,
+	parseYesNo
+} from './critiqueProtocol';
+
+const c1 = KITCHEN_BRIEFS.find((b) => b.id === 'c1')!;
+const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
 
 describe('accuracyFromHits', () => {
 	it('maps the full ladder for four keywords', () => {
@@ -57,5 +67,21 @@ describe('cleanReview', () => {
 	it('truncates long input to at most 600 characters', () => {
 		const long = 'word '.repeat(300);
 		expect(cleanReview(long, 'Fallback.').length).toBeLessThanOrEqual(600);
+	});
+});
+
+describe('critiqueTargetsForBrief (re-export)', () => {
+	it('returns preferredKeywords for concrete briefs', () => {
+		expect(critiqueTargetsForBrief(c1, 'a fluffy cat')).toEqual(['cat']);
+	});
+
+	it('returns cluster keywords for a committed abstract reading', () => {
+		expect(
+			[...critiqueTargetsForBrief(c6, 'sunday dinner with family around the tablecloth')].sort()
+		).toEqual(['dinner', 'family', 'sunday', 'tablecloth']);
+	});
+
+	it('returns empty targets for an abstract parrot', () => {
+		expect(critiqueTargetsForBrief(c6, 'I miss the old days')).toEqual([]);
 	});
 });

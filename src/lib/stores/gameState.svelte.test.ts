@@ -100,6 +100,43 @@ describe('GameStore', () => {
 
 		expect(store.phase).toBe('briefing');
 		expect(store.currentClient?.id).toBe('c1');
+		expect(store.currentClient?.abstractness ?? 0).toBe(0);
+		expect(store.currentClient?.clientName).toBe('Mum');
+	});
+
+	it('inviteClient at zero commissions always yields Mum band-0 openers', () => {
+		const openerIds = new Set(['c1', 'c2', 'c3', 'c7']);
+		let draw = 0;
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{ random: () => (draw++ % 20) / 20 }
+		);
+
+		for (let i = 0; i < 20; i++) {
+			store.phase = 'idle';
+			store.inviteClient();
+			expect(openerIds.has(store.currentClient!.id)).toBe(true);
+			expect(store.currentClient!.abstractness ?? 0).toBe(0);
+			expect(store.currentClient!.clientName).toBe('Mum');
+		}
+	});
+
+	it('inviteClient eventually yields abstractness 2 after four commissions', () => {
+		let draw = 0;
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{ random: () => (draw++ % 80) / 80 }
+		);
+		store.commissionsCompleted = 4;
+
+		const levels = new Set<number>();
+		for (let i = 0; i < 80; i++) {
+			store.phase = 'idle';
+			store.galleryHistory = [];
+			store.inviteClient();
+			levels.add(store.currentClient!.abstractness ?? 0);
+		}
+		expect(levels.has(2)).toBe(true);
 	});
 
 	it('createArt with empty prompt stays in briefing', async () => {
@@ -327,7 +364,9 @@ describe('GameStore', () => {
 
 		vi.stubGlobal(
 			'fetch',
-			vi.fn(async () => new Response(blob, { status: 200, headers: { 'Content-Type': 'image/png' } }))
+			vi.fn(
+				async () => new Response(blob, { status: 200, headers: { 'Content-Type': 'image/png' } })
+			)
 		);
 
 		const store = createStore(
@@ -450,7 +489,9 @@ describe('GameStore', () => {
 				random: () => (draw++ % 100) / 100,
 				loadSave: () => ({
 					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
-					reputation: 60
+					reputation: 60,
+					// Past opener guarantee so prestige tiers can appear in the pool.
+					lifetimeCommissions: 4
 				})
 			}
 		);

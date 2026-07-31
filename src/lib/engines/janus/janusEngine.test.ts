@@ -70,34 +70,37 @@ describe('JanusEngine', () => {
 		expect(client.generate).toHaveBeenCalledWith(prompt, undefined, undefined);
 	});
 
-	it('maps four yes answers to accuracyScore 10', async () => {
-		const client = createFakeClient({
-			ask: vi.fn().mockResolvedValue({
-				answers: ['yes', 'yes', 'yes', 'yes'],
-				review: 'A charming amateur piece.'
-			})
+	it('maps a yes answer on critique targets to accuracyScore 10', async () => {
+		const ask = vi.fn().mockResolvedValue({
+			answers: ['yes'],
+			review: 'A charming amateur piece.'
 		});
+		const client = createFakeClient({ ask });
 		const engine = new JanusEngine({ createClient: () => client });
 		await engine.load();
 
 		const artwork = await engine.generate({
-			playerPrompt: 'coffee cup',
-			prompt: 'coffee cup, flat color'
+			playerPrompt: 'cat',
+			prompt: 'cat, flat color'
 		});
 		const critique = await engine.critique({
 			brief: c1,
-			playerPrompt: 'coffee cup',
+			playerPrompt: 'cat',
 			artwork
 		});
 
+		expect(ask).toHaveBeenCalled();
+		const questions = ask.mock.calls[0]?.[1] as string[];
+		expect(questions).toHaveLength(1);
+		expect(questions[0]?.toLowerCase()).toContain('cat');
 		expect(critique.accuracyScore).toBe(10);
 		expect(() => critiqueDraftSchema.parse(critique)).not.toThrow();
 	});
 
-	it('maps four no answers to accuracyScore 1', async () => {
+	it('maps a no answer to accuracyScore 1', async () => {
 		const client = createFakeClient({
 			ask: vi.fn().mockResolvedValue({
-				answers: ['no', 'no', 'no', 'no'],
+				answers: ['no'],
 				review: 'Not what they asked for.'
 			})
 		});
@@ -120,7 +123,7 @@ describe('JanusEngine', () => {
 	it('falls back when review prose is empty', async () => {
 		const client = createFakeClient({
 			ask: vi.fn().mockResolvedValue({
-				answers: ['yes', 'no', 'no', 'no'],
+				answers: ['yes'],
 				review: '   '
 			})
 		});
@@ -128,16 +131,40 @@ describe('JanusEngine', () => {
 		await engine.load();
 
 		const artwork = await engine.generate({
-			playerPrompt: 'coffee',
-			prompt: 'coffee, flat color'
+			playerPrompt: 'cat',
+			prompt: 'cat, flat color'
 		});
 		const critique = await engine.critique({
 			brief: c1,
-			playerPrompt: 'coffee',
+			playerPrompt: 'cat',
 			artwork
 		});
 
 		expect(critique.criticReview.length).toBeGreaterThan(0);
+	});
+
+	it('scores accuracy 1 with empty critique targets for abstract parrots', async () => {
+		const c6 = LEVEL_1_BRIEFS.find((brief) => brief.id === 'c6')!;
+		const ask = vi.fn().mockResolvedValue({
+			answers: [],
+			review: 'A mood without a scene.'
+		});
+		const client = createFakeClient({ ask });
+		const engine = new JanusEngine({ createClient: () => client });
+		await engine.load();
+
+		const artwork = await engine.generate({
+			playerPrompt: 'I miss the old days',
+			prompt: 'I miss the old days, flat color'
+		});
+		const critique = await engine.critique({
+			brief: c6,
+			playerPrompt: 'I miss the old days',
+			artwork
+		});
+
+		expect(ask.mock.calls[0]?.[1]).toEqual([]);
+		expect(critique.accuracyScore).toBe(1);
 	});
 
 	it('revokes every object URL on unload', async () => {

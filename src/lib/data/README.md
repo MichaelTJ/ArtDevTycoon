@@ -7,7 +7,8 @@ validated at module load.
 
 | Module                 | Exports                                                                                                             |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `briefs.ts`            | `LEVEL_1_BRIEFS`, `pickBrief`                                                                                       |
+| `kitchenBriefs.ts`     | `KITCHEN_BRIEFS`, `maxWalkInAbstractness`, `isBriefEligibleForProgress`                                             |
+| `briefs.ts`            | `LEVEL_1_BRIEFS` (re-export of kitchen), `KITCHEN_BRIEFS`, `pickBrief`, band helpers                                |
 | `environments.ts`      | `ENVIRONMENTS`, `getEnvironmentForLevel`                                                                            |
 | `mediumTiers.ts`       | `MEDIUM_TIERS`, `MediumTier`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier` |
 | `galleryVenues.ts`     | `GALLERY_VENUES`, `GalleryVenue`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue`                                  |
@@ -21,12 +22,16 @@ if one is added.
 
 ## Invariants
 
-- `LEVEL_1_BRIEFS` is validated once at import with `clientBriefSchema`; a typo fails
-  fast rather than breaking a commission mid-run.
-- Six briefs give enough variety for the five-commission Level 1 run without guaranteed
-  repeats.
-- `pickBrief` accepts an optional injected `random` for deterministic tests and replays;
-  production callers omit it and receive `Math.random`.
+- `KITCHEN_BRIEFS` / `LEVEL_1_BRIEFS` is validated once at import with `clientBriefSchema`;
+  a typo fails fast rather than breaking a commission mid-run.
+- Walk-in briefs escalate abstractness with `commissionsCompleted` (0 → concrete Mum
+  asks; ≥2 evocative; ≥4 pure mood). First invite at 0 commissions is forced to Mum
+  band-0 openers `{c1,c2,c3,c7}`.
+- Abstract kitchen briefs carry `interpretationClusters`; prestige pools omit them and
+  keep legacy keyword scoring.
+- `pickBrief` accepts optional `commissionsCompleted` and injected `random` for
+  deterministic tests and replays; production callers omit `random` and receive
+  `Math.random`.
 - When every brief id is excluded, the pool resets to the full list so long runs never
   run out of clients.
 

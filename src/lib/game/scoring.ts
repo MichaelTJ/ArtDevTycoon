@@ -1,4 +1,5 @@
 import type { ClientBrief } from '$lib/types/contracts';
+import { isAbstractParrot, selectBestCluster, usesInterpretationScoring } from './abstractCritique';
 import { normalize, stem, STOPWORDS } from './text';
 
 export interface ScoreBreakdown {
@@ -35,11 +36,53 @@ export function keywordMatches(keyword: string, promptStems: Set<string>): boole
 	});
 }
 
+/** Unique-word creativity score shared by concrete and abstract accuracy paths. */
+export function creativityFromPrompt(playerPrompt: string): number {
+	const promptTokens = normalize(playerPrompt);
+	const meaningful = promptTokens.filter((t) => !STOPWORDS.has(t)).map(stem);
+	const unique = new Set(meaningful).size;
+	return clamp(Math.round(1 + ((unique - 3) / 17) * 9), 1, 10);
+}
+
+function scoreAbstractPrompt(brief: ClientBrief, playerPrompt: string): ScoreBreakdown {
+	if (isAbstractParrot(brief, playerPrompt)) {
+		return {
+			matchedKeywords: [],
+			missedKeywords: brief.interpretationClusters?.flatMap((c) => c.keywords) ?? [],
+			accuracyScore: 1,
+			creativityScore: creativityFromPrompt(playerPrompt)
+		};
+	}
+
+	const best = selectBestCluster(brief, playerPrompt);
+	if (!best || best.ratio === 0) {
+		return {
+			matchedKeywords: [],
+			missedKeywords: brief.interpretationClusters?.flatMap((c) => c.keywords) ?? [],
+			accuracyScore: 2,
+			creativityScore: creativityFromPrompt(playerPrompt)
+		};
+	}
+
+	const accuracyScore = clamp(Math.round(1 + best.ratio * 9), 1, 10);
+	return {
+		matchedKeywords: best.matchedKeywords,
+		missedKeywords: best.missedKeywords,
+		accuracyScore,
+		creativityScore: creativityFromPrompt(playerPrompt)
+	};
+}
+
 /**
  * Score a player's prompt against a client brief. Keyword matching is fuzzy via
  * stemming and substring overlap; creativity rewards unique descriptive words.
+ * Abstract briefs (spec 18) score against interpretation clusters instead.
  */
 export function scorePrompt(brief: ClientBrief, playerPrompt: string): ScoreBreakdown {
+	if (usesInterpretationScoring(brief)) {
+		return scoreAbstractPrompt(brief, playerPrompt);
+	}
+
 	const promptTokens = normalize(playerPrompt);
 	const promptStems = new Set(promptTokens.map(stem));
 
@@ -57,16 +100,18 @@ export function scorePrompt(brief: ClientBrief, playerPrompt: string): ScoreBrea
 	const ratio = matchedKeywords.length / brief.preferredKeywords.length;
 	const accuracyScore = clamp(Math.round(1 + ratio * 9), 1, 10);
 
-	const meaningful = promptTokens.filter((t) => !STOPWORDS.has(t)).map(stem);
-	const unique = new Set(meaningful).size;
-	const creativityScore = clamp(Math.round(1 + ((unique - 3) / 17) * 9), 1, 10);
-
-	return { matchedKeywords, missedKeywords, accuracyScore, creativityScore };
+	return {
+		matchedKeywords,
+		missedKeywords,
+		accuracyScore,
+		creativityScore: creativityFromPrompt(playerPrompt)
+	};
 }
 
 /**
  * Cash awarded for a commission. Accuracy is weighted more heavily than creativity
- * because the client is paying for their brief to be served.
+ * because the client is paying for their brief to be served — except abstract briefs,
+ * which tilt 50/50 so committing to an interpretation is rewarded.
  *
  * `multiplier` (default 1) is the progression seam — medium tier × layout × atmosphere
  * compose outside this function and pass a single number in.
@@ -77,7 +122,9 @@ export function calculatePayout(
 	creativityScore: number,
 	multiplier = 1
 ): number {
-	const quality = (accuracyScore * 0.7 + creativityScore * 0.3) / 10;
+	const accuracyWeight = usesInterpretationScoring(brief) ? 0.5 : 0.7;
+	const creativityWeight = 1 - accuracyWeight;
+	const quality = (accuracyScore * accuracyWeight + creativityScore * creativityWeight) / 10;
 	return clamp(
 		Math.round(brief.budget * quality * multiplier),
 		0,

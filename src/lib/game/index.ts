@@ -4,8 +4,21 @@ export {
 	buildLevel1Prompt,
 	MAX_PROMPT_LENGTH
 } from './promptPipeline';
-export { scorePrompt, calculatePayout, toGalleryScore, reputationGain } from './scoring';
+export {
+	scorePrompt,
+	calculatePayout,
+	toGalleryScore,
+	reputationGain,
+	keywordMatches
+} from './scoring';
 export type { ScoreBreakdown } from './scoring';
+export {
+	usesInterpretationScoring,
+	selectBestCluster,
+	critiqueTargetsForBrief,
+	isAbstractParrot
+} from './abstractCritique';
+export type { ClusterMatch } from './abstractCritique';
 export { isLevelComplete, levelProgress } from './levelRules';
 export { normalize, stem, STOPWORDS } from './text';
 export {
