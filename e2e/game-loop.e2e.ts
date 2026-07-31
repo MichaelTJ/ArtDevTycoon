@@ -1,12 +1,24 @@
 import { expect, test } from '@playwright/test';
 
+/** Wait for timed client arrival, then use debug Talk (avoids flaky pathfinding). */
+async function waitForClientAndTalk(page: import('@playwright/test').Page) {
+	await expect(page.getByTestId('studio-floor')).toBeVisible();
+	await expect(page.getByTestId('studio-debug-talk')).toBeVisible({ timeout: 15_000 });
+	await page.getByTestId('studio-debug-talk').click();
+}
+
+async function deliverPainting(page: import('@playwright/test').Page) {
+	await expect(page.getByTestId('studio-debug-deliver')).toBeVisible({ timeout: 15_000 });
+	await page.getByTestId('studio-debug-deliver').click();
+}
+
 test('a player can complete a full commission', async ({ page }) => {
-	await page.goto('/');
+	await page.goto('/?studioDebug=1');
 	await expect(page.locator('main')).toHaveAttribute('data-engines-ready', 'true');
 	await expect(page.getByText('Home Kitchen')).toBeVisible();
 	await expect(page.getByLabel('Current cash')).toHaveText('$100');
 
-	await page.getByRole('button', { name: 'Wait for a Client' }).click();
+	await waitForClientAndTalk(page);
 
 	const prompt = page.getByLabel('Your prompt');
 	await expect(prompt).toBeVisible();
@@ -16,16 +28,17 @@ test('a player can complete a full commission', async ({ page }) => {
 
 	const dialog = page.getByRole('dialog');
 	await expect(dialog).toBeVisible({ timeout: 15_000 });
+	await expect(page.getByText(/press E to deliver/)).toBeVisible();
 
-	await page.getByRole('button', { name: 'Collect Cash' }).click();
+	await deliverPainting(page);
 
 	await expect(page.getByText('1 / 5 commissions')).toBeVisible();
 	await expect(page.getByRole('listitem')).toHaveCount(1);
 });
 
 test('empty prompt is rejected', async ({ page }) => {
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Wait for a Client' }).click();
+	await page.goto('/?studioDebug=1');
+	await waitForClientAndTalk(page);
 
 	const createButton = page.getByRole('button', { name: 'Create Art' });
 	await expect(createButton).toBeDisabled();
@@ -35,12 +48,12 @@ test('empty prompt is rejected', async ({ page }) => {
 });
 
 test('hidden modifiers never leak into the UI', async ({ page }) => {
-	await page.goto('/');
-	await page.getByRole('button', { name: 'Wait for a Client' }).click();
+	await page.goto('/?studioDebug=1');
+	await waitForClientAndTalk(page);
 	await page.getByLabel('Your prompt').fill('a cozy coffee cup on a wooden table');
 	await page.getByRole('button', { name: 'Create Art' }).click();
 	await expect(page.getByRole('dialog')).toBeVisible({ timeout: 15_000 });
-	await page.getByRole('button', { name: 'Collect Cash' }).click();
+	await deliverPainting(page);
 
 	await expect(page.getByText('crayon texture')).toHaveCount(0);
 });
@@ -55,16 +68,16 @@ test('nothing downloads on its own', async ({ page }) => {
 		void route.continue();
 	});
 
-	await page.goto('/');
+	await page.goto('/?studioDebug=1');
 	await page.waitForTimeout(1_500);
 
 	expect(downloads).toHaveLength(0);
 });
 
 test('engine menu is disabled during a commission', async ({ page }) => {
-	await page.goto('/');
+	await page.goto('/?studioDebug=1');
 	await expect(page.locator('main')).toHaveAttribute('data-engines-ready', 'true');
-	await page.getByRole('button', { name: 'Wait for a Client' }).click();
+	await waitForClientAndTalk(page);
 	await page.getByLabel('Your prompt').fill('a cozy coffee cup on a wooden table');
 
 	const engineButton = page.getByRole('button', { name: /Art engine/ });
@@ -86,13 +99,13 @@ test('engine menu is disabled during a commission', async ({ page }) => {
 
 test('mobile viewport supports the happy path', async ({ page }) => {
 	await page.setViewportSize({ width: 360, height: 740 });
-	await page.goto('/');
+	await page.goto('/?studioDebug=1');
 
-	await page.getByRole('button', { name: 'Wait for a Client' }).click();
+	await waitForClientAndTalk(page);
 	await page.getByLabel('Your prompt').fill('a cozy coffee cup on a wooden table');
 	await page.getByRole('button', { name: 'Create Art' }).click();
 	await expect(page.getByRole('dialog')).toBeVisible({ timeout: 15_000 });
-	await page.getByRole('button', { name: 'Collect Cash' }).click();
+	await deliverPainting(page);
 
 	await expect(page.getByText('1 / 5 commissions')).toBeVisible();
 });
