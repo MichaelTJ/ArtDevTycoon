@@ -28,6 +28,15 @@ const options: EngineOption[] = [
 		unavailableReason: 'Requires a desktop GPU.',
 		requiresDownload: true,
 		approxDownloadMb: 1500
+	},
+	{
+		id: 'remote',
+		displayName: 'My PC',
+		description: 'JanusLink on your home GPU.',
+		available: false,
+		unavailableReason: 'Not connected.',
+		requiresDownload: false,
+		approxDownloadMb: 0
 	}
 ];
 
@@ -37,7 +46,21 @@ test('renders one radio per option', async () => {
 		activeId: 'mock',
 		onselect: vi.fn()
 	});
-	expect(screen.getByRole('radio').elements().length).toBe(3);
+	expect(screen.getByRole('radio').elements().length).toBe(4);
+});
+
+test('Set up My PC calls onconfigure without selecting', async () => {
+	const onselect = vi.fn();
+	const onconfigure = vi.fn();
+	const screen = render(EnginePicker, {
+		options,
+		activeId: 'mock',
+		onselect,
+		onconfigure
+	});
+	await screen.getByRole('button', { name: 'Set up My PC' }).click();
+	expect(onconfigure).toHaveBeenCalledWith('remote');
+	expect(onselect).not.toHaveBeenCalled();
 });
 
 test('active option is checked', async () => {

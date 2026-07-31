@@ -51,5 +51,18 @@ export const ENGINE_REGISTRY: readonly EngineDescriptor[] = [
 		},
 		tier: 2,
 		create: async () => new (await import('./sdturbo/sdturboEngine')).SdturboEngine()
+	},
+	{
+		id: 'remote',
+		displayName: 'My PC',
+		description: 'Real Janus on your home GPU via JanusLink. You run the model.',
+		requirements: {
+			webgpu: false,
+			approxDownloadMb: 0,
+			minStorageBufferMb: 0,
+			desktopOnly: false
+		},
+		tier: 1,
+		create: async () => new (await import('./remote/remoteEngine')).RemoteEngine()
 	}
 ];

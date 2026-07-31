@@ -5,9 +5,10 @@
 		options: EngineOption[];
 		activeId: string;
 		onselect: (id: string) => void;
+		onconfigure?: (id: string) => void;
 	}
 
-	let { options, activeId, onselect }: Props = $props();
+	let { options, activeId, onselect, onconfigure }: Props = $props();
 
 	function formatDownloadGb(mb: number): string {
 		return (mb / 1000).toFixed(1);
@@ -48,6 +49,19 @@
 					<span class="mt-1 block text-sm text-stone-500">{option.description}</span>
 					{#if !option.available && option.unavailableReason}
 						<span class="mt-1 block text-sm text-stone-500">{option.unavailableReason}</span>
+					{/if}
+					{#if option.id === 'remote' && onconfigure}
+						<button
+							type="button"
+							class="mt-2 min-h-9 rounded-lg bg-stone-100 px-3 py-1.5 text-sm font-medium text-stone-800 hover:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+							onclick={(event) => {
+								event.preventDefault();
+								event.stopPropagation();
+								onconfigure('remote');
+							}}
+						>
+							{option.available ? 'Change My PC server' : 'Set up My PC'}
+						</button>
 					{/if}
 				</span>
 			</label>

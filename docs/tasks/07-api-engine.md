@@ -1,97 +1,94 @@
-# Spec 07 — Remote Engine: ComfyUI + Janus
+# Spec 07 — Remote Engine: JanusLink (My PC)
 
 **Worktree:** optional — `git worktree add -b agent/remote ../adt-wt-remote main`. Can also run in
 the main tree when no other agent is touching the shared seams listed below.
 **Depends on:** Specs 02, 03 and 04 merged to `main`.
+**Companion repo:** [MichaelTJ/ADTLocalServe](https://github.com/MichaelTJ/ADTLocalServe) (JanusLink) —
+local FastAPI + Tailscale phone-app host for Janus-Pro. Not vendored into this repo.
 
 ## Ownership zone
 
 `remote` is already reserved in `src/lib/types/contracts.ts` (`ENGINE_IDS`, `ArtEngine`). Spec 02
-deliberately left it unregistered. This spec finishes it by adding a ComfyUI-backed implementation
-and wiring it into the picker.
+left it unregistered. This spec registers it as the **My PC** engine: the game talks to the
+player's JanusLink install over HTTPS (Tailscale), with no WebGPU and no model download in the tab.
 
 ```
 New:
   src/lib/engines/remote/**
-  static/comfyui/janus-generate.json      ← checked-in workflow template (generate)
-  static/comfyui/janus-critique.json      ← checked-in workflow template (critique)
-  src/lib/components/ComfyUISetup.svelte
-  src/lib/components/ComfyUISetup.svelte.test.ts
+  src/lib/components/MyPcSetup.svelte
+  src/lib/components/MyPcSetup.svelte.test.ts
 
-Edit (small, targeted — exact changes in §8):
+Edit (small, targeted — exact changes in §7):
   src/lib/engines/registry.ts
   src/lib/engines/manager.ts
+  src/lib/engines/README.md
   src/lib/stores/engineStore.svelte.ts
   src/lib/stores/engineStore.svelte.test.ts
   src/lib/components/EnginePicker.svelte
   src/lib/components/EnginePicker.svelte.test.ts
   src/lib/components/index.ts
   src/lib/components/README.md
-  src/lib/engines/README.md
   src/routes/+page.svelte
   docs/tasks/README.md
+  docs/architecture.md          ← orchestrator: remote tier row only
+  src/lib/types/contracts.ts    ← orchestrator: comment on `remote` only (id stays `remote`)
 ```
 
-Do **not** edit `src/lib/types/contracts.ts`. Everything needed is already there: `remote` in
-`ENGINE_IDS`, `ArtEngine`, `EngineRequirements`, `LoadProgress`. If you need a new field on a
-frozen type, stop and put the request in your handoff.
+Do **not** add `+server.ts`, `$lib/server/**`, or change `adapter-static`. The game stays a static
+bundle. Do **not** copy ADTLocalServe's `game-integration/` drop-in as-is — it assumes a Node
+game server on the GPU PC. Reimplement the client against `ArtEngine` instead.
 
 ---
 
 ## Mission
 
-Let a player run **Janus-Pro on their own machine via ComfyUI** and connect the game to it — the
-same unified generate-and-critique model the in-browser Janus engine uses (spec 05), but hosted
-locally behind ComfyUI's HTTP API instead of downloaded into the tab.
+Let a player run **Janus-Pro on their home GPU via JanusLink** and select it from the engine
+picker — same unified generate-and-critique model as in-browser Janus (spec 05), but hosted on
+their PC behind Tailscale instead of downloaded into the tab.
 
-This is the sweet spot your research found: ComfyUI custom nodes (e.g.
-[ComfyUI-Janus-Pro](https://github.com/CY-CHENYUE/ComfyUI-Janus-Pro) or
-[ComfyUI_Janus_Wrapper](https://github.com/chflame163/ComfyUI_Janus_Wrapper)) expose Janus text-to-image
-and Janus image-to-text nodes. ComfyUI itself exposes a stable REST API at `http://localhost:8188`.
-The game submits **checked-in workflow JSON** to `POST /prompt`, polls for completion, and fetches
-the output image or text — no gigabyte download in the browser, no WebGPU requirement, real Janus
-art and real Janus critique when the player's ComfyUI stack is running.
+Pitch: **"My PC — real Janus on your GPU. No WebGPU, no browser download."**
 
-Pitch to the player: **"Your ComfyUI, real Janus — generate and critique on your PC."**
+ComfyUI is **not** the path. JanusLink exists because ComfyUI's bundled PyTorch does not support
+common Pascal GPUs (e.g. GTX 1060 / `sm_61`), and the old Comfy → nodes → proxy → Tailscale flow
+was too fragile. Specs 08+ still cover other local/cloud providers later.
 
 ---
 
-## Why ComfyUI + Janus (not Ollama / LM Studio / A1111 for spec 07)
+## Why JanusLink (not ComfyUI / Ollama for spec 07)
 
-| Approach                   | Generate                                       | Critique         | One model? | Spec 07       |
-| -------------------------- | ---------------------------------------------- | ---------------- | ---------- | ------------- |
-| In-browser Janus (spec 05) | Yes                                            | Yes              | Yes        | Already done  |
-| **ComfyUI + Janus nodes**  | Yes (384px)                                    | Yes (vision Q&A) | **Yes**    | **This spec** |
-| Ollama / LM Studio         | Separate image + vision models, different APIs | Partial          | No         | Deferred      |
-| ComfyUI + SD workflow only | Yes                                            | No               | No         | Deferred      |
-| Automatic1111              | Yes                                            | No               | No         | Deferred      |
-
-Spec 07 owns **one provider**: ComfyUI running Janus. Other local programs and cloud APIs are
-listed in §10 (later) — stub them in the setup UI as "Coming soon" but do not implement them.
+| Approach                   | Generate | Critique | One model? | Spec 07       |
+| -------------------------- | -------- | -------- | ---------- | ------------- |
+| In-browser Janus (spec 05) | Yes      | Yes      | Yes        | Already done  |
+| **JanusLink (My PC)**      | Yes      | Yes      | **Yes**    | **This spec** |
+| ComfyUI + Janus nodes      | Yes      | Yes      | Yes        | Superseded    |
+| Ollama / LM Studio         | Split    | Partial  | No         | Spec 08       |
+| BYO OpenRouter / OpenAI    | Split    | Split    | No         | Spec 09       |
 
 ---
 
-## Player setup (document in README — implementer must verify)
+## Player setup (document in `src/lib/engines/remote/README.md`)
 
-Before the game can connect, the player needs:
+1. Install and run **JanusLink** on the GPU PC
+   ([ADTLocalServe](https://github.com/MichaelTJ/ADTLocalServe) — `installer/install.ps1` or manual
+   `janus-api` + `phone-app`).
+2. Join the phone/laptop to the **same Tailscale** tailnet.
+3. On the PC, set `phone-app` env:
+   ```
+   JANUS_ALLOWED_ORIGINS=http://localhost:5173,https://your-game-host.example
+   ```
+   (include every origin that serves the game).
+4. Copy the **Tailscale HTTPS base URL** (e.g. `https://pc-name.tailnet-xxxx.ts.net`) and the
+   **`JANUS_API_KEY`** from the installer / `.env` into the game's My PC setup dialog.
+5. Test connection → Connect. Generate and critique use Bearer auth from the browser; the raw key
+   never leaves the player's machine except to their own JanusLink host.
 
-1. **ComfyUI** running with CORS enabled for the game's origin.
-   - Launch flag: `--enable-cors-header "*"` (or the exact origin in production).
-   - Default base URL: `http://127.0.0.1:8188`.
-2. **Janus-Pro ComfyUI plugin** installed (verify node class names against the checked-in
-   workflows before shipping — see §3).
-   - Recommended reference: `CY-CHENYUE/ComfyUI-Janus-Pro` via ComfyUI Manager ("Janus-Pro").
-   - Alternative: `chflame163/ComfyUI_Janus_Wrapper` — if you use this, update the workflow
-     JSON node `class_type` values to match **that** plugin's nodes instead.
-3. **Janus-Pro-1B weights** on disk (player choice of 1B vs 7B is a workflow constant — default
-   **1B** in the shipped templates; 7B is slower and heavier).
-4. A one-time **manual smoke test** in ComfyUI's UI: load the shipped workflow files, run
-   generate once and critique once, confirm nodes are wired. Record which plugin + model you
-   used in the handoff.
+**Auth choice (load-bearing):** JanusLink session cookies are `SameSite=lax`, so they are **not**
+sent on cross-origin `fetch` from a static game host. Spec 07 therefore uses
+`Authorization: Bearer <JANUS_API_KEY>` only. Cookie/QR pairing remains how phones use JanusLink's
+own UI; the game does not mint pairing tokens and does not add server routes.
 
-Mixed content: if the game is served over `https://`, loopback `http://127.0.0.1:8188` is
-allowed; a LAN IP on plain HTTP is not — document this in the README the same way spec 05/06
-document WebGPU gates.
+**CORS:** `phone-app` already CORS-enables `/api/janus/*` for origins in `JANUS_ALLOWED_ORIGINS`
+(see ADTLocalServe `hooks.server.js`). Without that allowlist entry, the browser blocks the game.
 
 ---
 
@@ -100,404 +97,341 @@ document WebGPU gates.
 ```mermaid
 sequenceDiagram
   participant Game as RemoteEngine
-  participant Comfy as ComfyUI_8188
-  participant Janus as Janus_nodes
+  participant Phone as JanusLink_phone_app
+  participant API as janus_api_loopback
+  participant GPU as Janus_Pro
 
   Note over Game: generate()
-  Game->>Comfy: POST /prompt (janus-generate.json + prompt input)
-  Comfy->>Janus: JanusProImageGenerator
-  Janus-->>Comfy: 384x384 PNG
-  Game->>Comfy: GET /view?filename=...
+  Game->>Phone: POST /api/janus/generate Bearer
+  Phone->>API: POST /api/janus/generate Bearer
+  API->>GPU: text-to-image
+  GPU-->>API: PNG
+  API-->>Phone: images[].base64
+  Phone-->>Game: same JSON
   Game-->>Game: Artwork blob URL
 
   Note over Game: critique()
-  Game->>Comfy: POST /upload/image (PNG from artwork)
-  Game->>Comfy: POST /prompt (janus-critique.json + image + questions)
-  Comfy->>Janus: JanusProImageUnderstanding
-  Janus-->>Comfy: text answers
+  loop each keyword + review
+    Game->>Phone: POST /api/janus/understand multipart
+    Phone->>API: forward
+    API->>GPU: image-to-text
+    GPU-->>Game: text
+  end
   Game-->>Game: CritiqueDraft via critiqueProtocol
 ```
 
-`RemoteEngine implements ArtEngine` — same interface as Janus and SD-Turbo. The manager never
-branches on ComfyUI; only this folder knows about workflows and `/prompt`.
+`RemoteEngine implements ArtEngine`. Nothing outside `src/lib/engines/remote/**` knows about
+JanusLink URLs or Bearer headers.
 
 ---
 
-## 1. Checked-in workflow templates
-
-**Location:** `static/comfyui/janus-generate.json` and `static/comfyui/janus-critique.json`.
-
-These are ComfyUI **API prompt graphs** (the JSON object ComfyUI expects as the `prompt` field
-in `POST /prompt`), not full `.json` workflow files with UI metadata. Export them from ComfyUI
-using **Save (API Format)** after building a minimal graph with the Janus plugin.
-
-### `janus-generate.json`
-
-Must contain exactly these injectable inputs (implementer picks stable node ids — e.g. `"3"` for
-prompt — and documents them in `workflows/README.md` inside the remote folder):
-
-| Node role     | Expected class_type (verify at build time)  | Game overrides                                             |
-| ------------- | ------------------------------------------- | ---------------------------------------------------------- |
-| Model loader  | `JanusProModelLoader` or plugin equivalent  | `"model_name": "Janus-Pro-1B"`                             |
-| Text-to-image | `JanusProImageGenerator` or equivalent      | `"prompt": "<built prompt from game>"`, `"seed": <number>` |
-| Output        | `SaveImage` or preview node the API exposes | `"filename_prefix": "adt-generate"`                        |
-
-Output size: **384×384** (Janus native — matches in-browser Janus, keeps Level 1 amateur scale).
-
-### `janus-critique.json`
-
-Two modes in one workflow file is allowed **only** if it keeps node ids stable; otherwise ship
-**one workflow per question** is too heavy — instead run the critique workflow **once per keyword
-question** plus **once for the prose review**, reusing the same template and swapping the
-`question` input:
-
-| Node role           | Expected class_type                                   | Game overrides                                                                 |
-| ------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Model loader        | same as generate                                      | same                                                                           |
-| Image understanding | `JanusProImageUnderstanding` or `Janus Image To Text` | `"image": ["<upload_node_id>", 0]`, `"question": "<buildKeywordQuestion(kw)>"` |
-| Text output         | node whose output the history API returns as string   | —                                                                              |
-
-For the prose review, one extra call with `question = buildReviewPrompt(brief.requestText)` and
-a higher token limit in the workflow (or pass through if the node exposes `max_new_tokens`).
-
-**Critical:** Before merging, open ComfyUI, paste each template, queue once, and fix any
-`class_type` / input key mismatch. Record the working plugin name and commit hash in the handoff.
-This is the spec-06-equivalent "verify the model repository" step — workflows drift when plugins
-rename nodes.
-
-### Loading templates at runtime
+## 1. `remoteConfig.ts`
 
 ```ts
-/** Fetches the API prompt graph from static assets. Never throws — returns null on failure. */
-export async function loadWorkflowTemplate(
-	name: 'janus-generate' | 'janus-critique'
-): Promise<Record<string, unknown> | null>;
-```
+export const REMOTE_CONFIG_STORAGE_KEY = 'adt.engine.remote.config';
 
-Fetch `/comfyui/janus-generate.json` and `/comfyui/janus-critique.json`. Deep-clone before
-mutating node inputs so the cached template stays pristine.
-
-**Tests:** `loadWorkflowTemplate` returns an object with at least one node key for a mocked
-`fetch`; returns `null` when `fetch` fails.
-
----
-
-## 2. `comfyClient.ts` — the only file that calls ComfyUI
-
-Pure HTTP; no `EngineError` here — `remoteEngine.ts` wraps failures.
-
-```ts
-export const COMFYUI_DEFAULT_BASE_URL = 'http://127.0.0.1:8188';
-export const CONNECTION_TEST_TIMEOUT_MS = 6000;
-export const PROMPT_TIMEOUT_MS = 120_000; // Janus gen + critique can be slow on CPU
-
-export async function testConnection(
-	baseUrl: string,
-	signal?: AbortSignal
-): Promise<{ ok: true } | { ok: false; reason: string }>;
-
-/** Upload PNG bytes; returns the filename ComfyUI stored (for image input nodes). */
-export async function uploadImage(
-	baseUrl: string,
-	pngBytes: Uint8Array,
-	filename: string,
-	signal?: AbortSignal
-): Promise<string>;
-
-/**
- * Queue a workflow, wait until done, return outputs.
- * Implement with POST /prompt then poll GET /history/{prompt_id} every 500ms until
- * outputs appear or PROMPT_TIMEOUT_MS elapses. Do not use WebSockets — polling is enough
- * for Level 1 and keeps tests simple.
- */
-export async function runPrompt(
-	baseUrl: string,
-	prompt: Record<string, unknown>,
-	signal?: AbortSignal
-): Promise<ComfyPromptOutputs>;
-
-/** Fetch an output image as a Blob from GET /view?filename=...&subfolder=...&type=output */
-export async function fetchOutputImage(
-	baseUrl: string,
-	file: ComfyOutputFile,
-	signal?: AbortSignal
-): Promise<Blob>;
-```
-
-### `testConnection`
-
-1. Validate URL; strip trailing slashes.
-2. `GET {baseUrl}/system_stats` (or `GET {baseUrl}/` if stats is unavailable — pick one and
-   document it). Timeout via `AbortSignal.timeout(CONNECTION_TEST_TIMEOUT_MS)`.
-3. Success → `{ ok: true }`.
-4. Any failure → `{ ok: false, reason: 'Could not reach ' + baseUrl + '. Is ComfyUI running with CORS enabled? (--enable-cors-header)' }`.
-
-Do not conflate CORS failure with "ComfyUI down" — use the same dual-message pattern as the
-draft Ollama spec.
-
-### `runPrompt` output parsing
-
-ComfyUI history entries look like `{ outputs: { [nodeId]: { images?: [...], text?: [...] } } }`.
-Define a small zod schema for the slice you need; never cast the full history blob.
-
-For **generate**, read the SaveImage node's `images[0]`.
-For **critique**, read the text output node's string (plugin-dependent — verify once, document
-the node id in `workflows/README.md`).
-
-**Tests (`comfyClient.test.ts`, Node, stubbed `fetch`):** `testConnection` ok/fail paths;
-`runPrompt` resolves when history returns outputs; rejects on timeout; `uploadImage` posts
-multipart and returns filename from JSON `{ name: string }`.
-
----
-
-## 3. `remoteConfig.ts`
-
-```ts
 export const remoteEngineConfigSchema = z.object({
 	baseUrl: z
 		.string()
 		.url()
 		.transform((url) => url.replace(/\/+$/, '')),
-	/** Janus variant baked into workflow — player may override if they use 7B */
-	modelName: z.enum(['Janus-Pro-1B', 'Janus-Pro-7B']).default('Janus-Pro-1B')
+	/** JanusLink JANUS_API_KEY — player's own secret for their PC. */
+	apiKey: z.string().min(24).max(256)
 });
 
 export type RemoteEngineConfig = z.infer<typeof remoteEngineConfigSchema>;
+
+export function loadRemoteConfig(): RemoteEngineConfig | null;
+export function saveRemoteConfig(config: RemoteEngineConfig): void;
+export function clearRemoteConfig(): void;
 ```
 
-Storage key: `'adt.engine.remote.config'`. `loadRemoteConfig` / `saveRemoteConfig` — same
-discipline as the draft spec (safeParse on load, never throw from storage).
+- `loadRemoteConfig`: `JSON.parse` + `safeParse`; malformed → `null`; never throw.
+- `saveRemoteConfig`: validate then write.
+- Strip trailing slashes on `baseUrl`.
 
-**Tests:** round-trip; malformed → null; trailing slash stripped.
+**Tests:** round-trip; malformed → null; trailing slash stripped; missing apiKey → null.
 
 ---
 
-## 4. `workflowBuilder.ts`
+## 2. `janusLinkClient.ts` — the only file that calls JanusLink
 
-Pure functions that take a loaded template + runtime inputs and return the `prompt` object for
-`runPrompt`.
+Pure HTTP. No `EngineError` here — `remoteEngine.ts` wraps failures.
 
 ```ts
-export const GENERATE_PROMPT_NODE_ID = '...'; // set after workflow is verified
-export const GENERATE_SEED_NODE_ID = '...';
-export const CRITIQUE_QUESTION_NODE_ID = '...';
-export const CRITIQUE_IMAGE_INPUT_NODE_ID = '...';
+export const CONNECTION_TEST_TIMEOUT_MS = 6000;
+export const REQUEST_TIMEOUT_MS = 180_000; // home GPU / cold start can be slow
 
-export function buildGeneratePrompt(
-	template: Record<string, unknown>,
-	input: { prompt: string; seed: number; modelName: string }
-): Record<string, unknown>;
+export interface JanusLinkClientDeps {
+	fetch?: typeof fetch;
+}
 
-export function buildCritiquePrompt(
-	template: Record<string, unknown>,
-	input: { uploadedImageFilename: string; question: string; modelName: string }
-): Record<string, unknown>;
+export function createJanusLinkClient(deps?: JanusLinkClientDeps): {
+	testConnection(
+		config: RemoteEngineConfig,
+		signal?: AbortSignal
+	): Promise<{ ok: true; device?: string } | { ok: false; reason: string }>;
+	generate(
+		config: RemoteEngineConfig,
+		body: { prompt: string; seed?: number },
+		signal?: AbortSignal
+	): Promise<JanusGenerateResult>;
+	understand(
+		config: RemoteEngineConfig,
+		body: { image: Blob; question: string; filename?: string },
+		signal?: AbortSignal
+	): Promise<JanusUnderstandResult>;
+};
 ```
 
-Deep-clone the template, mutate only the documented node input slots. **Never** send
-`playerPrompt` to ComfyUI — only the built `prompt` with Level 1 modifiers (same rule as Janus
-in-browser).
+### Response schemas (zod — trust boundary)
 
-**Tests:** built prompt contains the generation string and seed; critique prompt references the
-uploaded filename and question; template object is not mutated (assert referential inequality of
-nested inputs).
+```ts
+export const janusGenerateResultSchema = z.object({
+	promptId: z.string().min(1),
+	images: z
+		.array(
+			z.object({
+				filename: z.string().optional(),
+				mimeType: z.string().min(1),
+				base64: z.string().min(1)
+			})
+		)
+		.min(1)
+});
+
+export const janusUnderstandResultSchema = z.object({
+	promptId: z.string().min(1),
+	text: z.string()
+});
+
+export const janusHealthResultSchema = z.object({
+	ok: z.literal(true),
+	device: z.string().optional(),
+	dtype: z.string().optional(),
+	modelDir: z.string().optional(),
+	version: z.string().optional()
+});
+```
+
+Match ADTLocalServe `docs/SPEC.md` §2–3 (phone-app forwards the same shapes).
+
+### Request rules
+
+1. `GET {baseUrl}/api/janus/health` with `Authorization: Bearer {apiKey}`.
+2. `POST {baseUrl}/api/janus/generate` JSON `{ prompt, seed? }` — camelCase as in SPEC.
+3. `POST {baseUrl}/api/janus/understand` `multipart/form-data` fields `image`, `question`.
+4. **Do not** send `credentials: 'include'` (Bearer only).
+5. On non-OK: prefer `{ error: string }` body message; else status text.
+6. Player-safe failure for unreachable / CORS:
+   `'Could not reach ' + baseUrl + '. Is JanusLink running? Is this game origin in JANUS_ALLOWED_ORIGINS on the PC?'`
+
+**Tests (`janusLinkClient.test.ts`, Node, stubbed `fetch`):** health ok/fail; generate parses
+base64 image; understand returns text; 401 → reason; network throw → CORS/reachability message;
+invalid JSON → fail closed.
 
 ---
 
-## 5. `remoteEngine.ts`
+## 3. `remoteEngine.ts`
 
 ```ts
 export class RemoteEngine implements ArtEngine {
 	readonly id = 'remote' as const;
-	readonly displayName = 'ComfyUI · Janus';
+	readonly displayName = 'My PC';
 	readonly description =
-		'Real Janus art via your local ComfyUI. No browser download — you run the model.';
+		'Real Janus on your home GPU via JanusLink. No browser download — you run the model.';
 	readonly requirements = {
 		webgpu: false,
 		approxDownloadMb: 0,
 		minStorageBufferMb: 0,
-		desktopOnly: false // ComfyUI can run on a beefy phone in theory; do not gate mobile
+		desktopOnly: false
 	};
 	readonly capabilities = { generate: true, critique: true };
 }
+
+export interface RemoteEngineDeps {
+	client?: ReturnType<typeof createJanusLinkClient>;
+	loadConfig?: () => RemoteEngineConfig | null;
+}
 ```
 
-### `probe(capability)`
+### `probe(_capability)`
 
-Ignore hardware capability. `loadRemoteConfig()` → if null,
-`{ available: false, reason: 'Not connected. Set up ComfyUI in the engine menu.' }`.
-Else `testConnection(config.baseUrl)` → map to
-`{ available: true, requiresDownload: false, approxDownloadMb: 0 }` or unavailable with reason.
+Ignore device capability (no WebGPU gate).
+
+1. `loadRemoteConfig()` → if null:
+   `{ available: false, reason: 'Not connected. Set up My PC (JanusLink) in the engine menu.' }`
+2. Else `testConnection(config)` with a short timeout → available
+   `{ available: true, requiresDownload: false, approxDownloadMb: 0 }` or unavailable with reason.
 
 ### `load(options)`
 
-Re-test connection; throw `EngineError('internal', reason)` on failure (manager falls back to mock).
-Cache config and pre-fetch both workflow templates; if either template fails to load, throw with a
-player-safe message. Emit one `LoadProgress` `{ status: 'ready', fraction: 1, ... }` if
-`onProgress` is provided.
+Re-load config; re-test connection; throw `EngineError('internal', reason)` on failure.
+Emit one `LoadProgress` `{ status: 'ready', fraction: 1, file: null, loadedBytes: 0, totalBytes: 0 }`
+if `onProgress` is provided. Cache the config on the instance.
 
 ### `generate({ playerPrompt, prompt, seed, signal })`
 
-1. `seed ??= hashString(prompt)` (reuse `$lib/engines/random`).
-2. `buildGeneratePrompt(template, { prompt, seed, modelName })`.
-3. `runPrompt` → `fetchOutputImage` → `bitmapToObjectUrl` (reuse
-   `$lib/engines/janus/imageConversion` — import only, do not edit janus folder).
-4. Return `Artwork` with `width: 384`, `height: 384`, `engineId: 'remote'`,
-   **`playerPrompt` verbatim**, unique `id`, `generationMs` measured.
-5. Cache `ImageBitmap` or PNG bytes keyed by artwork id for critique (same pattern as
-   `JanusEngine` bitmap cache).
-6. Track object URLs; revoke in `unload()`.
-7. Wrap errors with `toEngineError(..., 'generation_failed')`.
+1. `seed ??= hashString(prompt)` from `$lib/engines/random`.
+2. Call client `generate` with **`prompt` only** (never `playerPrompt`).
+3. Decode first image base64 → `Blob` → `URL.createObjectURL`; track URL for `unload`.
+4. Optionally `createImageBitmap` for width/height; default **384×384** if unavailable.
+5. Cache `Blob` (and/or bitmap) by artwork id for critique.
+6. Return `artworkSchema.parse({ id, imageUrl, playerPrompt: input.playerPrompt, width, height,
+generationMs, engineId: 'remote' })`.
+7. Wrap with `toEngineError(..., 'generation_failed')`.
 
 ### `critique({ brief, playerPrompt, artwork, signal })`
 
-Same protocol as [`janusEngine.ts`](../src/lib/engines/janus/janusEngine.ts):
+Mirror [`janusEngine.ts`](../../src/lib/engines/janus/janusEngine.ts) scoring — same
+`critiqueProtocol` helpers:
 
-1. Up to **four** keyword questions via `buildKeywordQuestion`.
+1. Up to **four** keywords → `buildKeywordQuestion`.
 2. `buildReviewPrompt(brief.requestText)` for prose.
-3. Rasterize artwork to PNG if needed (`urlToBitmap` → canvas → bytes, or reuse cached bytes).
-4. `uploadImage` once; reuse filename for all questions in the batch.
-5. Sequential `runPrompt` calls — one per question, then one for review. **Do not** parallelize;
-   ComfyUI queues are single-threaded by default and concurrent prompts race.
-6. `parseYesNo`, `accuracyFromHits`, `buildTitle`, `cleanReview`, template fallback — identical
-   to Janus engine.
-7. Wrap with `toEngineError(..., 'critique_failed')`.
+3. Resolve image `Blob` from cache, else `fetch(artwork.imageUrl)` → blob.
+4. Sequential `understand` calls — one per keyword question, then one for review.
+   **Do not** parallelize (home GPU + rate limits).
+5. `parseYesNo` → `accuracyFromHits` → `buildTitle(playerPrompt, hashString(artwork.id))` →
+   `cleanReview` with the same mock-template fallback pattern Janus uses.
+6. Wrap with `toEngineError(..., 'critique_failed')`.
 
 ### `unload()`
 
-Revoke object URLs, clear caches, drop config reference.
+Revoke object URLs; clear blob/bitmap caches; drop cached config.
 
-**Tests (`remoteEngine.test.ts`, Node):** inject fake `comfyClient` module or pass deps struct;
-cover probe unavailable/available; generate returns schema-valid Artwork with correct
-`playerPrompt` and 384×384; critique maps four `'yes'` → accuracy 10; empty review → fallback;
-no real network.
+**Tests (`remoteEngine.test.ts`, Node):** inject fake client + config loader; probe
+unavailable/available; generate returns schema-valid Artwork with correct `playerPrompt` and
+`engineId: 'remote'`; critique four `'yes'` → accuracy 10; empty review → fallback; no real
+network.
 
 ---
 
-## 6. `ComfyUISetup.svelte`
+## 4. `MyPcSetup.svelte`
 
-Presentational setup dialog (replaces the draft `RemoteEngineSetup` name — ComfyUI is the only
-provider in spec 07).
+Presentational setup dialog (stone/amber styling consistent with `EnginePicker`).
 
-| Prop        | Type                                             | Notes                                    |
-| ----------- | ------------------------------------------------ | ---------------------------------------- |
-| `baseUrl`   | `string` (`$bindable`)                           |                                          |
-| `modelName` | `'Janus-Pro-1B' \| 'Janus-Pro-7B'` (`$bindable`) |                                          |
-| `testState` | `'idle' \| 'testing' \| 'success' \| 'error'`    |                                          |
-| `testError` | `string \| null`                                 |                                          |
-| `on test`   | `() => void`                                     |                                          |
-| `onconnect` | `() => void`                                     | Disabled until `testState === 'success'` |
-| `oncancel`  | `() => void`                                     |                                          |
+| Prop        | Type                                          | Notes                                    |
+| ----------- | --------------------------------------------- | ---------------------------------------- |
+| `baseUrl`   | `string` (`$bindable`)                        |                                          |
+| `apiKey`    | `string` (`$bindable`)                        | password-style input                     |
+| `testState` | `'idle' \| 'testing' \| 'success' \| 'error'` |                                          |
+| `testError` | `string \| null`                              |                                          |
+| `ontest`    | `() => void`                                  |                                          |
+| `onconnect` | `() => void`                                  | Disabled until `testState === 'success'` |
+| `oncancel`  | `() => void`                                  |                                          |
 
 Contents:
 
-- Short explanation: requires ComfyUI + Janus-Pro plugin; link to README section for install steps.
-- Base URL input + "Use default (`127.0.0.1:8188`)" button.
-- Model size radio: 1B (recommended) / 7B.
-- Test connection button.
-- Collapsible "Setup help" with CORS flag and ComfyUI Manager plugin name.
-- **Coming soon** (disabled, greyed): OpenRouter, OpenAI BYO key, Art Dev Tycoon Cloud, BAGEL
-  sketch mode — labels only, no handlers.
-- Connect / Cancel.
+- Short explanation: install JanusLink on the PC; Tailscale; paste URL + API key.
+- Base URL input (placeholder `https://your-pc.tailnet-xxxx.ts.net`).
+- API key input (`type="password"`, autocomplete off).
+- Collapsible setup help: `JANUS_ALLOWED_ORIGINS`, installer pointer to ADTLocalServe README.
+- Test connection / Connect / Cancel.
+- Greyed **Coming soon**: OpenRouter, OpenAI, Art Dev Tycoon Cloud (labels only).
 
-**Tests:** same discipline as draft spec — bindable fields, connect disabled until success,
-`ontest`/`onconnect`/`oncancel` fire, accessible labels.
+**Tests:** bindable fields; connect disabled until success; `ontest`/`onconnect`/`oncancel` fire;
+accessible labels (`getByLabelText` / roles).
 
 ---
 
-## 7. Store and page wiring
+## 5. Store and page wiring
 
-Extend [`engineStore.svelte.ts`](../src/lib/stores/engineStore.svelte.ts):
+### `engineStore.svelte.ts`
 
-- `remoteBaseUrl`, `remoteModelName`, `remoteTestState`, `remoteTestError`
-- `testRemoteConnection()` → `testConnection(remoteBaseUrl)`
-- `connectRemote()` → validate config, `saveRemoteConfig`, `select('remote')`
-- Widen local `readStoredEngineId` whitelist to include `'remote'`
+- Widen local `readStoredEngineId` to include `'remote'`.
+- Add:
+  - `showRemoteSetup = $state(false)`
+  - `remoteBaseUrl`, `remoteApiKey`, `remoteTestState`, `remoteTestError`
+  - `openRemoteSetup()` / `closeRemoteSetup()`
+  - `testRemoteConnection()` → `createJanusLinkClient().testConnection(...)`
+  - `connectRemote()` → validate + `saveRemoteConfig` + `select('remote')` + close setup
 
-[`EnginePicker.svelte`](../src/lib/components/EnginePicker.svelte): optional `onconfigure(id)`.
-For `id === 'remote'`, show **"Set up ComfyUI"** / **"Change ComfyUI server"** button (same
-stopPropagation pattern as draft spec).
+### `EnginePicker.svelte`
 
-[`+page.svelte`](../src/routes/+page.svelte): render `ComfyUISetup` overlay when
-`showRemoteSetup`; no `ModelDownloadGate` for this engine (`requiresDownload` is always false).
+Optional `onconfigure?: (id: string) => void`.
 
-[`registry.ts`](../src/lib/engines/registry.ts):
+For `option.id === 'remote'`, render a button **"Set up My PC"** / **"Change My PC server"**
+(stopPropagation so it does not select). Call `onconfigure('remote')`. Show even when the option
+is unavailable so first-time setup works.
+
+### `+page.svelte`
+
+- Pass `onconfigure` → `engines.openRemoteSetup()`.
+- In `handleEngineSelect`: if `id === 'remote'` and option unavailable → open setup instead of
+  no-op (belt and suspenders with the configure button).
+- Render `MyPcSetup` overlay when `engines.showRemoteSetup`.
+- No `ModelDownloadGate` for remote (`requiresDownload` is always false).
+- Soften capability notice fallback copy so it mentions My PC, not only WebGPU.
+
+### `registry.ts`
 
 ```ts
 {
   id: 'remote',
-  displayName: 'ComfyUI · Janus',
-  description: 'Real Janus via your local ComfyUI. You run the model.',
+  displayName: 'My PC',
+  description: 'Real Janus on your home GPU via JanusLink. You run the model.',
   requirements: { webgpu: false, approxDownloadMb: 0, minStorageBufferMb: 0, desktopOnly: false },
-  tier: 1, // same tier as in-browser Janus — also real Janus, also unified gen+critique
+  tier: 1, // same tier as in-browser Janus — real Janus, unified gen+critique
   create: async () => new (await import('./remote/remoteEngine')).RemoteEngine()
 }
 ```
 
-[`manager.ts`](../src/lib/engines/manager.ts): add `'remote'` to `isEngineId` and
-`readStoredEngineId` whitelists.
+### `manager.ts`
+
+Add `'remote'` to `isEngineId` and `readStoredEngineId` whitelists.
 
 ---
 
-## 8. Manual verification
+## 6. Manual verification
 
-With ComfyUI + Janus-Pro plugin running locally:
+With JanusLink running and the game origin allowlisted:
 
-1. Open engine menu → **ComfyUI · Janus** → Set up ComfyUI.
-2. Test connection → Connect.
-3. Complete one commission: 384×384 image, critique prose that reflects the picture (not mock
-   templates), `playerPrompt` unchanged in results UI.
-4. Stop ComfyUI, start a commission, confirm fallback to mock without a dead-end.
-5. Record wall-clock generate time, critique time, plugin version, and model size in handoff.
+1. Engine menu → **My PC** → Set up My PC.
+2. Paste Tailscale URL + API key → Test → Connect.
+3. Complete one commission: real image, critique prose that reflects the picture, `playerPrompt`
+   unchanged in results UI.
+4. Stop JanusLink / use a wrong key → start a commission → confirm fallback to mock, no dead-end.
+5. Record wall-clock generate/critique times and JanusLink version in the handoff.
 
 ---
 
-## 9. Definition of done
+## 7. Definition of done
 
-- [ ] Workflow JSON files exist under `static/comfyui/` and were verified against a real ComfyUI +
-      Janus plugin install.
-- [ ] `RemoteEngine` generates 384×384 art and critiques via ComfyUI — no `MockEngine` compose.
+- [ ] `RemoteEngine` generates and critiques via JanusLink HTTP — no `MockEngine` compose for the
+      happy path.
 - [ ] `playerPrompt` never equals built `prompt` in returned `Artwork`.
-- [ ] CORS / reachability errors are player-safe and mention both causes.
-- [ ] No test hits the network; fakes inject all ComfyUI calls.
-- [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green.
+- [ ] No `+server.ts` / `$lib/server` added to this game.
+- [ ] CORS / reachability errors are player-safe and mention `JANUS_ALLOWED_ORIGINS`.
+- [ ] No test hits the real network; fakes inject all HTTP.
+- [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
 - [ ] `src/lib/engines/remote/README.md` with full player setup guide.
-- [ ] Handoff entry in `docs/agent-log.md` with plugin name, timings, workflow node ids.
+- [ ] Handoff entry in `docs/agent-log.md`.
 
 ---
 
-## 10. Later features (do not implement in spec 07)
+## 8. Later features (do not implement in spec 07)
 
-Stub task specs exist for each track — expand those before implementing:
+| Spec | Doc                                                | Notes                                                     |
+| ---- | -------------------------------------------------- | --------------------------------------------------------- |
+| 08   | [`08-local-providers.md`](./08-local-providers.md) | Ollama, LM Studio, ComfyUI+SD, A1111 — split gen/critique |
+| 09   | [`09-byo-api.md`](./09-byo-api.md)                 | OpenRouter, OpenAI — API key + two models                 |
+| 10   | [`10-adt-cloud.md`](./10-adt-cloud.md)             | Hosted service, credits, accounts                         |
+| 11   | [`11-bagel-sketch.md`](./11-bagel-sketch.md)       | Sketch → BAGEL edit + critique model                      |
 
-| Spec | Doc                                                | Notes                                                                      |
-| ---- | -------------------------------------------------- | -------------------------------------------------------------------------- |
-| 08   | [`08-local-providers.md`](./08-local-providers.md) | Ollama, LM Studio, ComfyUI+SD, A1111 — **generate model + critique model** |
-| 09   | [`09-byo-api.md`](./09-byo-api.md)                 | OpenRouter, OpenAI — API key + **two models**                              |
-| 10   | [`10-adt-cloud.md`](./10-adt-cloud.md)             | Your hosted service, credits, accounts                                     |
-| 11   | [`11-bagel-sketch.md`](./11-bagel-sketch.md)       | Sketch canvas → BAGEL edit + critique model                                |
-
-Spec 07 only needs greyed **"Coming soon"** labels in `ComfyUISetup` — no provider code yet.
+Greyed **"Coming soon"** labels in `MyPcSetup` only — no provider code yet.
 
 ---
 
 ## Files to create (summary)
 
-| File                                             | Contents                                 |
-| ------------------------------------------------ | ---------------------------------------- |
-| `static/comfyui/janus-generate.json`             | API prompt graph for Janus text-to-image |
-| `static/comfyui/janus-critique.json`             | API prompt graph for Janus image-to-text |
-| `src/lib/engines/remote/remoteConfig.ts`         | Zod config + localStorage                |
-| `src/lib/engines/remote/remoteConfig.test.ts`    |                                          |
-| `src/lib/engines/remote/comfyClient.ts`          | HTTP client                              |
-| `src/lib/engines/remote/comfyClient.test.ts`     |                                          |
-| `src/lib/engines/remote/workflowBuilder.ts`      | Template mutation                        |
-| `src/lib/engines/remote/workflowBuilder.test.ts` |                                          |
-| `src/lib/engines/remote/loadWorkflow.ts`         | Fetch static templates                   |
-| `src/lib/engines/remote/loadWorkflow.test.ts`    |                                          |
-| `src/lib/engines/remote/remoteEngine.ts`         | `ArtEngine`                              |
-| `src/lib/engines/remote/remoteEngine.test.ts`    |                                          |
-| `src/lib/engines/remote/workflows/README.md`     | Node ids, plugin version used            |
-| `src/lib/engines/remote/README.md`               | Player + dev guide                       |
-| `src/lib/components/ComfyUISetup.svelte`         | Setup dialog                             |
-| `src/lib/components/ComfyUISetup.svelte.test.ts` |                                          |
+| File                                             | Contents                    |
+| ------------------------------------------------ | --------------------------- |
+| `src/lib/engines/remote/remoteConfig.ts`         | Zod config + localStorage   |
+| `src/lib/engines/remote/remoteConfig.test.ts`    |                             |
+| `src/lib/engines/remote/janusLinkClient.ts`      | HTTP client + zod responses |
+| `src/lib/engines/remote/janusLinkClient.test.ts` |                             |
+| `src/lib/engines/remote/remoteEngine.ts`         | `ArtEngine`                 |
+| `src/lib/engines/remote/remoteEngine.test.ts`    |                             |
+| `src/lib/engines/remote/README.md`               | Player + dev guide          |
+| `src/lib/components/MyPcSetup.svelte`            | Setup dialog                |
+| `src/lib/components/MyPcSetup.svelte.test.ts`    |                             |

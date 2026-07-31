@@ -18,7 +18,9 @@ const STORAGE_KEY = 'adt.engine';
 const DOWNLOADED_KEY = 'adt.engine.downloaded';
 
 function isEngineId(value: unknown): value is EngineId {
-	return value === 'mock' || value === 'janus-webgpu' || value === 'sdturbo-webgpu';
+	return (
+		value === 'mock' || value === 'janus-webgpu' || value === 'sdturbo-webgpu' || value === 'remote'
+	);
 }
 
 export interface EngineManagerDeps {
@@ -240,7 +242,7 @@ export class EngineManager {
 	private readStoredEngineId(): EngineId | null {
 		try {
 			const stored = localStorage.getItem(STORAGE_KEY);
-			if (stored === 'mock' || stored === 'janus-webgpu' || stored === 'sdturbo-webgpu') {
+			if (isEngineId(stored)) {
 				return stored;
 			}
 		} catch {

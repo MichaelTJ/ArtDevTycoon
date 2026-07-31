@@ -1,5 +1,11 @@
 import { EngineManager } from '$lib/engines';
 import type { EngineDescriptor } from '$lib/engines/registry';
+import { createJanusLinkClient } from '$lib/engines/remote/janusLinkClient';
+import {
+	loadRemoteConfig,
+	remoteEngineConfigSchema,
+	saveRemoteConfig
+} from '$lib/engines/remote/remoteConfig';
 import type {
 	DeviceCapability,
 	EngineAvailability,
@@ -23,10 +29,16 @@ function toOption(entry: EngineDescriptor & { availability: EngineAvailability }
 
 const STORAGE_KEY = 'adt.engine';
 
+function isPersistedEngineId(value: string | null): value is EngineId {
+	return (
+		value === 'mock' || value === 'janus-webgpu' || value === 'sdturbo-webgpu' || value === 'remote'
+	);
+}
+
 function readStoredEngineId(): EngineId | null {
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored === 'mock' || stored === 'janus-webgpu' || stored === 'sdturbo-webgpu') {
+		if (isPersistedEngineId(stored)) {
 			return stored;
 		}
 	} catch {
@@ -45,6 +57,12 @@ export class EngineStore {
 	loadError = $state<string | null>(null);
 	noticeDismissed = $state(false);
 	switchingLocked = $state(false);
+
+	showRemoteSetup = $state(false);
+	remoteBaseUrl = $state('');
+	remoteApiKey = $state('');
+	remoteTestState = $state<'idle' | 'testing' | 'success' | 'error'>('idle');
+	remoteTestError = $state<string | null>(null);
 
 	readonly #manager: EngineManager;
 	#loadGeneration = 0;
@@ -134,6 +152,66 @@ export class EngineStore {
 
 	setSwitchingLocked(locked: boolean): void {
 		this.switchingLocked = locked;
+	}
+
+	openRemoteSetup(): void {
+		const existing = loadRemoteConfig();
+		if (existing) {
+			this.remoteBaseUrl = existing.baseUrl;
+			this.remoteApiKey = existing.apiKey;
+		}
+		this.remoteTestState = 'idle';
+		this.remoteTestError = null;
+		this.showRemoteSetup = true;
+	}
+
+	closeRemoteSetup(): void {
+		this.showRemoteSetup = false;
+		this.remoteTestState = 'idle';
+		this.remoteTestError = null;
+	}
+
+	async testRemoteConnection(): Promise<void> {
+		this.remoteTestState = 'testing';
+		this.remoteTestError = null;
+
+		const parsed = remoteEngineConfigSchema.safeParse({
+			baseUrl: this.remoteBaseUrl,
+			apiKey: this.remoteApiKey
+		});
+		if (!parsed.success) {
+			this.remoteTestState = 'error';
+			this.remoteTestError = 'Enter a valid Tailscale HTTPS URL and an API key (24+ characters).';
+			return;
+		}
+
+		const result = await createJanusLinkClient().testConnection(parsed.data);
+		if (!result.ok) {
+			this.remoteTestState = 'error';
+			this.remoteTestError = result.reason;
+			return;
+		}
+
+		this.remoteBaseUrl = parsed.data.baseUrl;
+		this.remoteApiKey = parsed.data.apiKey;
+		this.remoteTestState = 'success';
+		this.remoteTestError = null;
+	}
+
+	async connectRemote(): Promise<void> {
+		const parsed = remoteEngineConfigSchema.safeParse({
+			baseUrl: this.remoteBaseUrl,
+			apiKey: this.remoteApiKey
+		});
+		if (!parsed.success || this.remoteTestState !== 'success') {
+			this.remoteTestState = 'error';
+			this.remoteTestError = 'Test the connection successfully before connecting.';
+			return;
+		}
+
+		saveRemoteConfig(parsed.data);
+		this.showRemoteSetup = false;
+		await this.select('remote');
 	}
 
 	private syncFromManager(): void {

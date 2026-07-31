@@ -22,13 +22,12 @@ directly.
 
 ## Engine tiers
 
-| id               | tier | Download | WebGPU | Desktop only | Status                                       |
-| ---------------- | ---- | -------- | ------ | ------------ | -------------------------------------------- |
-| `mock`           | 0    | none     | no     | no           | **Complete** — procedural SVG + text scoring |
-| `janus-webgpu`   | 1    | ~1024 MB | yes    | no           | Stub — spec 05                               |
-| `sdturbo-webgpu` | 2    | ~1536 MB | yes    | yes          | Stub — spec 06                               |
-
-`remote` is reserved for a later phase and is not registered.
+| id               | tier | Download | WebGPU | Desktop only | Status                                                  |
+| ---------------- | ---- | -------- | ------ | ------------ | ------------------------------------------------------- |
+| `mock`           | 0    | none     | no     | no           | **Complete** — procedural SVG + text scoring            |
+| `janus-webgpu`   | 1    | ~1024 MB | yes    | no           | **Complete** — in-browser Janus (spec 05)               |
+| `remote`         | 1    | none     | no     | no           | **Complete** — JanusLink My PC over Tailscale (spec 07) |
+| `sdturbo-webgpu` | 2    | ~1536 MB | yes    | yes          | **Complete** — SD-Turbo + Janus critique (spec 06)      |
 
 ## Invariants
 
@@ -58,9 +57,7 @@ directly.
 
 ## Deliberately not done here
 
-- Janus and SD-Turbo workers (specs 05 and 06 replace the stubs wholesale).
-- Game state wiring (spec 04 `EngineStore`).
-- Remote/user-supplied API tier.
+- Additional local/cloud providers (specs 08–11): Ollama, OpenRouter, ADT Cloud, BAGEL.
 
 ## Tests
 
