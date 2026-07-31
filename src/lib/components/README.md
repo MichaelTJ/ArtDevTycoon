@@ -16,6 +16,7 @@ Import everything from `$lib/components` (barrel `index.ts`):
 | `HudBar`               | `cash`, `levelName`, `commissionsCompleted`, `targetCommissions`, `targetCash`, `variant?` (`default`/`compact`) | —                                                                             |
 | `ClientCard`           | `brief: ClientBrief` (shows `ClientTierBadge`)                                                                   | —                                                                             |
 | `ClientTierBadge`      | `tier: ClientTier`                                                                                               | —                                                                             |
+| `AbstractBriefHint`    | `abstractness: AbstractnessLevel` (renders nothing when `0`)                                                     | —                                                                             |
 | `PromptComposer`       | `value?` (bindable), `disabled?`, `maxLength?`                                                                   | `onsubmit(prompt)`                                                            |
 | `GeneratingPanel`      | `messages?`, `intervalMs?`, `progress?`, `stageLabel?`                                                           | —                                                                             |
 | `ArtworkFrame`         | `imageUrl`, `title`, `alt`, `size?` (`thumb`/`full`)                                                             | —                                                                             |
@@ -86,6 +87,7 @@ snapshot fields into this component. Spec 04 may wire this alongside the main ga
 - Interactive elements are real `<button>`/`<input>`/`<progress>` with accessible names.
 - Tap targets are at least 44×44 px (`min-h-11` on primary actions).
 - `ClientCard` never renders `preferredKeywords` — those are the critic's private rubric.
+- `AbstractBriefHint` never leaks interpretation clusters; it only shows band-1/2 coaching copy.
 - `ModelDownloadGate` prop `state` is renamed internally to `gateState` to avoid clashing
   with the `$state` rune.
 

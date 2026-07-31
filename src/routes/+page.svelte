@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+		AbstractBriefHint,
 		ArtworkFrame,
 		ArtworkFullView,
 		AuctionResultPanel,
@@ -195,6 +196,9 @@
 					{:else if game.phase === 'briefing'}
 						{#if game.currentClient}
 							<ClientCard brief={game.currentClient} />
+							{#if (game.currentClient.abstractness ?? 0) >= 1}
+								<AbstractBriefHint abstractness={game.currentClient.abstractness ?? 0} />
+							{/if}
 						{/if}
 						<PromptComposer bind:value={game.draftPrompt} onsubmit={() => game.createArt()} />
 					{:else if game.phase === 'generating'}

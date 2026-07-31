@@ -673,7 +673,7 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - Inherited Prettier failure: `src/lib/data/README.md` only.
 - Inherited intermittent client-test timeouts under full-suite load (same class noted by specs 13–15).
 
-## 2026-08-01 ? Spec 18a ? abstract prompts domain
+## 2026-08-01 — Spec 18a — abstract prompts domain
 
 **Zone:** `src/lib/data/kitchenBriefs*`, `src/lib/data/briefs*`, `src/lib/game/abstractCritique*`, `src/lib/game/scoring*`, `src/lib/game/index.ts`, `src/lib/game/README.md`, `src/lib/data/README.md`, `src/lib/engines/critiqueProtocol*`, `src/lib/engines/mock/mockEngine*`, `src/lib/engines/janus/janusEngine*`, `src/lib/engines/README.md`, `src/lib/stores/gameState.svelte*`, `docs/agent-log.md`
 
@@ -692,13 +692,34 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Decisions:**
 
 - Spec table listed ratio 0.75 for `a faded sepia photograph in a family album`, but that prompt hits all four `nostalgia-photo` keywords so the algorithm yields 1.0 / accuracy 10. Kept algorithmic truth for that prompt; added `a faded sepia photograph of relatives` (3/4) to cover the 0.75 -> accuracy 8 ladder.
-- `remoteEngine.ts` is absent from this worktree ? skipped (note below).
+- `remoteEngine.ts` is absent from this worktree — skipped (note below).
 - Prestige `inviteClient` test sets `lifetimeCommissions: 4` so the opener guarantee does not block corporate/billionaire/auction draws.
 
 **Requests:** None (no new deps). Orchestrator may format the 10 out-of-zone Prettier offenders so `npm run lint` is green.
 
 **Known gaps:**
 
-- `src/lib/engines/remote/remoteEngine.ts` missing ? not wired; apply the same `critiqueTargetsForBrief` swap when that file exists.
+- `src/lib/engines/remote/remoteEngine.ts` missing — not wired; apply the same `critiqueTargetsForBrief` swap when that file exists.
 - Section 8 `AbstractBriefHint` UI and section 9 architecture blurb intentionally skipped (other agents).
 - Prettier failures outside zone: `docs/tasks/18-abstract-prompts.md`, `docs/tasks/README.md`, `durableImage.test.ts`, `modifier-explorer/**`, `src/routes/modifier-explorer/+page.svelte`.
+
+---
+
+## 2026-08-01 — Spec 18b — abstract prompts UI
+
+**Zone:** `src/lib/components/AbstractBriefHint.svelte*`, `src/lib/components/index.ts`, `src/lib/components/README.md`, `src/routes/+page.svelte`, `docs/architecture.md` (§9 blurb only), `docs/agent-log.md`
+
+**Built:** Presentational `AbstractBriefHint` shown during briefing when `currentClient.abstractness >= 1`, with exact band-1 / band-2 coaching copy from spec 18 §8. Band 0 renders nothing. Architecture §1 gains the exact spec §9 abstractness paragraph.
+
+**Public surface:**
+
+- `$lib/components` — `AbstractBriefHint` (`abstractness: AbstractnessLevel`)
+- Mounted in `+page.svelte` briefing workspace (between `ClientCard` and `PromptComposer`); `StudioHudOverlay` is absent in this worktree
+
+**Tests:** `AbstractBriefHint.svelte.test.ts` — band 2 / band 1 copy visible, band 0 empty (3/3). `npm run check` 0 errors/warnings. Owned files ESLint + Prettier clean. Full `npm run test:unit -- --run`: 63 files / 378 tests passed.
+
+**Decisions:** Mounted in `+page.svelte` because `StudioHudOverlay.svelte` does not exist here; parent still gates with `(abstractness ?? 0) >= 1` and passes `currentClient.abstractness ?? 0`.
+
+**Requests:** None from this slice.
+
+**Known gaps:** Domain / engine / `pickBrief` wiring for abstract briefs is owned by other Spec 18 waves — this slice is UI + architecture blurb only. Inherited `npm run lint` Prettier failures outside zone (`docs/tasks/**`, `modifier-explorer/**`, `durableImage.test.ts`, `gameState.svelte.test.ts`) — not fixed per ownership.
