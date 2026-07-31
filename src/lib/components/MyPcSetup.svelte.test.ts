@@ -94,3 +94,19 @@ test('Refresh models fires callback', async () => {
 	await screen.getByRole('button', { name: 'Refresh models' }).click();
 	expect(onrefreshmodels).toHaveBeenCalledOnce();
 });
+
+test('openrouter shows API key warning; Coming soon omits cloud vendors', async () => {
+	const screen = render(MyPcSetup, {
+		...baseProps,
+		provider: 'openrouter',
+		baseUrl: 'https://openrouter.ai/api/v1',
+		apiKey: 'test-key-not-real-00000000',
+		generateModel: 'flux',
+		critiqueModel: 'gpt-4o'
+	});
+	await expect.element(screen.getByText(/stored in this browser's localStorage/i)).toBeVisible();
+	const comingSoon = screen.getByText('Coming soon').element().parentElement;
+	expect(comingSoon?.textContent ?? '').toMatch(/ComfyUI/);
+	expect(comingSoon?.textContent ?? '').not.toMatch(/OpenRouter/);
+	expect(comingSoon?.textContent ?? '').not.toMatch(/OpenAI/);
+});

@@ -41,7 +41,7 @@ export class RemoteEngine implements ArtEngine {
 	readonly id = 'remote' as const;
 	readonly displayName = 'My PC';
 	readonly description =
-		'Your GPU or local AI server (JanusLink, Ollama, LM Studio, Automatic1111). No browser download.';
+		'Your GPU, local server, or cloud key (JanusLink, Ollama, LM Studio, A1111, OpenRouter, OpenAI).';
 	readonly requirements = {
 		webgpu: false,
 		approxDownloadMb: 0,
