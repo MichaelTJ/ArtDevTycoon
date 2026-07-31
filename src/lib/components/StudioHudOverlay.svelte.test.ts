@@ -61,7 +61,7 @@ test('briefing shows prompt composer', async () => {
 		currentClient: LEVEL_1_BRIEFS[0]
 	});
 	await expect.element(screen.getByLabelText('Your prompt')).toBeVisible();
-	await expect.element(screen.getByText('Local Cafe Owner')).toBeVisible();
+	await expect.element(screen.getByText('Mum')).toBeVisible();
 });
 
 test('studioDebug talk button appears when client is summoned', async () => {

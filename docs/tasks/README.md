@@ -27,16 +27,20 @@ picks one.
 | 06  | [SD-Turbo engine](./06-sdturbo-engine.md)           | `src/lib/engines/sdturbo/**`                                                           | 02, 05     |
 | 07  | [JanusLink My PC remote engine](./07-api-engine.md) | `src/lib/engines/remote/**`, `MyPcSetup.svelte`, plus registry, manager, store, picker | 02, 03, 04 |
 
-### Future specs (stubs — not ready to implement)
+### Provider specs (08–09 — ready to implement)
 
-These are placeholders. A fuller spec will replace each file before an agent runs it. All
-multi-provider paths assume **two model fields**: **generation model** + **critique model**
-(spec 07 uses one Janus model for both via ComfyUI).
+Multi-provider paths use **two model fields** where needed: **generation model** +
+**critique model**. Spec 07's JanusLink path still uses one model for both.
+
+| #   | Spec                                       | Owns (extends remote)                                | Depends on |
+| --- | ------------------------------------------ | ---------------------------------------------------- | ---------- |
+| 08  | [Local providers](./08-local-providers.md) | `remote/providers/**` (ollama, lmstudio, a1111), config union, MyPcSetup | 07 |
+| 09  | [BYO API](./09-byo-api.md)                 | openrouter + openai clients, cloud config arms, MyPcSetup tabs | 08 |
+
+### Future specs (stubs — not ready to implement)
 
 | #   | Stub                                       | Topic                                                |
 | --- | ------------------------------------------ | ---------------------------------------------------- |
-| 08  | [Local providers](./08-local-providers.md) | Ollama, LM Studio, ComfyUI+SD, A1111 — split models  |
-| 09  | [BYO API](./09-byo-api.md)                 | OpenRouter, OpenAI — API key + split models          |
 | 10  | [ADT Cloud](./10-adt-cloud.md)             | Hosted service, accounts, credits                    |
 | 11  | [BAGEL sketch](./11-bagel-sketch.md)       | Draw sketch → BAGEL refine + separate critique model |
 
@@ -59,6 +63,12 @@ Wave 4  (optional, after 05 is merged)
 
 Wave 5  (optional, any time after wave 3 — no dependency on 05 or 06)
    └── 07 JanusLink My PC  → worktree ../adt-wt-remote    branch agent/remote
+
+Wave G  (after 07 — local split-model providers; exclusive remote zone)
+   └── 08 Local providers  → worktree ../adt-wt-local-providers  branch agent/local-providers
+
+Wave H  (after 08 is merged — cloud BYO keys; same remote zone, do not overlap G)
+   └── 09 BYO API          → worktree ../adt-wt-byo-api           branch agent/byo-api
 ```
 
 Spec 07 connects to **Janus-Pro on the player's home GPU via JanusLink**
@@ -68,6 +78,10 @@ merged, but it does need the engine manager (02) and picker UI (03, 04). Do not 
 concurrently with another agent touching `src/lib/engines/registry.ts`,
 `src/lib/engines/manager.ts`, `src/lib/stores/engineStore.svelte.ts`, or
 `src/lib/components/EnginePicker.svelte`.
+
+Specs **08 and 09 MUST run sequentially**. Both own `remoteConfig`, `MyPcSetup`,
+`engineStore` remote fields, and `getRemoteProviderClient`. Merge 08 and refresh the 09
+worktree from `main` before starting 09.
 
 The waves are ordered so the game is **playable and shippable at the end of wave 3**,
 on the mock engine, with real AI arriving as an enhancement rather than a prerequisite.
