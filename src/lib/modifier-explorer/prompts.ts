@@ -1,5 +1,12 @@
 import { AXIS_LEVEL_LABELS } from './types';
-import type { AxisFacet, AxisLevel, ExplorerPromptCase, FlavorFacet, ModifierCategory, PromptFacets } from './types';
+import type {
+	AxisFacet,
+	AxisLevel,
+	ExplorerPromptCase,
+	FlavorFacet,
+	ModifierCategory,
+	PromptFacets
+} from './types';
 
 /**
  * Good prompts follow a set order: art style → main subject → lighting → fine details →
@@ -60,18 +67,43 @@ const SUBJECT_OPTIONS: readonly SubjectOption[] = [
 	{ key: 'owl', label: 'perched owl', phrase: 'an owl perched quietly on a branch', level: 3 },
 	{ key: 'reader', label: 'seated reader', phrase: 'an elderly man sitting and reading', level: 3 },
 	{ key: 'fox', label: 'resting fox', phrase: 'a red fox resting in tall grass', level: 3 },
-	{ key: 'violinist', label: 'seated violinist', phrase: 'a violinist sitting quietly with her instrument', level: 3 },
-	{ key: 'knightstand', label: 'standing knight', phrase: 'a knight standing at ease in ornate armor', level: 3 },
+	{
+		key: 'violinist',
+		label: 'seated violinist',
+		phrase: 'a violinist sitting quietly with her instrument',
+		level: 3
+	},
+	{
+		key: 'knightstand',
+		label: 'standing knight',
+		phrase: 'a knight standing at ease in ornate armor',
+		level: 3
+	},
 	// 4 · Advanced — a clear pose or interaction between two elements.
 	{ key: 'dogcatch', label: 'leaping dog', phrase: 'a dog leaping to catch a ball', level: 4 },
 	{ key: 'handshake', label: 'handshake', phrase: 'two business partners shaking hands', level: 4 },
-	{ key: 'horsetrot', label: 'trotting horse', phrase: 'a horse trotting across a field', level: 4 },
+	{
+		key: 'horsetrot',
+		label: 'trotting horse',
+		phrase: 'a horse trotting across a field',
+		level: 4
+	},
 	{ key: 'climber', label: 'rock climber', phrase: 'a rock climber reaching for a hold', level: 4 },
 	// 5 · Expert — complex dynamic action, foreshortening, multiple figures.
 	{ key: 'flyingkick', label: 'flying kick', phrase: 'a martial artist mid flying-kick', level: 5 },
 	{ key: 'balletleap', label: 'ballet leap', phrase: 'a ballet dancer leaping mid-air', level: 5 },
-	{ key: 'marathon', label: 'marathon crowd', phrase: 'a dense crowd of marathon runners sprinting', level: 5 },
-	{ key: 'swordfight', label: 'sword fight', phrase: 'two knights clashing swords in mid-battle', level: 5 }
+	{
+		key: 'marathon',
+		label: 'marathon crowd',
+		phrase: 'a dense crowd of marathon runners sprinting',
+		level: 5
+	},
+	{
+		key: 'swordfight',
+		label: 'sword fight',
+		phrase: 'two knights clashing swords in mid-battle',
+		level: 5
+	}
 ];
 
 interface LightingOption {
@@ -90,17 +122,29 @@ const LIGHTING_OPTIONS: readonly LightingOption[] = [
 	{ key: 'desklamp', label: 'a single desk lamp casting a soft shadow', level: 2 },
 	{ key: 'overcastlight', label: 'soft overcast daylight', level: 2 },
 	// 3 · Intermediate — clear direction, real highlight/shadow shaping.
-	{ key: 'keylight', label: 'directional key lighting with defined highlights and shadows', level: 3 },
+	{
+		key: 'keylight',
+		label: 'directional key lighting with defined highlights and shadows',
+		level: 3
+	},
 	{ key: 'threequarter', label: 'three-quarter side lighting', level: 3 },
 	{ key: 'goldenhour', label: 'warm golden hour side light', level: 3 },
 	// 4 · Advanced — multiple sources, color temperature contrast.
-	{ key: 'keyrimcontrast', label: 'a warm key light and cool rim light in color contrast', level: 4 },
+	{
+		key: 'keyrimcontrast',
+		label: 'a warm key light and cool rim light in color contrast',
+		level: 4
+	},
 	{ key: 'practicalmix', label: 'mixed practical lights in warm and cool tones', level: 4 },
 	{ key: 'neonmix', label: 'neon signage lighting with contrasting color casts', level: 4 },
 	// 5 · Expert — full cinematic control, dramatic falloff.
 	{ key: 'chiaroscuro', label: 'dramatic chiaroscuro lighting with deep shadow falloff', level: 5 },
 	{ key: 'godrays', label: 'cinematic volumetric god rays piercing the shadows', level: 5 },
-	{ key: 'multisource', label: 'complex multi-source cinematic lighting with rich falloff', level: 5 }
+	{
+		key: 'multisource',
+		label: 'complex multi-source cinematic lighting with rich falloff',
+		level: 5
+	}
 ];
 
 interface DetailOption {
@@ -123,12 +167,28 @@ const DETAIL_OPTIONS: readonly DetailOption[] = [
 	{ key: 'simpletexture', label: 'simple surface texture and gentle shading', level: 3 },
 	{ key: 'softgradient', label: 'smooth, soft-edged shading gradients', level: 3 },
 	// 4 · Advanced — real material texture, subtle imperfection.
-	{ key: 'finetexture', label: 'fine surface texture like fabric weave and subtle imperfections', level: 4 },
-	{ key: 'brushtexture', label: 'detailed material texture with visible brush or grain marks', level: 4 },
+	{
+		key: 'finetexture',
+		label: 'fine surface texture like fabric weave and subtle imperfections',
+		level: 4
+	},
+	{
+		key: 'brushtexture',
+		label: 'detailed material texture with visible brush or grain marks',
+		level: 4
+	},
 	{ key: 'layeredtexture', label: 'layered texture with subtle surface variation', level: 4 },
 	// 5 · Expert — micro-detail, photographic fidelity.
-	{ key: 'hyperdetail', label: 'hyper-detailed 8K micro-texture with individual pores and hairs', level: 5 },
-	{ key: 'subsurface', label: 'photorealistic micro-detail including subsurface scattering', level: 5 },
+	{
+		key: 'hyperdetail',
+		label: 'hyper-detailed 8K micro-texture with individual pores and hairs',
+		level: 5
+	},
+	{
+		key: 'subsurface',
+		label: 'photorealistic micro-detail including subsurface scattering',
+		level: 5
+	},
 	{ key: 'ultradetail', label: 'ultra-fine detail with razor-sharp micro-textures', level: 5 }
 ];
 
@@ -296,7 +356,8 @@ function buildAxisSweep(
 	category: ModifierCategory,
 	axis: 'style' | 'lighting' | 'detail'
 ): ExplorerPromptCase[] {
-	const options = axis === 'style' ? STYLE_OPTIONS : axis === 'lighting' ? LIGHTING_OPTIONS : DETAIL_OPTIONS;
+	const options =
+		axis === 'style' ? STYLE_OPTIONS : axis === 'lighting' ? LIGHTING_OPTIONS : DETAIL_OPTIONS;
 	const cases: ExplorerPromptCase[] = [];
 	let cursor = 0;
 
@@ -304,11 +365,18 @@ function buildAxisSweep(
 		// Repeat each option across a handful of baseline subjects for variety.
 		for (let s = 0; s < 4; s += 1) {
 			const subject = pickRoundRobin(BASELINE_SUBJECTS, cursor + s);
-			const style = axis === 'style' ? (option as StyleOption) : pickRoundRobin(byLevel(STYLE_OPTIONS, 3), cursor + s);
+			const style =
+				axis === 'style'
+					? (option as StyleOption)
+					: pickRoundRobin(byLevel(STYLE_OPTIONS, 3), cursor + s);
 			const lighting =
-				axis === 'lighting' ? (option as LightingOption) : pickRoundRobin(byLevel(LIGHTING_OPTIONS, 3), cursor + s + 1);
+				axis === 'lighting'
+					? (option as LightingOption)
+					: pickRoundRobin(byLevel(LIGHTING_OPTIONS, 3), cursor + s + 1);
 			const detail =
-				axis === 'detail' ? (option as DetailOption) : pickRoundRobin(byLevel(DETAIL_OPTIONS, 3), cursor + s + 2);
+				axis === 'detail'
+					? (option as DetailOption)
+					: pickRoundRobin(byLevel(DETAIL_OPTIONS, 3), cursor + s + 2);
 			const mood = pickRoundRobin(MOOD_OPTIONS, cursor + s);
 			const { prompt, facets } = buildPrompt(style, subject, lighting, detail, mood);
 			cases.push(
@@ -368,7 +436,11 @@ function buildSubjectSweep(usedIds: Set<string>): ExplorerPromptCase[] {
  * offset per-axis so dimensions don't lock-step. This is the "wide variety of combinations
  * and prompt arrangements" sweep, built from the same leveled vocabularies.
  */
-function buildFormulaMix(usedIds: Set<string>, count: number, withTech: boolean): ExplorerPromptCase[] {
+function buildFormulaMix(
+	usedIds: Set<string>,
+	count: number,
+	withTech: boolean
+): ExplorerPromptCase[] {
 	const cases: ExplorerPromptCase[] = [];
 	for (let i = 0; i < count; i += 1) {
 		const style = pickRoundRobin(STYLE_OPTIONS, i);

@@ -23,7 +23,7 @@ This spec makes the **spaces** feel like a tycoon ladder:
 4. **Non-Mum clients still come and go** through the door once the brief is not Mum,
    while Mum (when present) keeps pacing in the background.
 
-Presentation only. Scoring, briefs, engines, and venue unlock *economy* stay where they
+Presentation only. Scoring, briefs, engines, and venue unlock _economy_ stay where they
 are (specs 14 / 18). This spec owns the Phaser layouts and the resident-NPC client flow.
 
 ---
@@ -70,13 +70,13 @@ detects residency with `clientName === 'Mum'` (case-sensitive).
 
 ## 1. Venue → room mapping
 
-| Venue id (`unlockedVenueId`) | Room id         | Size (tiles W×H) | Texture read                         | Layout shape                                      |
-| ---------------------------- | --------------- | ---------------- | ------------------------------------ | ------------------------------------------------- |
-| `fridge`                     | `home-kitchen`  | **6×6**          | Warm wood + kitchen floor            | Single tiny room; Mum resident; fridge magnets    |
-| `garage`                     | `art-room`      | 12×10            | Cool concrete + darker walls         | Single room; workbench; wall easels               |
-| `storefront`                 | `studio`        | 18×12            | Polished wood + carpet strip         | Two zones: **work** (W) + **window display** (E)  |
-| `gallery-hall`               | `gallery`       | 22×14            | Light museum stone + white walls     | Two zones: **atelier** + **show gallery**         |
-| `mega-museum`                | `gallery`\*     | 28×16            | Same museum palette, richer props    | Three zones: atelier + gallery + foyer            |
+| Venue id (`unlockedVenueId`) | Room id        | Size (tiles W×H) | Texture read                      | Layout shape                                     |
+| ---------------------------- | -------------- | ---------------- | --------------------------------- | ------------------------------------------------ |
+| `fridge`                     | `home-kitchen` | **6×6**          | Warm wood + kitchen floor         | Single tiny room; Mum resident; fridge magnets   |
+| `garage`                     | `art-room`     | 12×10            | Cool concrete + darker walls      | Single room; workbench; wall easels              |
+| `storefront`                 | `studio`       | 18×12            | Polished wood + carpet strip      | Two zones: **work** (W) + **window display** (E) |
+| `gallery-hall`               | `gallery`      | 22×14            | Light museum stone + white walls  | Two zones: **atelier** + **show gallery**        |
+| `mega-museum`                | `gallery`\*    | 28×16            | Same museum palette, richer props | Three zones: atelier + gallery + foyer           |
 
 \*Mega-museum reuses `RoomId` `'gallery'` with a separate builder keyed by venue
 (`buildGalleryHall()` vs `buildMegaMuseum()`), exposed through `getRoomForVenue(venueId)`.
@@ -197,13 +197,13 @@ under desk/work cells `(2..3, 3..4)`, `TILE.wall` on wall ring.
 
 `rooms.test.ts` **MUST** assert:
 
-| Assertion                                                         | Expected |
-| ----------------------------------------------------------------- | -------- |
-| `ROOMS['home-kitchen'].width` / `.height`                         | `6`/`6`  |
-| `collision.length` and `ground.length`                            | `36`     |
-| `markerWalkable` for door, clientWait, desk, playerSpawn, patrol  | `true`   |
-| `residents[0].clientName`                                         | `'Mum'`  |
-| `zones`                                                           | `[]`     |
+| Assertion                                                        | Expected |
+| ---------------------------------------------------------------- | -------- |
+| `ROOMS['home-kitchen'].width` / `.height`                        | `6`/`6`  |
+| `collision.length` and `ground.length`                           | `36`     |
+| `markerWalkable` for door, clientWait, desk, playerSpawn, patrol | `true`   |
+| `residents[0].clientName`                                        | `'Mum'`  |
+| `zones`                                                          | `[]`     |
 
 ### 2.2 Higher venues — required shape, not pixel-perfect art
 
@@ -222,13 +222,13 @@ Each builder (`buildGarage`, `buildStorefront`, `buildGalleryHall`, `buildMegaMu
 
 Tests (literal):
 
-| Room            | width×height | palette       | `zones.length` | `residents.length` |
-| --------------- | ------------ | ------------- | -------------- | ------------------ |
-| home-kitchen    | 6×6          | `kitchen`     | 0              | 1                  |
-| art-room        | 12×10        | `garage`      | 0              | 0                  |
-| studio          | 18×12        | `storefront`  | ≥2             | 0                  |
-| gallery (hall)  | 22×14        | `museum`      | ≥2             | 0                  |
-| mega (whatever) | 28×16        | `museum`      | ≥3             | 0                  |
+| Room            | width×height | palette      | `zones.length` | `residents.length` |
+| --------------- | ------------ | ------------ | -------------- | ------------------ |
+| home-kitchen    | 6×6          | `kitchen`    | 0              | 1                  |
+| art-room        | 12×10        | `garage`     | 0              | 0                  |
+| studio          | 18×12        | `storefront` | ≥2             | 0                  |
+| gallery (hall)  | 22×14        | `museum`     | ≥2             | 0                  |
+| mega (whatever) | 28×16        | `museum`     | ≥3             | 0                  |
 
 ### 2.3 Extra tile indices (`config.ts`)
 
@@ -281,10 +281,10 @@ snapshot.
 Keep `summon-client` / `dismiss-client`. Semantics change **inside Phaser**, not the
 wire names:
 
-| Command           | Kitchen (`home-kitchen` with Mum)                                                                 | Higher venues                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `summon-client`   | Do **not** spawn a door visitor. Set internal armed flag / rely on snapshot `residentClientArmed` so Mum becomes the talk target. | Existing door → wait walk-in.                      |
-| `dismiss-client`  | If active client was Mum (or no door visitor exists): clear armed/commission highlight only; **Mum sprite stays**. If a door visitor exists: walk them out and destroy as today. | Existing walk-out.                                 |
+| Command          | Kitchen (`home-kitchen` with Mum)                                                                                                                                                | Higher venues                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `summon-client`  | Do **not** spawn a door visitor. Set internal armed flag / rely on snapshot `residentClientArmed` so Mum becomes the talk target.                                                | Existing door → wait walk-in. |
+| `dismiss-client` | If active client was Mum (or no door visitor exists): clear armed/commission highlight only; **Mum sprite stays**. If a door visitor exists: walk them out and destroy as today. | Existing walk-out.            |
 
 ### 3.3 Outbound events
 
@@ -308,10 +308,7 @@ export interface WanderState {
 }
 
 /** Advance to the next patrol index (wrap). */
-export function nextWanderTarget(
-	patrol: readonly TileMarker[],
-	currentIndex: number
-): WanderState;
+export function nextWanderTarget(patrol: readonly TileMarker[], currentIndex: number): WanderState;
 
 /**
  * Pixel step toward target. Returns new position and whether the target tile center
@@ -330,11 +327,11 @@ export function stepToward(
 
 Tests (literal):
 
-| Call                                                                 | Expect                                                |
-| -------------------------------------------------------------------- | ----------------------------------------------------- |
-| `nextWanderTarget([{tx:0,ty:0},{tx:1,ty:0}], 0).waypointIndex`       | `1`                                                   |
-| `nextWanderTarget([{tx:0,ty:0},{tx:1,ty:0}], 1).waypointIndex`       | `0`                                                   |
-| `stepToward(8, 8, {tx:1,ty:0}, 80, 1, 16)` from tile0 center→tile1  | `arrived === true` after enough steps; never NaN      |
+| Call                                                               | Expect                                           |
+| ------------------------------------------------------------------ | ------------------------------------------------ |
+| `nextWanderTarget([{tx:0,ty:0},{tx:1,ty:0}], 0).waypointIndex`     | `1`                                              |
+| `nextWanderTarget([{tx:0,ty:0},{tx:1,ty:0}], 1).waypointIndex`     | `0`                                              |
+| `stepToward(8, 8, {tx:1,ty:0}, 80, 1, 16)` from tile0 center→tile1 | `arrived === true` after enough steps; never NaN |
 
 Mum speed: use `CLIENT_SPEED` (60). Pause `200–600ms` at each waypoint (Phaser-side
 timer; not required in the pure helper).
@@ -426,12 +423,12 @@ For a 6×6 room, never produce `tx >= 6`.
 
 Minimum viable “more interactions” for bigger spaces (do not build a full quest system):
 
-| Zone / prop        | Interact                         | Emit / behaviour                                      |
-| ------------------ | -------------------------------- | ----------------------------------------------------- |
-| Desk (all rooms)   | E — already                     | `interact-desk` (existing; may no-op in HUD)          |
-| Gallery piece      | E — already                     | `open-gallery-entry`                                  |
-| Window zone sign   | E when in range (storefront+)   | `emit({ type: 'interact-desk' })` **or** no-op with “E — Look” prompt only — prefer showing the prompt and emitting `open-gallery-entry` for the first displayed entry if any |
-| Foyer mat (museum) | walk across                     | no emit; flavour only                                 |
+| Zone / prop        | Interact                      | Emit / behaviour                                                                                                                                                              |
+| ------------------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desk (all rooms)   | E — already                   | `interact-desk` (existing; may no-op in HUD)                                                                                                                                  |
+| Gallery piece      | E — already                   | `open-gallery-entry`                                                                                                                                                          |
+| Window zone sign   | E when in range (storefront+) | `emit({ type: 'interact-desk' })` **or** no-op with “E — Look” prompt only — prefer showing the prompt and emitting `open-gallery-entry` for the first displayed entry if any |
+| Foyer mat (museum) | walk across                   | no emit; flavour only                                                                                                                                                         |
 
 Add **one** new optional outbound event only if needed:
 

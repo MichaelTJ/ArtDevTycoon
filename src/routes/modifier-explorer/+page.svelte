@@ -143,10 +143,7 @@
 				entry.engineId === updated.engineId && entry.caseId === updated.caseId ? updated : entry
 			)
 		};
-		if (
-			selectedResult?.engineId === updated.engineId &&
-			selectedResult.caseId === updated.caseId
-		) {
+		if (selectedResult?.engineId === updated.engineId && selectedResult.caseId === updated.caseId) {
 			selectedResult = updated;
 		}
 	}
@@ -323,9 +320,9 @@
 			<h1>Modifier Explorer</h1>
 			<p class="explorer__lede">
 				Batch-generate ~{EXPLORER_CASE_COUNT} curated prompts per engine, following the formula
-				<em>style → subject → lighting → detail → mood</em>. Each of the first four axes runs
-				novice → expert (1→5), so you can compare "beginner through to expert" on exactly one
-				dimension at a time. Images save to <code>data/modifier-explorer/</code> on disk during
+				<em>style → subject → lighting → detail → mood</em>. Each of the first four axes runs novice
+				→ expert (1→5), so you can compare "beginner through to expert" on exactly one dimension at
+				a time. Images save to <code>data/modifier-explorer/</code> on disk during
 				<code>npm run dev</code>.
 			</p>
 		</div>
@@ -534,10 +531,7 @@
 
 			<label>
 				Category
-				<select
-					bind:value={browse.category}
-					onchange={() => (activePresetId = null)}
-				>
+				<select bind:value={browse.category} onchange={() => (activePresetId = null)}>
 					<option value="all">All categories</option>
 					{#each Object.entries(EXPLORER_CATEGORY_LABELS) as [key, label] (key)}
 						<option value={key}>{label}</option>
@@ -643,8 +637,8 @@
 			<p class="explorer__empty">
 				{#if manifest.results.length === 0}
 					No images yet. Start a batch run above — each engine generates ~{EXPLORER_CASE_COUNT} samples
-					sweeping style, subject, lighting, and detail from novice to expert, plus full-mix
-					combinations with technical camera cues.
+					sweeping style, subject, lighting, and detail from novice to expert, plus full-mix combinations
+					with technical camera cues.
 				{:else}
 					No images match these filters. Try a preset, clear filters, or search a different keyword.
 				{/if}

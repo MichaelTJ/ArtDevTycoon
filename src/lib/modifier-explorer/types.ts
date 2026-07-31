@@ -57,12 +57,7 @@ export interface PromptFacets {
 }
 
 export type ModifierCategory =
-	| 'axis-style'
-	| 'axis-subject'
-	| 'axis-lighting'
-	| 'axis-detail'
-	| 'formula-mix'
-	| 'formula-tech';
+	'axis-style' | 'axis-subject' | 'axis-lighting' | 'axis-detail' | 'formula-mix' | 'formula-tech';
 
 export interface ExplorerPromptCase {
 	id: string;

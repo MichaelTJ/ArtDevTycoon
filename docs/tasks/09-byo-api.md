@@ -49,10 +49,10 @@ Let the player paste their own **cloud API key** and run generate + critique fro
 - **Generation model** id
 - **Critique model** id (vision-capable chat)
 
-| Provider     | Default baseUrl                   | List models        | Generate                 | Critique                |
-| ------------ | --------------------------------- | ------------------ | ------------------------ | ----------------------- |
-| `openrouter` | `https://openrouter.ai/api/v1`    | `GET /models`      | `POST /images/generations` | `POST /chat/completions` |
-| `openai`     | `https://api.openai.com/v1`       | `GET /models`      | `POST /images/generations` | `POST /chat/completions` |
+| Provider     | Default baseUrl                | List models   | Generate                   | Critique                 |
+| ------------ | ------------------------------ | ------------- | -------------------------- | ------------------------ |
+| `openrouter` | `https://openrouter.ai/api/v1` | `GET /models` | `POST /images/generations` | `POST /chat/completions` |
+| `openai`     | `https://api.openai.com/v1`    | `GET /models` | `POST /images/generations` | `POST /chat/completions` |
 
 Pitch: **"Bring your own OpenRouter or OpenAI key. Pick an image model and a vision critic."**
 
@@ -86,19 +86,19 @@ Add both to `remoteEngineConfigSchema`.
 
 Update `defaultBaseUrlForProvider`:
 
-| provider     | default |
-| ------------ | ------- |
-| openrouter   | `https://openrouter.ai/api/v1` |
-| openai       | `https://api.openai.com/v1` |
+| provider   | default                        |
+| ---------- | ------------------------------ |
+| openrouter | `https://openrouter.ai/api/v1` |
+| openai     | `https://api.openai.com/v1`    |
 
 **Tests:**
 
-| Case | Expected |
-| ---- | -------- |
-| openrouter round-trip | provider + models + key preserved; baseUrl slash stripped |
-| openai missing apiKey | load → null |
-| apiKey length 7 | save throws |
-| ollama config from spec 08 | still loads |
+| Case                       | Expected                                                  |
+| -------------------------- | --------------------------------------------------------- |
+| openrouter round-trip      | provider + models + key preserved; baseUrl slash stripped |
+| openai missing apiKey      | load → null                                               |
+| apiKey length 7            | save throws                                               |
+| ollama config from spec 08 | still loads                                               |
 
 ---
 
@@ -115,9 +115,7 @@ export interface OpenAiCompatOptions {
 	fetch?: typeof fetch;
 }
 
-export function createOpenAiCompatClient(
-	options: OpenAiCompatOptions
-): RemoteProviderClient;
+export function createOpenAiCompatClient(options: OpenAiCompatOptions): RemoteProviderClient;
 ```
 
 ### Auth
@@ -138,7 +136,7 @@ Zod:
 ```ts
 z.object({
 	data: z.array(z.object({ id: z.string().min(1) })).default([])
-})
+});
 ```
 
 Return ids sorted lexicographically.
@@ -164,11 +162,11 @@ Require cloud config with `generateModel`.
 
 ```json
 {
-  "model": "<generateModel>",
-  "prompt": "<prompt>",
-  "n": 1,
-  "size": "1024x1024",
-  "response_format": "b64_json"
+	"model": "<generateModel>",
+	"prompt": "<prompt>",
+	"n": 1,
+	"size": "1024x1024",
+	"response_format": "b64_json"
 }
 ```
 
@@ -186,7 +184,7 @@ z.object({
 			})
 		)
 		.min(1)
-})
+});
 ```
 
 1. Prefer `b64_json` → `{ mimeType: 'image/png', base64 }`
@@ -235,8 +233,7 @@ export function createOpenRouterClient(deps?: { fetch?: typeof fetch }): RemoteP
 	return createOpenAiCompatClient({
 		fetch: deps?.fetch,
 		deviceLabel: 'openrouter',
-		reachabilityHint:
-			'Could not reach OpenRouter. Check your network and API key.',
+		reachabilityHint: 'Could not reach OpenRouter. Check your network and API key.',
 		extraHeaders: {
 			'HTTP-Referer': 'https://art-dev-tycoon.local',
 			'X-Title': 'Art Dev Tycoon'
@@ -252,8 +249,7 @@ export function createOpenAIClient(deps?: { fetch?: typeof fetch }): RemoteProvi
 	return createOpenAiCompatClient({
 		fetch: deps?.fetch,
 		deviceLabel: 'openai',
-		reachabilityHint:
-			'Could not reach OpenAI. Check your network and API key.'
+		reachabilityHint: 'Could not reach OpenAI. Check your network and API key.'
 	});
 }
 ```
@@ -392,11 +388,11 @@ Document OpenRouter and OpenAI setup in `src/lib/engines/remote/README.md`:
 
 ## Files to create (summary)
 
-| File | Contents |
-| ---- | -------- |
-| `providers/openAiCompatClient.ts` | shared OpenAI HTTP |
-| `providers/openAiCompatClient.test.ts` | |
-| `providers/openrouterClient.ts` | thin wrapper |
-| `providers/openrouterClient.test.ts` | smoke |
-| `providers/openaiClient.ts` | thin wrapper |
-| `providers/openaiClient.test.ts` | smoke |
+| File                                   | Contents           |
+| -------------------------------------- | ------------------ |
+| `providers/openAiCompatClient.ts`      | shared OpenAI HTTP |
+| `providers/openAiCompatClient.test.ts` |                    |
+| `providers/openrouterClient.ts`        | thin wrapper       |
+| `providers/openrouterClient.test.ts`   | smoke              |
+| `providers/openaiClient.ts`            | thin wrapper       |
+| `providers/openaiClient.test.ts`       | smoke              |

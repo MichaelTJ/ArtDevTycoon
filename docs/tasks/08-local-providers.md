@@ -53,12 +53,12 @@ local backends where **generation** and **critique** are different models.
 
 Keep **JanusLink** as the default provider (one model does both). Add:
 
-| Provider         | Default base URL              | Generate                         | Critique                                      |
-| ---------------- | ----------------------------- | -------------------------------- | --------------------------------------------- |
-| `januslink`      | (player Tailscale URL)        | existing `/api/janus/generate`   | existing `/api/janus/understand`              |
-| `ollama`         | `http://localhost:11434`      | `POST /api/generate` (image)     | `POST /api/chat` with `images: [b64]`         |
-| `lmstudio`       | `http://localhost:1234`       | `POST /v1/images/generations`    | `POST /v1/chat/completions` (vision parts)    |
-| `automatic1111`  | `http://127.0.0.1:7860`       | `POST /sdapi/v1/txt2img`         | via paired `critiqueProvider` ollama/lmstudio |
+| Provider        | Default base URL         | Generate                       | Critique                                      |
+| --------------- | ------------------------ | ------------------------------ | --------------------------------------------- |
+| `januslink`     | (player Tailscale URL)   | existing `/api/janus/generate` | existing `/api/janus/understand`              |
+| `ollama`        | `http://localhost:11434` | `POST /api/generate` (image)   | `POST /api/chat` with `images: [b64]`         |
+| `lmstudio`      | `http://localhost:1234`  | `POST /v1/images/generations`  | `POST /v1/chat/completions` (vision parts)    |
+| `automatic1111` | `http://127.0.0.1:7860`  | `POST /sdapi/v1/txt2img`       | via paired `critiqueProvider` ollama/lmstudio |
 
 **Out of scope:** ComfyUI+SD (greyed "Coming soon"), OpenRouter/OpenAI (spec 09), ADT Cloud.
 
@@ -88,12 +88,7 @@ Nothing outside `src/lib/engines/remote/**` knows HTTP shapes. Engine id stays `
 ```ts
 import type { RemoteEngineConfig } from '../remoteConfig';
 
-export const LOCAL_PROVIDER_IDS = [
-	'januslink',
-	'ollama',
-	'lmstudio',
-	'automatic1111'
-] as const;
+export const LOCAL_PROVIDER_IDS = ['januslink', 'ollama', 'lmstudio', 'automatic1111'] as const;
 export type LocalProviderId = (typeof LOCAL_PROVIDER_IDS)[number];
 
 export interface RemoteProviderClient {
@@ -103,10 +98,7 @@ export interface RemoteProviderClient {
 	): Promise<{ ok: true; device?: string } | { ok: false; reason: string }>;
 
 	/** Optional — JanusLink has no model list. Return [] if unsupported. */
-	listModels?(
-		config: RemoteEngineConfig,
-		signal?: AbortSignal
-	): Promise<string[]>;
+	listModels?(config: RemoteEngineConfig, signal?: AbortSignal): Promise<string[]>;
 
 	generate(
 		config: RemoteEngineConfig,
@@ -205,7 +197,11 @@ Before `safeParse`, if the parsed object is a plain object with `baseUrl` + `api
 function migrateLegacy(raw: unknown): unknown {
 	if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
 		const obj = raw as Record<string, unknown>;
-		if (obj.provider === undefined && typeof obj.baseUrl === 'string' && typeof obj.apiKey === 'string') {
+		if (
+			obj.provider === undefined &&
+			typeof obj.baseUrl === 'string' &&
+			typeof obj.apiKey === 'string'
+		) {
 			return { provider: 'januslink', ...obj };
 		}
 	}
@@ -215,12 +211,12 @@ function migrateLegacy(raw: unknown): unknown {
 
 **Defaults for UI** (not persisted until Connect):
 
-| Provider        | Default baseUrl                 |
-| --------------- | ------------------------------- |
-| januslink       | `''` (player must paste)        |
-| ollama          | `http://localhost:11434`        |
-| lmstudio        | `http://localhost:1234`         |
-| automatic1111   | `http://127.0.0.1:7860`         |
+| Provider      | Default baseUrl          |
+| ------------- | ------------------------ |
+| januslink     | `''` (player must paste) |
+| ollama        | `http://localhost:11434` |
+| lmstudio      | `http://localhost:1234`  |
+| automatic1111 | `http://127.0.0.1:7860`  |
 
 Export helper:
 
@@ -230,13 +226,13 @@ export function defaultBaseUrlForProvider(provider: RemoteEngineConfig['provider
 
 **Tests (`remoteConfig.test.ts`):**
 
-| Case | Expected |
-| ---- | -------- |
+| Case                                              | Expected                         |
+| ------------------------------------------------- | -------------------------------- |
 | Legacy `{ baseUrl, apiKey }` (apiKey length ≥ 24) | loads as `provider: 'januslink'` |
-| ollama with both models | round-trip |
-| ollama missing `critiqueModel` | `load` → null; `save` throws |
-| trailing slash on baseUrl | stripped |
-| malformed JSON | null |
+| ollama with both models                           | round-trip                       |
+| ollama missing `critiqueModel`                    | `load` → null; `save` throws     |
+| trailing slash on baseUrl                         | stripped                         |
+| malformed JSON                                    | null                             |
 
 ---
 
@@ -270,7 +266,7 @@ If `config.apiKey` is non-empty, set `Authorization: Bearer ${apiKey}`. Otherwis
 `GET {baseUrl}/api/tags` → zod:
 
 ```ts
-z.object({ models: z.array(z.object({ name: z.string().min(1) })).default([]) })
+z.object({ models: z.array(z.object({ name: z.string().min(1) })).default([]) });
 ```
 
 Return `models.map(m => m.name)`.
@@ -300,7 +296,7 @@ Response zod (accept either image field):
 z.object({
 	response: z.string().optional(),
 	images: z.array(z.string().min(1)).optional()
-})
+});
 ```
 
 Image extraction order:
@@ -357,11 +353,11 @@ Same pattern; CORS message:
 
 ```json
 {
-  "model": "<generateModel>",
-  "prompt": "<prompt>",
-  "n": 1,
-  "size": "512x512",
-  "response_format": "b64_json"
+	"model": "<generateModel>",
+	"prompt": "<prompt>",
+	"n": 1,
+	"size": "512x512",
+	"response_format": "b64_json"
 }
 ```
 
@@ -369,11 +365,15 @@ Parse:
 
 ```ts
 z.object({
-  data: z.array(z.object({
-    b64_json: z.string().min(1).optional(),
-    url: z.string().url().optional()
-  })).min(1)
-})
+	data: z
+		.array(
+			z.object({
+				b64_json: z.string().min(1).optional(),
+				url: z.string().url().optional()
+			})
+		)
+		.min(1)
+});
 ```
 
 Prefer `b64_json`. If only `url`, `fetch` the url → blob → base64 (injectable fetch). `mimeType: 'image/png'`.
@@ -502,20 +502,20 @@ critique four yes → accuracy 10. Legacy januslink path still works.
 
 Presentational. Extend props (keep filename):
 
-| Prop | Type | Notes |
-| ---- | ---- | ----- |
-| `provider` | `$bindable` `'januslink'\|'ollama'\|'lmstudio'\|'automatic1111'` | |
-| `baseUrl` | `$bindable` string | |
-| `apiKey` | `$bindable` string | password; required UI for januslink; optional others |
-| `generateModel` | `$bindable` string | hidden for januslink |
-| `critiqueModel` | `$bindable` string | hidden for januslink |
-| `critiqueProvider` | `$bindable` `'ollama'\|'lmstudio'` | a1111 only |
-| `critiqueBaseUrl` | `$bindable` string | a1111 only |
-| `availableModels` | `string[]` | datalist options |
-| `testState` | idle/testing/success/error | |
-| `testError` | `string \| null` | |
-| `onrefreshmodels` | `() => void` | |
-| `ontest` / `onconnect` / `oncancel` | `() => void` | Connect disabled until success |
+| Prop                                | Type                                                             | Notes                                                |
+| ----------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------- |
+| `provider`                          | `$bindable` `'januslink'\|'ollama'\|'lmstudio'\|'automatic1111'` |                                                      |
+| `baseUrl`                           | `$bindable` string                                               |                                                      |
+| `apiKey`                            | `$bindable` string                                               | password; required UI for januslink; optional others |
+| `generateModel`                     | `$bindable` string                                               | hidden for januslink                                 |
+| `critiqueModel`                     | `$bindable` string                                               | hidden for januslink                                 |
+| `critiqueProvider`                  | `$bindable` `'ollama'\|'lmstudio'`                               | a1111 only                                           |
+| `critiqueBaseUrl`                   | `$bindable` string                                               | a1111 only                                           |
+| `availableModels`                   | `string[]`                                                       | datalist options                                     |
+| `testState`                         | idle/testing/success/error                                       |                                                      |
+| `testError`                         | `string \| null`                                                 |                                                      |
+| `onrefreshmodels`                   | `() => void`                                                     |                                                      |
+| `ontest` / `onconnect` / `oncancel` | `() => void`                                                     | Connect disabled until success                       |
 
 UI:
 
@@ -538,12 +538,12 @@ ollama shows both model fields; callbacks fire; accessible labels.
 Add state:
 
 ```ts
-remoteProvider = $state<'januslink'|'ollama'|'lmstudio'|'automatic1111'>('januslink')
-remoteGenerateModel = $state('')
-remoteCritiqueModel = $state('')
-remoteCritiqueProvider = $state<'ollama'|'lmstudio'>('ollama')
-remoteCritiqueBaseUrl = $state('http://localhost:11434')
-remoteAvailableModels = $state<string[]>([])
+remoteProvider = $state<'januslink' | 'ollama' | 'lmstudio' | 'automatic1111'>('januslink');
+remoteGenerateModel = $state('');
+remoteCritiqueModel = $state('');
+remoteCritiqueProvider = $state<'ollama' | 'lmstudio'>('ollama');
+remoteCritiqueBaseUrl = $state('http://localhost:11434');
+remoteAvailableModels = $state<string[]>([]);
 ```
 
 Methods:
@@ -561,27 +561,27 @@ Building config from fields (exact):
 
 ```ts
 function buildRemoteConfigFromFields(): unknown {
-  if (remoteProvider === 'januslink') {
-    return { provider: 'januslink', baseUrl: remoteBaseUrl, apiKey: remoteApiKey };
-  }
-  if (remoteProvider === 'ollama' || remoteProvider === 'lmstudio') {
-    return {
-      provider: remoteProvider,
-      baseUrl: remoteBaseUrl,
-      apiKey: remoteApiKey,
-      generateModel: remoteGenerateModel,
-      critiqueModel: remoteCritiqueModel
-    };
-  }
-  return {
-    provider: 'automatic1111',
-    baseUrl: remoteBaseUrl,
-    apiKey: remoteApiKey,
-    generateModel: remoteGenerateModel,
-    critiqueProvider: remoteCritiqueProvider,
-    critiqueBaseUrl: remoteCritiqueBaseUrl,
-    critiqueModel: remoteCritiqueModel
-  };
+	if (remoteProvider === 'januslink') {
+		return { provider: 'januslink', baseUrl: remoteBaseUrl, apiKey: remoteApiKey };
+	}
+	if (remoteProvider === 'ollama' || remoteProvider === 'lmstudio') {
+		return {
+			provider: remoteProvider,
+			baseUrl: remoteBaseUrl,
+			apiKey: remoteApiKey,
+			generateModel: remoteGenerateModel,
+			critiqueModel: remoteCritiqueModel
+		};
+	}
+	return {
+		provider: 'automatic1111',
+		baseUrl: remoteBaseUrl,
+		apiKey: remoteApiKey,
+		generateModel: remoteGenerateModel,
+		critiqueProvider: remoteCritiqueProvider,
+		critiqueBaseUrl: remoteCritiqueBaseUrl,
+		critiqueModel: remoteCritiqueModel
+	};
 }
 ```
 
@@ -595,12 +595,12 @@ Pass new bindables and `onrefreshmodels={() => engines.refreshRemoteModels()}`.
 
 `src/lib/engines/remote/README.md` — document all four providers, CORS notes:
 
-| Provider | CORS note |
-| -------- | --------- |
-| JanusLink | `JANUS_ALLOWED_ORIGINS` |
-| Ollama | `OLLAMA_ORIGINS` must include game origin |
-| LM Studio | Enable CORS in Developer settings |
-| A1111 | launch with `--cors-allow-origins` / `--api` |
+| Provider  | CORS note                                    |
+| --------- | -------------------------------------------- |
+| JanusLink | `JANUS_ALLOWED_ORIGINS`                      |
+| Ollama    | `OLLAMA_ORIGINS` must include game origin    |
+| LM Studio | Enable CORS in Developer settings            |
+| A1111     | launch with `--cors-allow-origins` / `--api` |
 
 `providers/README.md` — public surface of factory + clients.
 
@@ -631,13 +631,13 @@ Pass new bindables and `onrefreshmodels={() => engines.refreshRemoteModels()}`.
 
 ## Files to create (summary)
 
-| File | Contents |
-| ---- | -------- |
-| `providers/types.ts` | interface + ids |
-| `providers/index.ts` | factory |
-| `providers/janusAdapter.ts` | wrap JanusLink |
-| `providers/ollamaClient.ts` + test | |
-| `providers/lmStudioClient.ts` + test | |
-| `providers/a1111Client.ts` + test | |
-| `providers/README.md` | |
-| optional `providers/http.ts` | base64 helpers |
+| File                                 | Contents        |
+| ------------------------------------ | --------------- |
+| `providers/types.ts`                 | interface + ids |
+| `providers/index.ts`                 | factory         |
+| `providers/janusAdapter.ts`          | wrap JanusLink  |
+| `providers/ollamaClient.ts` + test   |                 |
+| `providers/lmStudioClient.ts` + test |                 |
+| `providers/a1111Client.ts` + test    |                 |
+| `providers/README.md`                |                 |
+| optional `providers/http.ts`         | base64 helpers  |

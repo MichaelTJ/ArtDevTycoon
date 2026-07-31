@@ -153,8 +153,7 @@ export class StudioScene extends Phaser.Scene {
 
 	#rebuildForVenue(venueId: string): void {
 		const next = getRoomForVenue(venueId);
-		const keepMum =
-			Boolean(this.#mum) && next.residents.some((r) => r.clientName === 'Mum');
+		const keepMum = Boolean(this.#mum) && next.residents.some((r) => r.clientName === 'Mum');
 		this.#teardownFloor(keepMum);
 		this.#room = next;
 		this.#builtVenueId = venueId;
@@ -653,9 +652,7 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#nearestShowZone(): RoomZone | null {
-		return (
-			this.#room.zones.find((z) => z.id === 'window' || z.id === 'gallery') ?? null
-		);
+		return this.#room.zones.find((z) => z.id === 'window' || z.id === 'gallery') ?? null;
 	}
 
 	#inZone(zone: RoomZone, px: number, py: number): boolean {

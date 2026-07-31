@@ -5,25 +5,25 @@ saves stay in `$lib/game` / `$lib/stores`.
 
 ## Public surface
 
-| Export                                         | Role                                          |
-| ---------------------------------------------- | --------------------------------------------- |
-| `STUDIO_FLOOR_ENABLED`                         | Feature flag; `false` restores `KitchenScene` |
-| `StudioBridge`                                 | Typed events/commands between Svelte and Phaser |
-| `createPhaserGame(parent, bridge, options?)`   | Boots Phaser; `initialVenueId` picks the plan |
-| `getRoomForVenue` / `roomIdForVenue`           | Progressive gallery venue → authored floor    |
-| `getRoomForEnvironment` / `ROOMS`              | Tile grids + markers (Level env stubs too)    |
-| `slotsForVenue`                                | Venue → easel/magnet anchors                  |
-| `nextWanderTarget` / `stepToward`              | Pure Mum patrol helpers                       |
+| Export                                       | Role                                            |
+| -------------------------------------------- | ----------------------------------------------- |
+| `STUDIO_FLOOR_ENABLED`                       | Feature flag; `false` restores `KitchenScene`   |
+| `StudioBridge`                               | Typed events/commands between Svelte and Phaser |
+| `createPhaserGame(parent, bridge, options?)` | Boots Phaser; `initialVenueId` picks the plan   |
+| `getRoomForVenue` / `roomIdForVenue`         | Progressive gallery venue → authored floor      |
+| `getRoomForEnvironment` / `ROOMS`            | Tile grids + markers (Level env stubs too)      |
+| `slotsForVenue`                              | Venue → easel/magnet anchors                    |
+| `nextWanderTarget` / `stepToward`            | Pure Mum patrol helpers                         |
 
 ## Venue floor plans
 
-| Venue          | Room id        | Size  | Notes                                      |
-| -------------- | -------------- | ----- | ------------------------------------------ |
-| `fridge`       | `home-kitchen` | 6×6   | Mum resident; warm kitchen palette         |
-| `garage`       | `art-room`     | 12×10 | Concrete / workbench                       |
-| `storefront`   | `studio`       | 18×12 | Work + window zones                         |
-| `gallery-hall` | `gallery`      | 22×14 | Atelier + show gallery                     |
-| `mega-museum`  | `mega-museum`  | 28×16 | Atelier + gallery + foyer                  |
+| Venue          | Room id        | Size  | Notes                              |
+| -------------- | -------------- | ----- | ---------------------------------- |
+| `fridge`       | `home-kitchen` | 6×6   | Mum resident; warm kitchen palette |
+| `garage`       | `art-room`     | 12×10 | Concrete / workbench               |
+| `storefront`   | `studio`       | 18×12 | Work + window zones                |
+| `gallery-hall` | `gallery`      | 22×14 | Atelier + show gallery             |
+| `mega-museum`  | `mega-museum`  | 28×16 | Atelier + gallery + foyer          |
 
 Phaser loads `getRoomForVenue(snapshot.activeVenueId)` on create and rebuilds when the
 venue id changes.

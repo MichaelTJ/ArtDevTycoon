@@ -19,12 +19,16 @@ function isDeskCell(room: RoomDef, tx: number, ty: number): boolean {
 	return tx === room.desk.tx && ty === room.desk.ty;
 }
 
-function scanZoneSlots(room: RoomDef, zoneBounds: {
-	x0: number;
-	y0: number;
-	x1: number;
-	y1: number;
-}, count: number): TileMarker[] {
+function scanZoneSlots(
+	room: RoomDef,
+	zoneBounds: {
+		x0: number;
+		y0: number;
+		x1: number;
+		y1: number;
+	},
+	count: number
+): TileMarker[] {
 	const found: TileMarker[] = [];
 	for (let ty = zoneBounds.y0; ty <= zoneBounds.y1 && found.length < count; ty++) {
 		for (let tx = zoneBounds.x0; tx <= zoneBounds.x1 && found.length < count; tx++) {

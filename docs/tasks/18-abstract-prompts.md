@@ -9,7 +9,7 @@ depend on 05–11 or 17. Presentation (Phaser kitchen) is orthogonal — this sp
 
 Today every Level 1 walk-in asks for a concrete subject ("cozy coffee cup", "fluffy cat
 with a crown"). That is fine for the first commissions in Mum's kitchen, but it never
-gets harder as a *prompting* challenge. Spec 15's billionaire tier jumps straight to
+gets harder as a _prompting_ challenge. Spec 15's billionaire tier jumps straight to
 "paint the feeling of a Tuesday" with the same keyword-overlap scorer — so parroting
 `tuesday feeling ordinary` still "works", and there is no mid-game ramp.
 
@@ -19,7 +19,7 @@ This spec makes the walk-in ladder teach prompting:
 2. **As commissions accumulate** — requests get progressively more abstract
    ("I miss the old days"), so the player must invent a concrete scene.
 3. **Abstract critique** — accuracy no longer rewards echoing the vague request words.
-   It scores whether the player committed to a *valid interpretation cluster* (e.g.
+   It scores whether the player committed to a _valid interpretation cluster_ (e.g.
    faded family photo / childhood summer / Sunday dinner) and filled that cluster out.
 
 The comedy of Level 1 crayon modifiers stays untouched. Only the brief text and the
@@ -156,11 +156,11 @@ their own ids.
 
 ### 2.1 Band rules
 
-| `abstractness` | When eligible                         | Voice                                      | Scoring path                         |
-| -------------- | ------------------------------------- | ------------------------------------------ | ------------------------------------ |
-| `0`            | Always (and **forced** for first invite at `commissionsCompleted === 0`) | Mum, concrete "paint me a …"               | `preferredKeywords` only (today)     |
-| `1`            | `commissionsCompleted >= 2`           | Evocative / soft memory, still a hint      | Best `interpretationClusters` match  |
-| `2`            | `commissionsCompleted >= 4`           | Pure mood / longing — no subject named     | Best `interpretationClusters` match  |
+| `abstractness` | When eligible                                                            | Voice                                  | Scoring path                        |
+| -------------- | ------------------------------------------------------------------------ | -------------------------------------- | ----------------------------------- |
+| `0`            | Always (and **forced** for first invite at `commissionsCompleted === 0`) | Mum, concrete "paint me a …"           | `preferredKeywords` only (today)    |
+| `1`            | `commissionsCompleted >= 2`                                              | Evocative / soft memory, still a hint  | Best `interpretationClusters` match |
+| `2`            | `commissionsCompleted >= 4`                                              | Pure mood / longing — no subject named | Best `interpretationClusters` match |
 
 ### 2.2 Required briefs (exact content)
 
@@ -169,33 +169,33 @@ the walk-in 90–170 band.
 
 **Band 0 — concrete (Mum's kitchen)**
 
-| id  | clientName     | requestText (verbatim)                                      | preferredKeywords              | abstractness |
-| --- | -------------- | ----------------------------------------------------------- | ------------------------------ | ------------ |
-| c1  | Mum            | Paint me a cat.                                             | `['cat']`                      | 0            |
-| c2  | Mum            | Can you draw a nice cup of tea for the fridge?              | `['tea', 'cup']`               | 0            |
-| c3  | Mum            | Paint me a sunny flower. Something cheerful.                | `['flower', 'sun']`            | 0            |
-| c7  | Mum            | Draw a little bird on the windowsill.                       | `['bird', 'window']`           | 0            |
+| id  | clientName | requestText (verbatim)                         | preferredKeywords    | abstractness |
+| --- | ---------- | ---------------------------------------------- | -------------------- | ------------ |
+| c1  | Mum        | Paint me a cat.                                | `['cat']`            | 0            |
+| c2  | Mum        | Can you draw a nice cup of tea for the fridge? | `['tea', 'cup']`     | 0            |
+| c3  | Mum        | Paint me a sunny flower. Something cheerful.   | `['flower', 'sun']`  | 0            |
+| c7  | Mum        | Draw a little bird on the windowsill.          | `['bird', 'window']` | 0            |
 
 Use `avatarUrl: '/avatars/c1.svg'` for Mum (reuse existing asset). `clientName` is exactly
 `Mum` for band 0 so the kitchen read is obvious.
 
 **Band 1 — evocative**
 
-| id  | clientName        | requestText                                                                 | preferredKeywords (weak anchors — not the scoring path) | clusters (id / label / keywords) |
-| --- | ----------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- | -------------------------------- |
-| c4  | Neighbour June    | Something warm from when you were little.                                   | `['warm', 'little']`                                    | `childhood-summer`: childhood summer — `['childhood','summer','garden','bicycle']`; `kitchen-baking`: baking with mum — `['baking','cookies','flour','apron']` |
-| c5  | Uncle Ray         | Make it feel like a rainy afternoon indoors.                                | `['rain', 'afternoon']`                                 | `window-rain`: rain on the glass — `['rain','window','droplets','grey']`; `sofa-book`: curled up reading — `['sofa','book','blanket','lamp']` |
-| c8  | Cousin Priya      | I want the feeling of coming home after a long trip.                        | `['home', 'trip']`                                      | `front-door`: key in the door — `['door','key','hallway','shoes']`; `kitchen-light`: kitchen light on — `['kitchen','light','kettle','table']` |
+| id  | clientName     | requestText                                          | preferredKeywords (weak anchors — not the scoring path) | clusters (id / label / keywords)                                                                                                                               |
+| --- | -------------- | ---------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| c4  | Neighbour June | Something warm from when you were little.            | `['warm', 'little']`                                    | `childhood-summer`: childhood summer — `['childhood','summer','garden','bicycle']`; `kitchen-baking`: baking with mum — `['baking','cookies','flour','apron']` |
+| c5  | Uncle Ray      | Make it feel like a rainy afternoon indoors.         | `['rain', 'afternoon']`                                 | `window-rain`: rain on the glass — `['rain','window','droplets','grey']`; `sofa-book`: curled up reading — `['sofa','book','blanket','lamp']`                  |
+| c8  | Cousin Priya   | I want the feeling of coming home after a long trip. | `['home', 'trip']`                                      | `front-door`: key in the door — `['door','key','hallway','shoes']`; `kitchen-light`: kitchen light on — `['kitchen','light','kettle','table']`                 |
 
 **Band 2 — pure mood**
 
-| id  | clientName           | requestText                          | preferredKeywords     | clusters |
-| --- | -------------------- | ------------------------------------ | --------------------- | -------- |
-| c6  | Mum                  | I miss the old days.                 | `['miss', 'old']`     | `nostalgia-photo`: faded family photograph — `['photograph','sepia','album','faded']`; `sunday-dinner`: Sunday dinner table — `['sunday','dinner','family','tablecloth']`; `vinyl-evening`: vinyl and lamplight — `['vinyl','record','lamp','evening']` |
-| c9  | Quiet Regular        | It used to be simpler.               | `['simple', 'used']`  | `empty-swing`: empty playground swing — `['swing','playground','empty','dusk']`; `paper-letters`: handwritten letters — `['letter','handwriting','envelope','ink']` |
-| c10 | Night-Shift Nurse    | Paint whatever peace looks like.     | `['peace', 'looks']`  | `still-lake`: still lake at dawn — `['lake','dawn','still','mist']`; `sleeping-cat`: sleeping cat in a sunbeam — `['cat','sunbeam','sleeping','cushion']` |
-| c11 | Bookshop Owner       | Something that feels like a memory you can't quite place. | `['memory', 'place']` | `blurred-street`: rain-blurred street — `['street','blur','rain','neon']`; `attic-box`: attic memory box — `['attic','box','ribbon','dust']` |
-| c12 | Mum                  | Just… something that feels like home. | `['home', 'feels']`  | `porch-light`: porch light left on — `['porch','light','night','welcome']`; `worn-armchair`: worn armchair — `['armchair','worn','knit','window']` |
+| id  | clientName        | requestText                                               | preferredKeywords     | clusters                                                                                                                                                                                                                                                |
+| --- | ----------------- | --------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| c6  | Mum               | I miss the old days.                                      | `['miss', 'old']`     | `nostalgia-photo`: faded family photograph — `['photograph','sepia','album','faded']`; `sunday-dinner`: Sunday dinner table — `['sunday','dinner','family','tablecloth']`; `vinyl-evening`: vinyl and lamplight — `['vinyl','record','lamp','evening']` |
+| c9  | Quiet Regular     | It used to be simpler.                                    | `['simple', 'used']`  | `empty-swing`: empty playground swing — `['swing','playground','empty','dusk']`; `paper-letters`: handwritten letters — `['letter','handwriting','envelope','ink']`                                                                                     |
+| c10 | Night-Shift Nurse | Paint whatever peace looks like.                          | `['peace', 'looks']`  | `still-lake`: still lake at dawn — `['lake','dawn','still','mist']`; `sleeping-cat`: sleeping cat in a sunbeam — `['cat','sunbeam','sleeping','cushion']`                                                                                               |
+| c11 | Bookshop Owner    | Something that feels like a memory you can't quite place. | `['memory', 'place']` | `blurred-street`: rain-blurred street — `['street','blur','rain','neon']`; `attic-box`: attic memory box — `['attic','box','ribbon','dust']`                                                                                                            |
+| c12 | Mum               | Just… something that feels like home.                     | `['home', 'feels']`   | `porch-light`: porch light left on — `['porch','light','night','welcome']`; `worn-armchair`: worn armchair — `['armchair','worn','knit','window']`                                                                                                      |
 
 Every band ≥1 brief **MUST** have `interpretationClusters` with **at least 2** clusters,
 each with **2–6** keywords. `tier` stays default/`walk-in`.
@@ -315,20 +315,20 @@ export function isAbstractParrot(brief: ClientBrief, playerPrompt: string): bool
 
 Use brief `c6` ("I miss the old days.") from kitchen content.
 
-| playerPrompt                                      | best cluster id    | ratio | isAbstractParrot | critiqueTargets (sorted)        |
-| ------------------------------------------------- | ------------------ | ----- | ---------------- | ------------------------------- |
-| `I miss the old days`                             | any @ ratio 0      | 0     | true             | `[]`                            |
-| `miss old`                                        | any @ ratio 0      | 0     | true             | `[]`                            |
-| `a faded sepia photograph in a family album`      | `nostalgia-photo`  | 0.75  | false            | photo cluster keywords          |
-| `sunday dinner with family around the tablecloth` | `sunday-dinner`    | 1.0   | false            | sunday-dinner keywords          |
-| `vinyl record playing under a warm lamp evening`  | `vinyl-evening`    | 1.0   | false            | vinyl-evening keywords          |
-| `dragon spaceship laser`                          | any @ ratio 0      | 0     | false            | `[]`                            |
+| playerPrompt                                      | best cluster id   | ratio | isAbstractParrot | critiqueTargets (sorted) |
+| ------------------------------------------------- | ----------------- | ----- | ---------------- | ------------------------ |
+| `I miss the old days`                             | any @ ratio 0     | 0     | true             | `[]`                     |
+| `miss old`                                        | any @ ratio 0     | 0     | true             | `[]`                     |
+| `a faded sepia photograph in a family album`      | `nostalgia-photo` | 0.75  | false            | photo cluster keywords   |
+| `sunday dinner with family around the tablecloth` | `sunday-dinner`   | 1.0   | false            | sunday-dinner keywords   |
+| `vinyl record playing under a warm lamp evening`  | `vinyl-evening`   | 1.0   | false            | vinyl-evening keywords   |
+| `dragon spaceship laser`                          | any @ ratio 0     | 0     | false            | `[]`                     |
 
 For a concrete brief (`c1`, "Paint me a cat."):
 
-| playerPrompt | usesInterpretationScoring | critiqueTargets |
-| ------------ | ------------------------- | --------------- |
-| `a fluffy cat` | false                   | `['cat']`       |
+| playerPrompt   | usesInterpretationScoring | critiqueTargets |
+| -------------- | ------------------------- | --------------- |
+| `a fluffy cat` | false                     | `['cat']`       |
 
 ---
 
@@ -414,13 +414,13 @@ export function calculatePayout(
 Keep every existing concrete `c1`/`c2`/`c3` case green (update fixtures if `c1` keywords
 changed — `c1` is now just `['cat']`:
 
-| brief | prompt | accuracy | notes |
-| ----- | ------ | -------- | ----- |
-| c1 | `cat` | 10 | full match on single keyword |
-| c1 | `dog` | 1 | miss |
-| c6 | `I miss the old days` | 1 | parrot |
-| c6 | `a faded sepia photograph in a family album` | 8 | ratio 0.75 → `1+round(6.75)=8` |
-| c6 | `sunday dinner with family around the tablecloth` | 10 | ratio 1.0 |
+| brief | prompt                                            | accuracy | notes                          |
+| ----- | ------------------------------------------------- | -------- | ------------------------------ |
+| c1    | `cat`                                             | 10       | full match on single keyword   |
+| c1    | `dog`                                             | 1        | miss                           |
+| c6    | `I miss the old days`                             | 1        | parrot                         |
+| c6    | `a faded sepia photograph in a family album`      | 8        | ratio 0.75 → `1+round(6.75)=8` |
+| c6    | `sunday dinner with family around the tablecloth` | 10       | ratio 1.0                      |
 
 `calculatePayout` for abstract: with accuracy 10, creativity 10, budget 130, multiplier 1,
 weights 0.5/0.5 → quality 1.0 → payout `130`. With accuracy 1, creativity 10 → quality
@@ -479,9 +479,7 @@ Pseudo:
 ```ts
 if (commissionsCompleted === 0 && unlockedTiers.includes('walk-in')) {
 	const openerIds = new Set(['c1', 'c2', 'c3', 'c7']);
-	let openers = KITCHEN_BRIEFS.filter(
-		(b) => openerIds.has(b.id) && !excludeIds.includes(b.id)
-	);
+	let openers = KITCHEN_BRIEFS.filter((b) => openerIds.has(b.id) && !excludeIds.includes(b.id));
 	if (openers.length === 0) {
 		openers = KITCHEN_BRIEFS.filter((b) => (b.abstractness ?? 0) === 0);
 	}
@@ -496,13 +494,13 @@ In `buildPool`, after tier/series filters, also drop walk-ins where
 
 ### 5.4 Tests
 
-| commissionsCompleted | unlockedTiers | assertion |
-| -------------------- | ------------- | --------- |
-| 0 | `['walk-in']` | 50 seeded draws → every id ∈ `{c1,c2,c3,c7}` |
-| 1 | `['walk-in']` | never returns abstractness ≥ 1 |
-| 2 | `['walk-in']` | across 80 draws, at least one abstractness 1 appears; never abstractness 2 |
-| 4 | `['walk-in']` | across 80 draws, at least one abstractness 2 (incl. `c6`) appears |
-| 0 | `['walk-in','billionaire']` | still never returns abstractness 2 walk-in; billionaire may appear |
+| commissionsCompleted | unlockedTiers               | assertion                                                                  |
+| -------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| 0                    | `['walk-in']`               | 50 seeded draws → every id ∈ `{c1,c2,c3,c7}`                               |
+| 1                    | `['walk-in']`               | never returns abstractness ≥ 1                                             |
+| 2                    | `['walk-in']`               | across 80 draws, at least one abstractness 1 appears; never abstractness 2 |
+| 4                    | `['walk-in']`               | across 80 draws, at least one abstractness 2 (incl. `c6`) appears          |
+| 0                    | `['walk-in','billionaire']` | still never returns abstractness 2 walk-in; billionaire may appear         |
 
 ---
 
@@ -599,9 +597,9 @@ via spec 12.
 
 Presentational only. Shown during `briefing` when `brief.abstractness >= 1`.
 
-| Prop            | Type                 |
-| --------------- | -------------------- |
-| `abstractness`  | `AbstractnessLevel`  |
+| Prop           | Type                |
+| -------------- | ------------------- |
+| `abstractness` | `AbstractnessLevel` |
 
 Copy (exact):
 

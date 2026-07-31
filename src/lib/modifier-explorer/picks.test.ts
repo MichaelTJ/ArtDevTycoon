@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	generationTagKey,
-	hasAnyGoodTag,
-	isPromptTagGood,
-	toggleGoodTagList
-} from './picks';
+import { generationTagKey, hasAnyGoodTag, isPromptTagGood, toggleGoodTagList } from './picks';
 import { makeResult } from './test-fixtures';
 
 describe('modifier explorer good prompt-tags', () => {

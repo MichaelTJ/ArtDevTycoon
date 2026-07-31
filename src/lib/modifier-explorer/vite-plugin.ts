@@ -67,7 +67,9 @@ async function wipeGalleryFiles(): Promise<void> {
 	for (const engine of ['janus-webgpu', 'sdturbo-webgpu'] as const) {
 		const dir = path.join(OUTPUT_DIR, engine);
 		const entries = await fs.readdir(dir).catch(() => [] as string[]);
-		await Promise.all(entries.map((name) => fs.unlink(path.join(dir, name)).catch(() => undefined)));
+		await Promise.all(
+			entries.map((name) => fs.unlink(path.join(dir, name)).catch(() => undefined))
+		);
 	}
 }
 

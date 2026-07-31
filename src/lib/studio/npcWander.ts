@@ -7,10 +7,7 @@ export interface WanderState {
 }
 
 /** Advance to the next patrol index (wrap). */
-export function nextWanderTarget(
-	patrol: readonly TileMarker[],
-	currentIndex: number
-): WanderState {
+export function nextWanderTarget(patrol: readonly TileMarker[], currentIndex: number): WanderState {
 	if (patrol.length === 0) {
 		return { waypointIndex: 0, target: { tx: 0, ty: 0 } };
 	}

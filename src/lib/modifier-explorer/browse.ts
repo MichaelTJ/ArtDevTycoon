@@ -1,5 +1,11 @@
 import { AXIS_DEFS, AXIS_LEVEL_LABELS } from './types';
-import type { AxisId, AxisLevel, ExplorerEngineId, ExplorerResult, ModifierCategory } from './types';
+import type {
+	AxisId,
+	AxisLevel,
+	ExplorerEngineId,
+	ExplorerResult,
+	ModifierCategory
+} from './types';
 
 export type BrowseGroupBy =
 	| 'none'
@@ -148,23 +154,36 @@ export const BROWSE_PRESETS: readonly BrowsePreset[] = [
 		id: 'oil-all',
 		label: 'All oil paintings',
 		description: 'Every oil-painting styled result, across subjects.',
-		apply: { category: 'all', keys: { ...emptyKeys(), style: ['oilpainting'] }, levels: emptyLevels(), text: '' },
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), style: ['oilpainting'] },
+			levels: emptyLevels(),
+			text: ''
+		},
 		groupBy: 'subject'
 	},
 	{
 		id: 'fox-styles',
 		label: 'Fox · all styles',
 		description: 'The resting-fox subject across every art style.',
-		apply: { category: 'all', keys: { ...emptyKeys(), subject: ['fox'] }, levels: emptyLevels(), text: '' },
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), subject: ['fox'] },
+			levels: emptyLevels(),
+			text: ''
+		},
 		groupBy: 'style'
 	}
 ];
 
 export function tagResult(result: ExplorerResult): TaggedResult {
 	const f = result.facets;
-	const haystack = `${result.prompt} ${result.modifier} ${result.subject} ${result.categoryLabel} ${result.caseId} ${
-		f ? `${f.style.label} ${f.subject.label} ${f.lighting.label} ${f.detail.label} ${f.mood.label}` : ''
-	}`.toLowerCase();
+	const haystack =
+		`${result.prompt} ${result.modifier} ${result.subject} ${result.categoryLabel} ${result.caseId} ${
+			f
+				? `${f.style.label} ${f.subject.label} ${f.lighting.label} ${f.detail.label} ${f.mood.label}`
+				: ''
+		}`.toLowerCase();
 	return { result, haystack };
 }
 
@@ -258,7 +277,10 @@ export function toggleGenerationTagInQuery(query: BrowseQuery, tag: GenerationTa
 		return { ...query, moods: toggleValue(query.moods, tag.id) };
 	}
 	if (tag.kind === 'tech') return query;
-	return { ...query, keys: { ...query.keys, [tag.kind]: toggleValue(query.keys[tag.kind], tag.id) } };
+	return {
+		...query,
+		keys: { ...query.keys, [tag.kind]: toggleValue(query.keys[tag.kind], tag.id) }
+	};
 }
 
 export function toggleAxisLevel(query: BrowseQuery, axis: AxisId, level: AxisLevel): BrowseQuery {
@@ -288,7 +310,10 @@ export function summarizeGoodPromptTags(
 	return [...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
-export function collectFacetOptions(tagged: readonly TaggedResult[], kind: AxisId): BrowseFacetOption[] {
+export function collectFacetOptions(
+	tagged: readonly TaggedResult[],
+	kind: AxisId
+): BrowseFacetOption[] {
 	const counts = new Map<string, { label: string; level: AxisLevel; count: number }>();
 
 	for (const { result } of tagged) {
@@ -319,7 +344,10 @@ export function collectMoodOptions(tagged: readonly TaggedResult[]): BrowseFacet
 }
 
 /** Level-only facet chips for a given axis — "beginner → expert" regardless of exact option. */
-export function collectLevelOptions(tagged: readonly TaggedResult[], axis: AxisId): BrowseFacetOption[] {
+export function collectLevelOptions(
+	tagged: readonly TaggedResult[],
+	axis: AxisId
+): BrowseFacetOption[] {
 	const counts = new Map<AxisLevel, number>();
 	for (const { result } of tagged) {
 		if (!result.facets) continue;
@@ -340,7 +368,10 @@ function sortWithinGroup(a: TaggedResult, b: TaggedResult): number {
 }
 
 /** Group filtered results into compare lanes (skill rows, medium rows, etc.). */
-export function groupTaggedResults(tagged: readonly TaggedResult[], groupBy: BrowseGroupBy): BrowseGroup[] {
+export function groupTaggedResults(
+	tagged: readonly TaggedResult[],
+	groupBy: BrowseGroupBy
+): BrowseGroup[] {
 	if (groupBy === 'none') {
 		return [
 			{

@@ -139,9 +139,9 @@ describe('modifier explorer browse', () => {
 				facets: makeFacets({ subject: { key: 'fox', label: 'resting fox', level: 3 } })
 			})
 		]);
-		expect(collectFacetOptions(tagged, 'subject').find((option) => option.id === 'fox')?.count).toBe(
-			2
-		);
+		expect(
+			collectFacetOptions(tagged, 'subject').find((option) => option.id === 'fox')?.count
+		).toBe(2);
 	});
 
 	it('collects level options independent of exact key', () => {

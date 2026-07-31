@@ -18,7 +18,9 @@ describe('ensureDurableImageUrl', () => {
 
 		vi.stubGlobal(
 			'fetch',
-			vi.fn(async () => new Response(blob, { status: 200, headers: { 'Content-Type': 'image/png' } }))
+			vi.fn(
+				async () => new Response(blob, { status: 200, headers: { 'Content-Type': 'image/png' } })
+			)
 		);
 
 		const durable = await ensureDurableImageUrl(blobUrl);
