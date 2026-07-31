@@ -85,7 +85,7 @@ best tier it can actually run.
 | ---- | ---------------- | ------------- | --------------------------- | ------------------------------------------------------------- |
 | 0    | `mock`           | none          | nothing                     | Procedural SVG art, text-based scoring. **Always available.** |
 | 1    | `janus-webgpu`   | ~1 GB         | WebGPU                      | Janus-Pro-1B does _both_ generation and critique in-browser.  |
-| 1    | `remote`         | none          | JanusLink + Tailscale + key | Same Janus jobs on the player's home GPU (My PC). No WebGPU.  |
+| 1    | `remote`         | none          | Player-run host + optional key | My PC: JanusLink, Ollama, LM Studio, A1111, or BYO cloud keys (specs 07–09). No WebGPU. |
 | 2    | `sdturbo-webgpu` | ~1.5 GB extra | WebGPU, desktop             | SD-Turbo paints at 512px; Janus still critiques.              |
 
 Selection rules:

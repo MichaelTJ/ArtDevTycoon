@@ -55,7 +55,8 @@ export const ENGINE_REGISTRY: readonly EngineDescriptor[] = [
 	{
 		id: 'remote',
 		displayName: 'My PC',
-		description: 'Real Janus on your home GPU via JanusLink. You run the model.',
+		description:
+			'Your GPU or local AI (JanusLink, Ollama, LM Studio, A1111). You run the model.',
 		requirements: {
 			webgpu: false,
 			approxDownloadMb: 0,
