@@ -56,7 +56,7 @@ export const ENGINE_REGISTRY: readonly EngineDescriptor[] = [
 		id: 'remote',
 		displayName: 'My PC',
 		description:
-			'Your GPU or local AI (JanusLink, Ollama, LM Studio, A1111). You run the model.',
+			'Your GPU, local AI, or cloud key (JanusLink, Ollama, LM Studio, A1111, OpenRouter, OpenAI).',
 		requirements: {
 			webgpu: false,
 			approxDownloadMb: 0,
