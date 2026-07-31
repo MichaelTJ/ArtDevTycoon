@@ -3,9 +3,19 @@ import type { RemoteEngineConfig } from '../remoteConfig';
 export const CONNECTION_TEST_TIMEOUT_MS = 6000;
 export const REQUEST_TIMEOUT_MS = 180_000;
 
-export const LOCAL_PROVIDER_IDS = ['januslink', 'ollama', 'lmstudio', 'automatic1111'] as const;
+export const REMOTE_PROVIDER_IDS = [
+	'januslink',
+	'ollama',
+	'lmstudio',
+	'automatic1111',
+	'openrouter',
+	'openai'
+] as const;
 
-export type LocalProviderId = (typeof LOCAL_PROVIDER_IDS)[number];
+/** @deprecated Prefer REMOTE_PROVIDER_IDS. */
+export const LOCAL_PROVIDER_IDS = REMOTE_PROVIDER_IDS;
+
+export type LocalProviderId = (typeof REMOTE_PROVIDER_IDS)[number];
 
 /**
  * HTTP backend for a My PC remote provider. RemoteEngine routes generate/critique here;

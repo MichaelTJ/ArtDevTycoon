@@ -7,9 +7,9 @@ HTTP backends for the My PC (`remote`) engine. `RemoteEngine` picks a client via
 
 | Export                    | Role                                                                         |
 | ------------------------- | ---------------------------------------------------------------------------- |
-| `getRemoteProviderClient` | Factory for januslink / ollama / lmstudio / automatic1111                    |
+| `getRemoteProviderClient` | Factory for all remote providers (local + OpenRouter/OpenAI)                 |
 | `RemoteProviderClient`    | Shared interface (`testConnection`, `listModels?`, `generate`, `understand`) |
-| `LOCAL_PROVIDER_IDS`      | Provider id list                                                             |
+| `REMOTE_PROVIDER_IDS`     | Provider id list                                                             |
 
 ## Invariants
 
@@ -17,6 +17,7 @@ HTTP backends for the My PC (`remote`) engine. `RemoteEngine` picks a client via
 - Validate every JSON response with Zod.
 - No real network in unit tests; inject `fetch`.
 - Automatic1111 critiques via a paired Ollama or LM Studio client.
+- Cloud clients must not leak API keys in error strings.
 
 ## Tests
 

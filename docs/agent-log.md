@@ -863,3 +863,29 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 
 - ComfyUI / cloud BYO left to specs 09�10.
 - Manual E2E against live Ollama/LM Studio/A1111 not run in this session.
+
+## 2026-08-01 � Spec 09 BYO API (OpenRouter, OpenAI)
+
+**Zone:** `src/lib/engines/remote/**`, `MyPcSetup.svelte*`, `engineStore.svelte*`, READMEs, agent-log
+
+**Built:** Cloud BYO providers on the My PC engine. Shared `openAiCompatClient` plus OpenRouter/OpenAI wrappers. Config union gains `openrouter` / `openai` (apiKey min 8, generate + critique models). Setup enables both tabs with localStorage key warning; Coming soon is ComfyUI + ADT Cloud only.
+
+**Public surface:**
+
+- `createOpenAiCompatClient` / `createOpenRouterClient` / `createOpenAIClient`
+- `REMOTE_PROVIDER_IDS` includes cloud vendors
+- `remoteEngineConfigSchema` cloud arms + defaults
+
+**Tests:** openAiCompatClient (list sort, b64/url generate, 401 no key leak, 404 image message); openrouter/openai smoke; remoteConfig cloud round-trip; MyPcSetup warning copy. Commands: `npm run check`; `npm run test:unit -- --run src/lib/engines/remote`; MyPcSetup tests.
+
+**Decisions:**
+
+- Never echo apiKey in errors (401 fixed copy + `replaceAll` redaction).
+- OpenRouter sends `HTTP-Referer` + `X-Title` on every request.
+- Spec 08 local providers unchanged.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual live commission against OpenRouter/OpenAI not run (needs player keys).

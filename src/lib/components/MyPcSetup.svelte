@@ -1,5 +1,5 @@
 <script lang="ts">
-	type ProviderId = 'januslink' | 'ollama' | 'lmstudio' | 'automatic1111';
+	type ProviderId = 'januslink' | 'ollama' | 'lmstudio' | 'automatic1111' | 'openrouter' | 'openai';
 	type CritiqueProviderId = 'ollama' | 'lmstudio';
 
 	interface Props {
@@ -43,7 +43,10 @@
 	const connectDisabled = $derived(testState !== 'success');
 	const inputsDisabled = $derived(testState === 'testing');
 	const showModelFields = $derived(provider !== 'januslink');
-	const showApiKeyRequired = $derived(provider === 'januslink');
+	const showApiKeyRequired = $derived(
+		provider === 'januslink' || provider === 'openrouter' || provider === 'openai'
+	);
+	const showCloudWarning = $derived(provider === 'openrouter' || provider === 'openai');
 	const showA1111Critique = $derived(provider === 'automatic1111');
 
 	const testDisabled = $derived.by(() => {
@@ -52,6 +55,9 @@
 		}
 		if (provider === 'januslink') {
 			return !apiKey.trim();
+		}
+		if (provider === 'openrouter' || provider === 'openai') {
+			return !apiKey.trim() || !generateModel.trim() || !critiqueModel.trim();
 		}
 		if (provider === 'automatic1111') {
 			return !critiqueModel.trim() || !critiqueBaseUrl.trim();
@@ -93,6 +99,8 @@
 				<option value="ollama">Ollama</option>
 				<option value="lmstudio">LM Studio</option>
 				<option value="automatic1111">Automatic1111</option>
+				<option value="openrouter">OpenRouter</option>
+				<option value="openai">OpenAI</option>
 			</select>
 		</label>
 
@@ -115,9 +123,11 @@
 			<input
 				type="password"
 				class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-				placeholder={showApiKeyRequired
+				placeholder={provider === 'januslink'
 					? 'JANUS_API_KEY from the installer'
-					: 'Leave blank unless your server requires auth'}
+					: showCloudWarning
+						? 'Your API key'
+						: 'Leave blank unless your server requires auth'}
 				autocomplete="off"
 				disabled={inputsDisabled}
 				bind:value={apiKey}
@@ -192,6 +202,14 @@
 			</label>
 		{/if}
 
+		{#if showCloudWarning}
+			<p class="rounded-lg bg-amber-50 p-3 text-sm text-stone-700" role="note">
+				Your API key is stored in this browser's localStorage and sent only to the provider you
+				configure. Anyone with access to this device can read it. Clear it anytime with Disconnect
+				settings (or clear site data).
+			</p>
+		{/if}
+
 		{#if provider === 'januslink'}
 			<button
 				type="button"
@@ -261,8 +279,6 @@
 			<p class="text-xs font-semibold tracking-wide text-stone-500 uppercase">Coming soon</p>
 			<ul class="mt-1 space-y-1 text-sm text-stone-400">
 				<li>ComfyUI</li>
-				<li>OpenRouter</li>
-				<li>OpenAI</li>
 				<li>Art Dev Tycoon Cloud</li>
 			</ul>
 		</div>

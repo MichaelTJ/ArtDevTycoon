@@ -263,7 +263,12 @@ export class EngineStore {
 				apiKey: this.remoteApiKey
 			};
 		}
-		if (this.remoteProvider === 'ollama' || this.remoteProvider === 'lmstudio') {
+		if (
+			this.remoteProvider === 'ollama' ||
+			this.remoteProvider === 'lmstudio' ||
+			this.remoteProvider === 'openrouter' ||
+			this.remoteProvider === 'openai'
+		) {
 			return {
 				provider: this.remoteProvider,
 				baseUrl: this.remoteBaseUrl,
@@ -287,7 +292,12 @@ export class EngineStore {
 		this.remoteProvider = config.provider;
 		this.remoteBaseUrl = config.baseUrl;
 		this.remoteApiKey = config.apiKey;
-		if (config.provider === 'ollama' || config.provider === 'lmstudio') {
+		if (
+			config.provider === 'ollama' ||
+			config.provider === 'lmstudio' ||
+			config.provider === 'openrouter' ||
+			config.provider === 'openai'
+		) {
 			this.remoteGenerateModel = config.generateModel;
 			this.remoteCritiqueModel = config.critiqueModel;
 		} else if (config.provider === 'automatic1111') {

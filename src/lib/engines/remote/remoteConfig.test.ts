@@ -133,5 +133,38 @@ describe('remoteConfig', () => {
 		expect(defaultBaseUrlForProvider('lmstudio')).toBe('http://localhost:1234');
 		expect(defaultBaseUrlForProvider('automatic1111')).toBe('http://127.0.0.1:7860');
 		expect(defaultBaseUrlForProvider('januslink')).toBe('');
+		expect(defaultBaseUrlForProvider('openrouter')).toBe('https://openrouter.ai/api/v1');
+		expect(defaultBaseUrlForProvider('openai')).toBe('https://api.openai.com/v1');
+	});
+
+	it('round-trips openrouter config', () => {
+		saveRemoteConfig({
+			provider: 'openrouter',
+			baseUrl: 'https://openrouter.ai/api/v1/',
+			apiKey: 'test-key-not-real-00000000',
+			generateModel: 'flux',
+			critiqueModel: 'gpt-4o'
+		});
+		expect(loadRemoteConfig()).toEqual({
+			provider: 'openrouter',
+			baseUrl: 'https://openrouter.ai/api/v1',
+			apiKey: 'test-key-not-real-00000000',
+			generateModel: 'flux',
+			critiqueModel: 'gpt-4o'
+		});
+	});
+
+	it('returns null when openai apiKey is too short', () => {
+		store.set(
+			REMOTE_CONFIG_STORAGE_KEY,
+			JSON.stringify({
+				provider: 'openai',
+				baseUrl: 'https://api.openai.com/v1',
+				apiKey: 'short',
+				generateModel: 'dall-e-3',
+				critiqueModel: 'gpt-4o'
+			})
+		);
+		expect(loadRemoteConfig()).toBeNull();
 	});
 });

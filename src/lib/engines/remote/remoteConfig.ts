@@ -41,15 +41,35 @@ const a1111ConfigSchema = z.object({
 	critiqueModel: z.string().min(1).max(200)
 });
 
+const cloudKey = z.string().min(8).max(512);
+
+const openrouterConfigSchema = z.object({
+	provider: z.literal('openrouter'),
+	baseUrl: urlSchema.default('https://openrouter.ai/api/v1'),
+	apiKey: cloudKey,
+	generateModel: z.string().min(1).max(200),
+	critiqueModel: z.string().min(1).max(200)
+});
+
+const openaiConfigSchema = z.object({
+	provider: z.literal('openai'),
+	baseUrl: urlSchema.default('https://api.openai.com/v1'),
+	apiKey: cloudKey,
+	generateModel: z.string().min(1).max(200),
+	critiqueModel: z.string().min(1).max(200)
+});
+
 /**
  * Player-supplied My PC endpoint. Discriminated by `provider`.
- * JanusLink keeps a single API key; local stacks pick generate + critique models.
+ * JanusLink keeps a single API key; local/cloud stacks pick generate + critique models.
  */
 export const remoteEngineConfigSchema = z.discriminatedUnion('provider', [
 	januslinkConfigSchema,
 	ollamaConfigSchema,
 	lmstudioConfigSchema,
-	a1111ConfigSchema
+	a1111ConfigSchema,
+	openrouterConfigSchema,
+	openaiConfigSchema
 ]);
 
 export type RemoteEngineConfig = z.infer<typeof remoteEngineConfigSchema>;
@@ -81,6 +101,10 @@ export function defaultBaseUrlForProvider(provider: RemoteProviderId): string {
 			return 'http://localhost:1234';
 		case 'automatic1111':
 			return 'http://127.0.0.1:7860';
+		case 'openrouter':
+			return 'https://openrouter.ai/api/v1';
+		case 'openai':
+			return 'https://api.openai.com/v1';
 	}
 }
 
