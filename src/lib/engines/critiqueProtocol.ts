@@ -1,5 +1,8 @@
-import { STOPWORDS, normalize } from '$lib/game';
+import { STOPWORDS, normalize, critiqueTargetsForBrief } from '$lib/game';
 import { pick, mulberry32 } from './random';
+
+/** Re-export for engine callers — vision critics ask about these keywords. */
+export { critiqueTargetsForBrief };
 
 const TITLE_PREFIXES = [
 	'Study of',

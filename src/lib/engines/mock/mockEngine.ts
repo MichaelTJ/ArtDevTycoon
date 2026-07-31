@@ -1,4 +1,4 @@
-import { scorePrompt } from '$lib/game';
+import { scorePrompt, selectBestCluster, usesInterpretationScoring } from '$lib/game';
 import {
 	artworkSchema,
 	critiqueDraftSchema,
@@ -15,6 +15,26 @@ import { EngineError } from '../errors';
 import { hashString, mulberry32, pick } from '../random';
 import { paintProceduralArt } from './proceduralArt';
 import { bandForScore, REVIEW_TEMPLATES } from './reviewTemplates';
+
+/** Review lines for abstract briefs that committed to an interpretation cluster. */
+const ABSTRACT_REVIEW_TEMPLATES = {
+	poor: [
+		'{client} asked for a feeling — you answered with {label}, but barely. {missed} is still missing.',
+		'An abstract brief deserved more than this whisper of {label}.'
+	],
+	middling: [
+		'{client} asked for a feeling — you answered with {label}. It is halfway there.',
+		'I can see {matched} in this reading of {label}. Rough, but sincere.'
+	],
+	good: [
+		'{client} asked for a feeling — you answered with {label}. A solid concrete scene.',
+		'Committing to {label} was the right call. {matched} carries the mood.'
+	],
+	excellent: [
+		'{client} asked for a feeling — you answered with {label}. Spot on.',
+		'Exactly the kind of invented scene {client} hoped for — {label}, fully realised.'
+	]
+} as const;
 
 /** Procedural art engine — always available, deterministic, no download or GPU required. */
 export class MockEngine implements ArtEngine {
@@ -83,7 +103,8 @@ export class MockEngine implements ArtEngine {
 		const seed = hashString(`${input.brief.id}:${input.playerPrompt}`);
 		const title = buildTitle(input.playerPrompt, seed);
 		const review = buildMockReview(
-			input.brief.clientName,
+			input.brief,
+			input.playerPrompt,
 			breakdown.accuracyScore,
 			breakdown.matchedKeywords,
 			breakdown.missedKeywords,
@@ -103,21 +124,35 @@ export class MockEngine implements ArtEngine {
 }
 
 function buildMockReview(
-	client: string,
+	brief: ClientBrief,
+	playerPrompt: string,
 	accuracyScore: number,
 	matched: readonly string[],
 	missed: readonly string[],
 	seed: number
 ): string {
 	const band = bandForScore(accuracyScore);
-	const templates = REVIEW_TEMPLATES[band];
 	const rng = mulberry32(seed);
-	const template = pick(templates, rng);
 	const matchedWord = matched[0] ?? 'the subject';
 	const missedWord = missed[0] ?? 'the point';
 
+	if (usesInterpretationScoring(brief)) {
+		const best = selectBestCluster(brief, playerPrompt);
+		if (best && best.ratio > 0) {
+			const templates = ABSTRACT_REVIEW_TEMPLATES[band];
+			const template = pick(templates, rng);
+			return template
+				.replaceAll('{client}', brief.clientName)
+				.replaceAll('{label}', best.cluster.label)
+				.replaceAll('{matched}', matchedWord)
+				.replaceAll('{missed}', missedWord);
+		}
+	}
+
+	const templates = REVIEW_TEMPLATES[band];
+	const template = pick(templates, rng);
 	return template
-		.replaceAll('{client}', client)
+		.replaceAll('{client}', brief.clientName)
 		.replaceAll('{matched}', matchedWord)
 		.replaceAll('{missed}', missedWord);
 }

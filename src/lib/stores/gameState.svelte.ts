@@ -200,6 +200,7 @@ export class GameStore {
 			excludeIds,
 			unlockedTiers: unlockedClientTiers(this.reputation),
 			completedSeriesIds: fullyCompletedSeriesIds(excludeIds, CORPORATE_BRIEFS),
+			commissionsCompleted: this.commissionsCompleted,
 			random: this.#random
 		});
 		this.currentArtwork = null;

@@ -1,25 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { LEVEL_1_BRIEFS } from '$lib/data/briefs';
+import { KITCHEN_BRIEFS } from '$lib/data/kitchenBriefs';
 import { calculatePayout, reputationGain, scorePrompt, toGalleryScore } from './scoring';
 
-const c1 = LEVEL_1_BRIEFS.find((b) => b.id === 'c1')!;
-const c2 = LEVEL_1_BRIEFS.find((b) => b.id === 'c2')!;
-const c3 = LEVEL_1_BRIEFS.find((b) => b.id === 'c3')!;
+const c1 = KITCHEN_BRIEFS.find((b) => b.id === 'c1')!;
+const c2 = KITCHEN_BRIEFS.find((b) => b.id === 'c2')!;
+const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
 
 describe('scorePrompt', () => {
 	const cases = [
 		{
 			brief: c1,
-			prompt: 'a cozy coffee cup on a wooden table',
+			prompt: 'cat',
 			accuracy: 10,
-			creativity: 2,
-			payout: 76,
-			galleryScore: 6,
-			reputation: 2
+			creativity: 1,
+			payout: 73,
+			galleryScore: 5.5,
+			reputation: 1
 		},
 		{
 			brief: c1,
-			prompt: 'dragon',
+			prompt: 'dog',
 			accuracy: 1,
 			creativity: 1,
 			payout: 10,
@@ -28,13 +28,12 @@ describe('scorePrompt', () => {
 		},
 		{
 			brief: c2,
-			prompt:
-				'an ancient glowing magical longsword embedded deep within a cracked granite stone, mystical blue runes',
+			prompt: 'a nice cup of tea on the kitchen table with steam rising softly',
 			accuracy: 10,
-			creativity: 6,
-			payout: 132,
-			galleryScore: 8,
-			reputation: 3
+			creativity: 4,
+			payout: 90,
+			galleryScore: 7,
+			reputation: 2
 		},
 		{
 			brief: c1,
@@ -61,27 +60,40 @@ describe('scorePrompt', () => {
 	}
 
 	it('partitions keywords into matched and missed in brief order', () => {
-		const result = scorePrompt(c1, 'a cozy coffee cup on a wooden table');
+		const result = scorePrompt(c1, 'a fluffy cat');
 		expect([...result.matchedKeywords, ...result.missedKeywords]).toEqual(c1.preferredKeywords);
 	});
 
-	it('matches only sword for a minimal c2 prompt', () => {
-		const result = scorePrompt(c2, 'a sword');
-		expect(result.matchedKeywords).toEqual(['sword']);
-		expect(result.missedKeywords).toEqual(['glowing', 'magic', 'stone']);
-	});
-
-	it('matches gold via substring overlap on c3', () => {
-		const result = scorePrompt(c3, 'a fluffy cat with a golden crown');
-		expect(result.matchedKeywords).toContain('gold');
+	it('matches only tea for a minimal c2 prompt', () => {
+		const result = scorePrompt(c2, 'tea');
+		expect(result.matchedKeywords).toEqual(['tea']);
+		expect(result.missedKeywords).toEqual(['cup']);
 	});
 
 	it('is a pure function that does not mutate the brief', () => {
 		const brief = { ...c1, preferredKeywords: [...c1.preferredKeywords] };
-		const first = scorePrompt(brief, 'cozy coffee cup table');
-		const second = scorePrompt(brief, 'cozy coffee cup table');
+		const first = scorePrompt(brief, 'cat');
+		const second = scorePrompt(brief, 'cat');
 		expect(first).toEqual(second);
 		expect(brief.preferredKeywords).toEqual(c1.preferredKeywords);
+	});
+
+	it('scores c6 parrot prompt at accuracy 1', () => {
+		expect(scorePrompt(c6, 'I miss the old days').accuracyScore).toBe(1);
+	});
+
+	it('scores c6 nostalgia full match at accuracy 10', () => {
+		expect(scorePrompt(c6, 'a faded sepia photograph in a family album').accuracyScore).toBe(10);
+	});
+
+	it('scores c6 nostalgia 3/4 match at accuracy 8', () => {
+		expect(scorePrompt(c6, 'a faded sepia photograph of relatives').accuracyScore).toBe(8);
+	});
+
+	it('scores c6 sunday-dinner cluster at accuracy 10', () => {
+		expect(scorePrompt(c6, 'sunday dinner with family around the tablecloth').accuracyScore).toBe(
+			10
+		);
 	});
 });
 
@@ -101,10 +113,13 @@ describe('calculatePayout', () => {
 
 	it('accepts layout × atmosphere composition numbers from spec 14', () => {
 		const brief = { ...c1, budget: 100 };
-		// Perfect Grid 1.2 × (1 + lighting 0.05 + velvet 0.08) = 1.356
 		expect(calculatePayout(brief, 10, 10, 1.356)).toBe(136);
 		const brief150 = { ...c1, budget: 150 };
-		// Tidy Rows 1.05 alone
 		expect(calculatePayout(brief150, 8, 8, 1.05)).toBe(126);
+	});
+
+	it('uses 0.5/0.5 weights for abstract briefs', () => {
+		expect(calculatePayout(c6, 10, 10, 1)).toBe(130);
+		expect(calculatePayout(c6, 1, 10, 1)).toBe(72);
 	});
 });
