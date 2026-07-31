@@ -288,7 +288,7 @@ describe('GameStore', () => {
 		await store.createArt();
 
 		const before = store.cash;
-		store.collectCash();
+		await store.collectCash();
 
 		expect(store.cash).toBeGreaterThan(before);
 		expect(store.galleryHistory).toHaveLength(1);
@@ -309,7 +309,7 @@ describe('GameStore', () => {
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
 
-		store.collectCash();
+		await store.collectCash();
 
 		expect(persistSave).toHaveBeenCalledOnce();
 		const saved = persistSave.mock.calls[0][0] as SaveData;
@@ -317,6 +317,36 @@ describe('GameStore', () => {
 		expect(saved.lifetimeCommissions).toBe(1);
 		expect(saved.galleryHistory).toHaveLength(1);
 		expect(saved.galleryHistory[0]?.briefId).toBe('c1');
+	});
+
+	it('collectCash durableizes blob image URLs before persisting', async () => {
+		const persistSave = vi.fn();
+		const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+		const blob = new Blob([bytes], { type: 'image/png' });
+		const blobUrl = 'blob:http://localhost/gallery-art';
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response(blob, { status: 200, headers: { 'Content-Type': 'image/png' } }))
+		);
+
+		const store = createStore(
+			{
+				generate: vi.fn(async () => ({ ...fakeArtwork, imageUrl: blobUrl })),
+				critique: vi.fn(async () => fakeDraft)
+			},
+			{ persistSave }
+		);
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+		await store.createArt();
+		await store.collectCash();
+
+		const saved = persistSave.mock.calls[0][0] as SaveData;
+		expect(saved.galleryHistory[0]?.imageUrl.startsWith('data:image/png;base64,')).toBe(true);
+		expect(store.galleryHistory[0]?.imageUrl.startsWith('data:image/png;base64,')).toBe(true);
+
+		vi.unstubAllGlobals();
 	});
 
 	it('double collectCash pays only once', async () => {
@@ -332,9 +362,9 @@ describe('GameStore', () => {
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
 
-		store.collectCash();
+		await store.collectCash();
 		const cashAfterFirst = store.cash;
-		store.collectCash();
+		await store.collectCash();
 
 		expect(store.cash).toBe(cashAfterFirst);
 		expect(store.galleryHistory).toHaveLength(1);
@@ -349,7 +379,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
-		store.collectCash();
+		await store.collectCash();
 
 		store.inviteClient();
 
@@ -368,7 +398,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
-		store.collectCash();
+		await store.collectCash();
 		store.reset();
 
 		expect(clearSave).toHaveBeenCalledOnce();
@@ -388,7 +418,7 @@ describe('GameStore', () => {
 			store.inviteClient();
 			store.draftPrompt = 'a cozy coffee cup on a wooden table';
 			await store.createArt();
-			store.collectCash();
+			await store.collectCash();
 		}
 
 		expect(store.phase).toBe('levelComplete');

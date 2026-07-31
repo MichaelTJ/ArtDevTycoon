@@ -27,8 +27,9 @@ Import from:
 | `failed`        | {@link ErrorPanel} + composer                | engine error           |
 | `levelComplete` | {@link LevelCompleteOverlay}                 | 5 commissions and $500 |
 
-Every store method guards on the current phase. `collectCash()` is idempotent — calling
-it twice does not pay twice.
+Every store method guards on the current phase. `collectCash()` is async and idempotent —
+calling it twice does not pay twice. Blob image URLs are converted to durable `data:` URLs
+before the gallery entry is persisted.
 
 ## Invariants
 

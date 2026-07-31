@@ -31,4 +31,5 @@ export {
 	clearSave,
 	type SaveData
 } from './save';
+export { ensureDurableImageUrl } from './durableImage';
 export { MAX_IDLE_MS, BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from './idleIncome';

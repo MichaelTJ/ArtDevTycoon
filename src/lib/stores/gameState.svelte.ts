@@ -23,6 +23,7 @@ import {
 	calculatePayout,
 	clearSave as defaultClearSave,
 	createDefaultSave,
+	ensureDurableImageUrl,
 	isLevelComplete,
 	levelProgress,
 	loadSave as defaultLoadSave,
@@ -155,6 +156,8 @@ export class GameStore {
 
 	#autoInviteTimer: ReturnType<typeof setTimeout> | null = null;
 	#incomeTicker: ReturnType<typeof setInterval> | null = null;
+	/** Prevents a double-click from banking the same commission twice while durableizing. */
+	#collectingCash = false;
 
 	constructor(deps?: GameStoreDeps) {
 		this.#engine = deps?.engine ?? engines.manager;
@@ -316,65 +319,73 @@ export class GameStore {
 		this.#persist();
 	}
 
-	collectCash(): void {
+	async collectCash(): Promise<void> {
 		if (
 			this.phase !== 'results' ||
 			!this.currentArtwork ||
 			!this.currentCritique ||
-			!this.currentClient
+			!this.currentClient ||
+			this.#collectingCash
 		) {
 			return;
 		}
 
-		const artwork = this.currentArtwork;
-		const critique = this.currentCritique;
-		const client = this.currentClient;
+		this.#collectingCash = true;
+		try {
+			const artwork = this.currentArtwork;
+			const critique = this.currentCritique;
+			const client = this.currentClient;
 
-		if (
-			briefTier(client) === 'corporate' &&
-			client.seriesId &&
-			client.paletteConstraint &&
-			artwork.playerPrompt !== undefined
-		) {
-			const onBrand = checkPaletteUsage(artwork.playerPrompt, client.paletteConstraint).onBrand;
-			const existing = this.seriesOnBrandFlags[client.seriesId] ?? [];
-			this.seriesOnBrandFlags = {
-				...this.seriesOnBrandFlags,
-				[client.seriesId]: [...existing, onBrand]
+			if (
+				briefTier(client) === 'corporate' &&
+				client.seriesId &&
+				client.paletteConstraint &&
+				artwork.playerPrompt !== undefined
+			) {
+				const onBrand = checkPaletteUsage(artwork.playerPrompt, client.paletteConstraint).onBrand;
+				const existing = this.seriesOnBrandFlags[client.seriesId] ?? [];
+				this.seriesOnBrandFlags = {
+					...this.seriesOnBrandFlags,
+					[client.seriesId]: [...existing, onBrand]
+				};
+			}
+
+			const imageUrl = await ensureDurableImageUrl(artwork.imageUrl);
+
+			this.cash += critique.finalPayout;
+			this.reputation += reputationGain(critique.accuracyScore, critique.creativityScore);
+			this.commissionsCompleted += 1;
+
+			const entry: GalleryEntry = {
+				id: artwork.id,
+				imageUrl,
+				title: critique.title,
+				payout: critique.finalPayout,
+				score: toGalleryScore(critique.accuracyScore, critique.creativityScore),
+				clientName: client.clientName,
+				briefId: client.id,
+				completedAt: this.#now()
 			};
-		}
 
-		this.cash += critique.finalPayout;
-		this.reputation += reputationGain(critique.accuracyScore, critique.creativityScore);
-		this.commissionsCompleted += 1;
+			this.galleryHistory = [entry, ...this.galleryHistory];
+			this.currentArtwork = null;
+			this.currentCritique = null;
+			this.currentClient = null;
+			this.currentAuctionResult = null;
 
-		const entry: GalleryEntry = {
-			id: artwork.id,
-			imageUrl: artwork.imageUrl,
-			title: critique.title,
-			payout: critique.finalPayout,
-			score: toGalleryScore(critique.accuracyScore, critique.creativityScore),
-			clientName: client.clientName,
-			briefId: client.id,
-			completedAt: this.#now()
-		};
+			this.phase = isLevelComplete({
+				cash: this.cash,
+				commissionsCompleted: this.commissionsCompleted
+			})
+				? 'levelComplete'
+				: 'idle';
 
-		this.galleryHistory = [entry, ...this.galleryHistory];
-		this.currentArtwork = null;
-		this.currentCritique = null;
-		this.currentClient = null;
-		this.currentAuctionResult = null;
-
-		this.phase = isLevelComplete({
-			cash: this.cash,
-			commissionsCompleted: this.commissionsCompleted
-		})
-			? 'levelComplete'
-			: 'idle';
-
-		this.#persist();
-		if (this.phase === 'idle') {
-			this.#scheduleAutoInvite();
+			this.#persist();
+			if (this.phase === 'idle') {
+				this.#scheduleAutoInvite();
+			}
+		} finally {
+			this.#collectingCash = false;
 		}
 	}
 

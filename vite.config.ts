@@ -3,9 +3,11 @@ import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { modifierExplorerPlugin } from './src/lib/modifier-explorer/vite-plugin';
 
 export default defineConfig({
 	plugins: [
+		modifierExplorerPlugin(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {

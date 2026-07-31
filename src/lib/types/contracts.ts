@@ -255,7 +255,7 @@ export interface ArtEngine {
 
 export const artworkSchema = z.object({
 	id: z.string().min(1),
-	/** Displayable source: a `blob:` URL, a `data:` URL, or an HTTP path. */
+	/** Displayable source: a durable `data:` URL, HTTP path, or (session-only) `blob:` URL. */
 	imageUrl: z.string().min(1),
 	/**
 	 * Exactly what the player typed, echoed back by the engine unchanged. Never the

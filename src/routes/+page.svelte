@@ -242,7 +242,7 @@
 									bidderCount={game.currentAuctionResult.bidderCount}
 									bids={game.currentAuctionResult.bids}
 									winningBid={game.currentAuctionResult.winningBid}
-									oncollect={() => game.collectCash()}
+									oncollect={() => void game.collectCash()}
 								/>
 							</div>
 						{:else}
@@ -250,7 +250,7 @@
 								artwork={game.currentArtwork}
 								critique={game.currentCritique}
 								clientName={game.currentClient.clientName}
-								oncollect={() => game.collectCash()}
+								oncollect={() => void game.collectCash()}
 							/>
 						{/if}
 					{:else if game.phase === 'failed'}
