@@ -103,17 +103,15 @@ function registerRoutes(server: ViteDevServer): void {
 				await ensureOutputDir();
 				const manifest = await readManifest();
 				manifest.results = manifest.results.map((entry) => {
-					const {
-						// strip legacy rating fields
-						tags: _tags,
-						picked: _picked,
-						pickedAt: _pickedAt,
-						...rest
-					} = entry as ExplorerResult & {
+					const legacy = entry as ExplorerResult & {
 						tags?: unknown;
 						picked?: unknown;
 						pickedAt?: unknown;
 					};
+					const rest = { ...legacy };
+					delete rest.tags;
+					delete rest.picked;
+					delete rest.pickedAt;
 					return {
 						...rest,
 						goodTags: Array.isArray(entry.goodTags) ? entry.goodTags : []

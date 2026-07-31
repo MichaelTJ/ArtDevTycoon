@@ -103,7 +103,7 @@ export function slotsForVenue(venueId: string, room: RoomDef): EaselSlot[] {
 function finalizeSlots(slots: EaselSlot[], room: RoomDef): EaselSlot[] {
 	return slots.map((slot) => {
 		let tx = Math.max(0, Math.min(slot.tx, room.width - 1));
-		let ty = Math.max(0, Math.min(slot.ty, room.height - 1));
+		const ty = Math.max(0, Math.min(slot.ty, room.height - 1));
 		if (tx === room.desk.tx && ty === room.desk.ty) {
 			tx = Math.max(0, Math.min(tx + 1, room.width - 1));
 		}
