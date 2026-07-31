@@ -407,10 +407,18 @@
 
 {#if engines.showRemoteSetup}
 	<MyPcSetup
+		bind:provider={engines.remoteProvider}
 		bind:baseUrl={engines.remoteBaseUrl}
 		bind:apiKey={engines.remoteApiKey}
+		bind:generateModel={engines.remoteGenerateModel}
+		bind:critiqueModel={engines.remoteCritiqueModel}
+		bind:critiqueProvider={engines.remoteCritiqueProvider}
+		bind:critiqueBaseUrl={engines.remoteCritiqueBaseUrl}
+		availableModels={engines.remoteAvailableModels}
 		testState={engines.remoteTestState}
 		testError={engines.remoteTestError}
+		onproviderchange={(p) => engines.setRemoteProvider(p)}
+		onrefreshmodels={() => void engines.refreshRemoteModels()}
 		ontest={() => void engines.testRemoteConnection()}
 		onconnect={() => void engines.connectRemote()}
 		oncancel={() => engines.closeRemoteSetup()}

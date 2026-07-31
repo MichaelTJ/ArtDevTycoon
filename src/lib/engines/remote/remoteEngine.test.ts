@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ClientBrief, DeviceCapability } from '$lib/types/contracts';
-import type { JanusLinkClient } from './janusLinkClient';
+import type { RemoteProviderClient } from './providers';
 import { RemoteEngine } from './remoteEngine';
 import type { RemoteEngineConfig } from './remoteConfig';
 
@@ -14,8 +14,17 @@ const capability: DeviceCapability = {
 };
 
 const config: RemoteEngineConfig = {
+	provider: 'januslink',
 	baseUrl: 'https://pc.tailnet-xxxx.ts.net',
 	apiKey: 'k'.repeat(32)
+};
+
+const ollamaConfig: RemoteEngineConfig = {
+	provider: 'ollama',
+	baseUrl: 'http://localhost:11434',
+	apiKey: '',
+	generateModel: 'flux',
+	critiqueModel: 'llava'
 };
 
 const brief: ClientBrief = {
@@ -31,14 +40,14 @@ const brief: ClientBrief = {
 const TINY_PNG_B64 =
 	'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
-function fakeClient(overrides: Partial<JanusLinkClient> = {}): JanusLinkClient {
+function fakeClient(overrides: Partial<RemoteProviderClient> = {}): RemoteProviderClient {
 	return {
 		testConnection: vi.fn().mockResolvedValue({ ok: true, device: 'cuda' }),
+		listModels: vi.fn().mockResolvedValue([]),
 		generate: vi.fn().mockResolvedValue({
-			promptId: 'g1',
 			images: [{ mimeType: 'image/png', base64: TINY_PNG_B64 }]
 		}),
-		understand: vi.fn().mockResolvedValue({ promptId: 'u1', text: 'yes' }),
+		understand: vi.fn().mockResolvedValue({ text: 'yes' }),
 		...overrides
 	};
 }
@@ -61,8 +70,9 @@ beforeEach(() => {
 
 describe('RemoteEngine', () => {
 	it('probe is unavailable without config', async () => {
+		const client = fakeClient();
 		const engine = new RemoteEngine({
-			client: fakeClient(),
+			getClient: () => client,
 			loadConfig: () => null
 		});
 		const result = await engine.probe(capability);
@@ -73,8 +83,9 @@ describe('RemoteEngine', () => {
 	});
 
 	it('probe is available when health succeeds', async () => {
+		const client = fakeClient();
 		const engine = new RemoteEngine({
-			client: fakeClient(),
+			getClient: () => client,
 			loadConfig: () => config
 		});
 		const result = await engine.probe(capability);
@@ -85,9 +96,22 @@ describe('RemoteEngine', () => {
 		});
 	});
 
+	it('probe works with ollama-shaped config', async () => {
+		const client = fakeClient();
+		const engine = new RemoteEngine({
+			getClient: () => client,
+			loadConfig: () => ollamaConfig
+		});
+		const result = await engine.probe(capability);
+		expect(result.available).toBe(true);
+	});
+
 	it('generate returns schema-valid Artwork with verbatim playerPrompt', async () => {
 		const client = fakeClient();
-		const engine = new RemoteEngine({ client, loadConfig: () => config });
+		const engine = new RemoteEngine({
+			getClient: () => client,
+			loadConfig: () => config
+		});
 		await engine.load();
 
 		const artwork = await engine.generate({
@@ -111,14 +135,14 @@ describe('RemoteEngine', () => {
 	it('critique maps four yes answers to accuracy 10', async () => {
 		const understand = vi
 			.fn()
-			.mockResolvedValueOnce({ promptId: '1', text: 'yes' })
-			.mockResolvedValueOnce({ promptId: '2', text: 'Yes, clearly.' })
-			.mockResolvedValueOnce({ promptId: '3', text: 'yes' })
-			.mockResolvedValueOnce({ promptId: '4', text: 'yes' })
-			.mockResolvedValueOnce({ promptId: '5', text: 'A charming cup on wood.' });
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'Yes, clearly.' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'A charming cup on wood.' });
 
 		const engine = new RemoteEngine({
-			client: fakeClient({ understand }),
+			getClient: () => fakeClient({ understand }),
 			loadConfig: () => config
 		});
 		await engine.load();
@@ -140,17 +164,16 @@ describe('RemoteEngine', () => {
 	});
 
 	it('critique uses fallback when review text is empty', async () => {
-		const understand = vi.fn().mockResolvedValue({ promptId: '1', text: 'yes' });
-		// 4 keywords sliced to 4 + 1 review → make the last (review) empty
-		understand
-			.mockResolvedValueOnce({ promptId: '1', text: 'yes' })
-			.mockResolvedValueOnce({ promptId: '2', text: 'yes' })
-			.mockResolvedValueOnce({ promptId: '3', text: 'yes' })
-			.mockResolvedValueOnce({ promptId: '4', text: 'yes' })
-			.mockResolvedValueOnce({ promptId: '5', text: '   ' });
+		const understand = vi
+			.fn()
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: '   ' });
 
 		const engine = new RemoteEngine({
-			client: fakeClient({ understand }),
+			getClient: () => fakeClient({ understand }),
 			loadConfig: () => config
 		});
 		await engine.load();

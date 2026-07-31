@@ -1,21 +1,88 @@
 import { z } from 'zod';
 
-/** localStorage key for the player's JanusLink connection settings. */
+/** localStorage key for the player's My PC connection settings. */
 export const REMOTE_CONFIG_STORAGE_KEY = 'adt.engine.remote.config';
 
-/**
- * Player-supplied JanusLink endpoint. The API key is their own PC secret — never sent
- * anywhere except their Tailscale phone-app host.
- */
-export const remoteEngineConfigSchema = z.object({
-	baseUrl: z
-		.string()
-		.url()
-		.transform((url) => url.replace(/\/+$/, '')),
+const urlSchema = z
+	.string()
+	.url()
+	.transform((url) => url.replace(/\/+$/, ''));
+
+const januslinkConfigSchema = z.object({
+	provider: z.literal('januslink'),
+	baseUrl: urlSchema,
 	apiKey: z.string().min(24).max(256)
 });
 
+const ollamaConfigSchema = z.object({
+	provider: z.literal('ollama'),
+	baseUrl: urlSchema.default('http://localhost:11434'),
+	apiKey: z.string().max(256).default(''),
+	generateModel: z.string().min(1).max(200),
+	critiqueModel: z.string().min(1).max(200)
+});
+
+const lmstudioConfigSchema = z.object({
+	provider: z.literal('lmstudio'),
+	baseUrl: urlSchema.default('http://localhost:1234'),
+	apiKey: z.string().max(256).default(''),
+	generateModel: z.string().min(1).max(200),
+	critiqueModel: z.string().min(1).max(200)
+});
+
+const a1111ConfigSchema = z.object({
+	provider: z.literal('automatic1111'),
+	baseUrl: urlSchema.default('http://127.0.0.1:7860'),
+	apiKey: z.string().max(256).default(''),
+	/** Checkpoint name is optional — A1111 uses whatever is loaded in its UI. */
+	generateModel: z.string().max(200).default(''),
+	critiqueProvider: z.enum(['ollama', 'lmstudio']),
+	critiqueBaseUrl: urlSchema,
+	critiqueModel: z.string().min(1).max(200)
+});
+
+/**
+ * Player-supplied My PC endpoint. Discriminated by `provider`.
+ * JanusLink keeps a single API key; local stacks pick generate + critique models.
+ */
+export const remoteEngineConfigSchema = z.discriminatedUnion('provider', [
+	januslinkConfigSchema,
+	ollamaConfigSchema,
+	lmstudioConfigSchema,
+	a1111ConfigSchema
+]);
+
 export type RemoteEngineConfig = z.infer<typeof remoteEngineConfigSchema>;
+export type RemoteProviderId = RemoteEngineConfig['provider'];
+
+/** Inject provider for legacy JanusLink saves that only had baseUrl + apiKey. */
+function migrateLegacy(raw: unknown): unknown {
+	if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+		const obj = raw as Record<string, unknown>;
+		if (
+			obj.provider === undefined &&
+			typeof obj.baseUrl === 'string' &&
+			typeof obj.apiKey === 'string'
+		) {
+			return { provider: 'januslink', ...obj };
+		}
+	}
+	return raw;
+}
+
+/** Default base URL shown in the setup dialog before the player edits. */
+export function defaultBaseUrlForProvider(provider: RemoteProviderId): string {
+	switch (provider) {
+		case 'januslink':
+			return '';
+		case 'ollama':
+			return 'http://localhost:11434';
+		case 'lmstudio':
+			return 'http://localhost:1234';
+		case 'automatic1111':
+			return 'http://127.0.0.1:7860';
+	}
+}
 
 /** Read and validate stored config. Malformed or missing → null; never throws. */
 export function loadRemoteConfig(): RemoteEngineConfig | null {
@@ -25,7 +92,7 @@ export function loadRemoteConfig(): RemoteEngineConfig | null {
 			return null;
 		}
 		const parsed: unknown = JSON.parse(raw);
-		const result = remoteEngineConfigSchema.safeParse(parsed);
+		const result = remoteEngineConfigSchema.safeParse(migrateLegacy(parsed));
 		return result.success ? result.data : null;
 	} catch {
 		return null;

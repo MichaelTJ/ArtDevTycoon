@@ -22,12 +22,12 @@ directly.
 
 ## Engine tiers
 
-| id               | tier | Download | WebGPU | Desktop only | Status                                                  |
-| ---------------- | ---- | -------- | ------ | ------------ | ------------------------------------------------------- |
-| `mock`           | 0    | none     | no     | no           | **Complete** — procedural SVG + text scoring            |
-| `janus-webgpu`   | 1    | ~1024 MB | yes    | no           | **Complete** — in-browser Janus (spec 05)               |
-| `remote`         | 1    | none     | no     | no           | **Complete** — JanusLink My PC over Tailscale (spec 07) |
-| `sdturbo-webgpu` | 2    | ~1536 MB | yes    | yes          | **Complete** — SD-Turbo + Janus critique (spec 06)      |
+| id               | tier | Download | WebGPU | Desktop only | Status                                                                      |
+| ---------------- | ---- | -------- | ------ | ------------ | --------------------------------------------------------------------------- |
+| `mock`           | 0    | none     | no     | no           | **Complete** — procedural SVG + text scoring                                |
+| `janus-webgpu`   | 1    | ~1024 MB | yes    | no           | **Complete** — in-browser Janus (spec 05)                                   |
+| `remote`         | 1    | none     | no     | no           | **Complete** — My PC providers (07+08): JanusLink, Ollama, LM Studio, A1111 |
+| `sdturbo-webgpu` | 2    | ~1536 MB | yes    | yes          | **Complete** — SD-Turbo + Janus critique (spec 06)                          |
 
 ## Invariants
 

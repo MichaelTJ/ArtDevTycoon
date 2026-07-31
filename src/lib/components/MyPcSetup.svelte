@@ -1,19 +1,38 @@
 <script lang="ts">
+	type ProviderId = 'januslink' | 'ollama' | 'lmstudio' | 'automatic1111';
+	type CritiqueProviderId = 'ollama' | 'lmstudio';
+
 	interface Props {
+		provider?: ProviderId;
 		baseUrl?: string;
 		apiKey?: string;
+		generateModel?: string;
+		critiqueModel?: string;
+		critiqueProvider?: CritiqueProviderId;
+		critiqueBaseUrl?: string;
+		availableModels?: string[];
 		testState?: 'idle' | 'testing' | 'success' | 'error';
 		testError?: string | null;
+		onproviderchange?: (provider: ProviderId) => void;
+		onrefreshmodels: () => void;
 		ontest: () => void;
 		onconnect: () => void;
 		oncancel: () => void;
 	}
 
 	let {
+		provider = $bindable<ProviderId>('januslink'),
 		baseUrl = $bindable(''),
 		apiKey = $bindable(''),
+		generateModel = $bindable(''),
+		critiqueModel = $bindable(''),
+		critiqueProvider = $bindable<CritiqueProviderId>('ollama'),
+		critiqueBaseUrl = $bindable('http://localhost:11434'),
+		availableModels = [],
 		testState = 'idle',
 		testError = null,
+		onproviderchange,
+		onrefreshmodels,
 		ontest,
 		onconnect,
 		oncancel
@@ -23,6 +42,28 @@
 
 	const connectDisabled = $derived(testState !== 'success');
 	const inputsDisabled = $derived(testState === 'testing');
+	const showModelFields = $derived(provider !== 'januslink');
+	const showApiKeyRequired = $derived(provider === 'januslink');
+	const showA1111Critique = $derived(provider === 'automatic1111');
+
+	const testDisabled = $derived.by(() => {
+		if (inputsDisabled || !baseUrl.trim()) {
+			return true;
+		}
+		if (provider === 'januslink') {
+			return !apiKey.trim();
+		}
+		if (provider === 'automatic1111') {
+			return !critiqueModel.trim() || !critiqueBaseUrl.trim();
+		}
+		return !generateModel.trim() || !critiqueModel.trim();
+	});
+
+	function handleProviderInput(event: Event): void {
+		const value = (event.currentTarget as HTMLSelectElement).value as ProviderId;
+		provider = value;
+		onproviderchange?.(value);
+	}
 </script>
 
 <div
@@ -31,19 +72,38 @@
 	aria-modal="true"
 	aria-labelledby="my-pc-setup-title"
 >
-	<div class="w-full max-w-md space-y-4 rounded-xl border border-stone-300 bg-white p-6 shadow-lg">
+	<div
+		class="max-h-[90vh] w-full max-w-md space-y-4 overflow-y-auto rounded-xl border border-stone-300 bg-white p-6 shadow-lg"
+	>
 		<h2 id="my-pc-setup-title" class="text-xl font-bold text-stone-800">Connect My PC</h2>
 		<p class="text-sm text-stone-600">
-			Run JanusLink on your GPU PC, join Tailscale, then paste the Tailscale HTTPS URL and API key
-			from the installer.
+			Run JanusLink, Ollama, LM Studio, or Automatic1111 on your machine, then connect from this
+			browser. Split generate and critique models when your stack needs it.
 		</p>
 
 		<label class="block text-sm font-medium text-stone-800">
-			PC Tailscale URL
+			Provider
+			<select
+				class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				disabled={inputsDisabled}
+				value={provider}
+				onchange={handleProviderInput}
+			>
+				<option value="januslink">JanusLink</option>
+				<option value="ollama">Ollama</option>
+				<option value="lmstudio">LM Studio</option>
+				<option value="automatic1111">Automatic1111</option>
+			</select>
+		</label>
+
+		<label class="block text-sm font-medium text-stone-800">
+			{provider === 'januslink' ? 'PC Tailscale URL' : 'Base URL'}
 			<input
 				type="url"
 				class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-				placeholder="https://your-pc.tailnet-xxxx.ts.net"
+				placeholder={provider === 'januslink'
+					? 'https://your-pc.tailnet-xxxx.ts.net'
+					: 'http://localhost:11434'}
 				autocomplete="off"
 				disabled={inputsDisabled}
 				bind:value={baseUrl}
@@ -51,45 +111,117 @@
 		</label>
 
 		<label class="block text-sm font-medium text-stone-800">
-			API key
+			API key{showApiKeyRequired ? '' : ' (optional)'}
 			<input
 				type="password"
 				class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-				placeholder="JANUS_API_KEY from the installer"
+				placeholder={showApiKeyRequired
+					? 'JANUS_API_KEY from the installer'
+					: 'Leave blank unless your server requires auth'}
 				autocomplete="off"
 				disabled={inputsDisabled}
 				bind:value={apiKey}
 			/>
 		</label>
 
-		<button
-			type="button"
-			class="text-left text-sm font-medium text-amber-800 underline-offset-2 hover:underline"
-			aria-expanded={helpOpen}
-			onclick={() => {
-				helpOpen = !helpOpen;
-			}}
-		>
-			{helpOpen ? 'Hide setup help' : 'Setup help'}
-		</button>
+		{#if showModelFields}
+			<label class="block text-sm font-medium text-stone-800">
+				Generation model
+				<input
+					type="text"
+					list="adt-remote-models"
+					class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+					placeholder="Image model id"
+					autocomplete="off"
+					disabled={inputsDisabled}
+					bind:value={generateModel}
+				/>
+			</label>
 
-		{#if helpOpen}
-			<div class="rounded-lg bg-stone-50 p-3 text-sm text-stone-600">
-				<p>
-					Install from
-					<a
-						class="font-medium text-amber-800 underline"
-						href="https://github.com/MichaelTJ/ADTLocalServe"
-						target="_blank"
-						rel="noopener noreferrer">ADTLocalServe / JanusLink</a
-					>. On the PC, add this game's origin to
-					<code class="rounded bg-stone-200 px-1">JANUS_ALLOWED_ORIGINS</code>
-					in
-					<code class="rounded bg-stone-200 px-1">phone-app/.env</code>
-					(e.g.
-					<code class="rounded bg-stone-200 px-1">http://localhost:5173</code>).
-				</p>
-			</div>
+			<label class="block text-sm font-medium text-stone-800">
+				Critique model
+				<input
+					type="text"
+					list="adt-remote-models"
+					class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+					placeholder="Vision model id"
+					autocomplete="off"
+					disabled={inputsDisabled}
+					bind:value={critiqueModel}
+				/>
+			</label>
+
+			<button
+				type="button"
+				class="text-left text-sm font-medium text-amber-800 underline-offset-2 hover:underline"
+				disabled={inputsDisabled}
+				onclick={onrefreshmodels}
+			>
+				Refresh models
+			</button>
+
+			<datalist id="adt-remote-models">
+				{#each availableModels as model (model)}
+					<option value={model}></option>
+				{/each}
+			</datalist>
+		{/if}
+
+		{#if showA1111Critique}
+			<label class="block text-sm font-medium text-stone-800">
+				Critique provider
+				<select
+					class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+					disabled={inputsDisabled}
+					bind:value={critiqueProvider}
+				>
+					<option value="ollama">Ollama</option>
+					<option value="lmstudio">LM Studio</option>
+				</select>
+			</label>
+
+			<label class="block text-sm font-medium text-stone-800">
+				Critique base URL
+				<input
+					type="url"
+					class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+					autocomplete="off"
+					disabled={inputsDisabled}
+					bind:value={critiqueBaseUrl}
+				/>
+			</label>
+		{/if}
+
+		{#if provider === 'januslink'}
+			<button
+				type="button"
+				class="text-left text-sm font-medium text-amber-800 underline-offset-2 hover:underline"
+				aria-expanded={helpOpen}
+				onclick={() => {
+					helpOpen = !helpOpen;
+				}}
+			>
+				{helpOpen ? 'Hide setup help' : 'Setup help'}
+			</button>
+
+			{#if helpOpen}
+				<div class="rounded-lg bg-stone-50 p-3 text-sm text-stone-600">
+					<p>
+						Install from
+						<a
+							class="font-medium text-amber-800 underline"
+							href="https://github.com/MichaelTJ/ADTLocalServe"
+							target="_blank"
+							rel="noopener noreferrer">ADTLocalServe / JanusLink</a
+						>. On the PC, add this game's origin to
+						<code class="rounded bg-stone-200 px-1">JANUS_ALLOWED_ORIGINS</code>
+						in
+						<code class="rounded bg-stone-200 px-1">phone-app/.env</code>
+						(e.g.
+						<code class="rounded bg-stone-200 px-1">http://localhost:5173</code>).
+					</p>
+				</div>
+			{/if}
 		{/if}
 
 		{#if testState === 'success'}
@@ -103,7 +235,7 @@
 			<button
 				type="button"
 				class="min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
-				disabled={inputsDisabled || !baseUrl.trim() || !apiKey.trim()}
+				disabled={testDisabled}
 				onclick={ontest}
 			>
 				{testState === 'testing' ? 'Testing…' : 'Test connection'}
@@ -128,6 +260,7 @@
 		<div class="border-t border-stone-200 pt-3">
 			<p class="text-xs font-semibold tracking-wide text-stone-500 uppercase">Coming soon</p>
 			<ul class="mt-1 space-y-1 text-sm text-stone-400">
+				<li>ComfyUI</li>
 				<li>OpenRouter</li>
 				<li>OpenAI</li>
 				<li>Art Dev Tycoon Cloud</li>
