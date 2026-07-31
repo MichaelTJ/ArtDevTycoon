@@ -835,3 +835,31 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 
 - No Phaser desk XP bars (Svelte menus only, per spec).
 - Skill trees / respec deliberately out of scope.
+
+## 2026-08-01 � Spec 08 Local providers (split models)
+
+**Zone:** `src/lib/engines/remote/**`, `MyPcSetup.svelte*`, `engineStore.svelte*`, `+page.svelte` (setup wiring), engine/component READMEs, agent-log
+
+**Built:** Provider framework for My PC. Discriminated `remoteEngineConfigSchema` (januslink / ollama / lmstudio / automatic1111) with legacy JanusLink migration. `getRemoteProviderClient` routes HTTP; Automatic1111 critiques via paired Ollama or LM Studio. `MyPcSetup` provider select + split model fields; Coming soon for ComfyUI / OpenRouter / OpenAI / Cloud.
+
+**Public surface:**
+
+- `/engines/remote/providers` � `getRemoteProviderClient`, `RemoteProviderClient`, local clients
+- `remoteEngineConfigSchema` � discriminated union + `defaultBaseUrlForProvider`
+- `EngineStore` � provider fields, `setRemoteProvider`, `refreshRemoteModels`
+- `MyPcSetup` � multi-provider bindables
+
+**Tests:** remoteConfig migration/round-trip; remoteEngine via injected clients; ollama/lmstudio/a1111 client unit tests; MyPcSetup provider/model UI. Commands: `npm run check`; `npm run test:unit -- --run src/lib/engines/remote`; MyPcSetup + engineStore tests.
+
+**Decisions:**
+
+- Keep filename `MyPcSetup.svelte` to avoid export churn.
+- A1111 always requires critique provider fields in schema (no MockEngine compose at runtime).
+- Registry picker blurb left for orchestrator (outside ownership zone).
+
+**Requests:** Update `registry.ts` My PC description to mention local providers; `docs/architecture.md` remote tier row.
+
+**Known gaps:**
+
+- ComfyUI / cloud BYO left to specs 09�10.
+- Manual E2E against live Ollama/LM Studio/A1111 not run in this session.

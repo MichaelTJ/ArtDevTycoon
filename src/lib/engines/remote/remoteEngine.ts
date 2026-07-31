@@ -21,7 +21,7 @@ import {
 import { EngineError, toEngineError } from '../errors';
 import { bandForScore, REVIEW_TEMPLATES } from '../mock/reviewTemplates';
 import { hashString, mulberry32, pick } from '../random';
-import { createJanusLinkClient, type JanusLinkClient } from './janusLinkClient';
+import { getRemoteProviderClient, type RemoteProviderClient } from './providers';
 import { loadRemoteConfig, type RemoteEngineConfig } from './remoteConfig';
 
 const ARTWORK_WIDTH = 384;
@@ -29,19 +29,19 @@ const ARTWORK_HEIGHT = 384;
 const MAX_KEYWORD_QUESTIONS = 4;
 
 export interface RemoteEngineDeps {
-	client?: JanusLinkClient;
+	getClient?: (provider: string) => RemoteProviderClient;
 	loadConfig?: () => RemoteEngineConfig | null;
 }
 
 /**
- * JanusLink-backed ArtEngine — generate and critique on the player's home GPU over Tailscale.
- * Uses Bearer auth only (session cookies are SameSite=lax and do not work cross-origin).
+ * My PC ArtEngine — generate and critique via JanusLink or a local provider
+ * (Ollama, LM Studio, Automatic1111). No WebGPU; player runs the models.
  */
 export class RemoteEngine implements ArtEngine {
 	readonly id = 'remote' as const;
 	readonly displayName = 'My PC';
 	readonly description =
-		'Real Janus on your home GPU via JanusLink. No browser download — you run the model.';
+		'Your GPU or local AI server (JanusLink, Ollama, LM Studio, Automatic1111). No browser download.';
 	readonly requirements = {
 		webgpu: false,
 		approxDownloadMb: 0,
@@ -50,15 +50,16 @@ export class RemoteEngine implements ArtEngine {
 	};
 	readonly capabilities = { generate: true, critique: true };
 
-	private readonly client: JanusLinkClient;
+	private readonly getClient: (provider: string) => RemoteProviderClient;
 	private readonly loadConfig: () => RemoteEngineConfig | null;
 	private config: RemoteEngineConfig | null = null;
+	private client: RemoteProviderClient | null = null;
 	private readonly objectUrls = new Set<string>();
 	private readonly blobCache = new Map<string, Blob>();
 	private artworkCounter = 0;
 
 	constructor(deps: RemoteEngineDeps = {}) {
-		this.client = deps.client ?? createJanusLinkClient();
+		this.getClient = deps.getClient ?? getRemoteProviderClient;
 		this.loadConfig = deps.loadConfig ?? loadRemoteConfig;
 	}
 
@@ -68,11 +69,11 @@ export class RemoteEngine implements ArtEngine {
 		if (!config) {
 			return {
 				available: false,
-				reason: 'Not connected. Set up My PC (JanusLink) in the engine menu.'
+				reason: 'Not connected. Set up My PC in the engine menu.'
 			};
 		}
 
-		const result = await this.client.testConnection(config);
+		const result = await this.getClient(config.provider).testConnection(config);
 		if (!result.ok) {
 			return { available: false, reason: result.reason };
 		}
@@ -86,18 +87,17 @@ export class RemoteEngine implements ArtEngine {
 	}): Promise<void> {
 		const config = this.loadConfig();
 		if (!config) {
-			throw new EngineError(
-				'internal',
-				'Not connected. Set up My PC (JanusLink) in the engine menu.'
-			);
+			throw new EngineError('internal', 'Not connected. Set up My PC in the engine menu.');
 		}
 
-		const result = await this.client.testConnection(config, options?.signal);
+		const client = this.getClient(config.provider);
+		const result = await client.testConnection(config, options?.signal);
 		if (!result.ok) {
 			throw new EngineError('internal', result.reason);
 		}
 
 		this.config = config;
+		this.client = client;
 		options?.onProgress?.({
 			status: 'ready',
 			file: null,
@@ -113,7 +113,7 @@ export class RemoteEngine implements ArtEngine {
 		seed?: number;
 		signal?: AbortSignal;
 	}): Promise<Artwork> {
-		if (!this.config) {
+		if (!this.config || !this.client) {
 			throw new EngineError('internal', 'Engine is not loaded.');
 		}
 
@@ -162,7 +162,7 @@ export class RemoteEngine implements ArtEngine {
 		artwork: Artwork;
 		signal?: AbortSignal;
 	}): Promise<CritiqueDraft> {
-		if (!this.config) {
+		if (!this.config || !this.client) {
 			throw new EngineError('internal', 'Engine is not loaded.');
 		}
 
@@ -223,6 +223,7 @@ export class RemoteEngine implements ArtEngine {
 		}
 		this.objectUrls.clear();
 		this.config = null;
+		this.client = null;
 	}
 }
 

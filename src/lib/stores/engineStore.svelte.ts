@@ -1,10 +1,13 @@
 import { EngineManager } from '$lib/engines';
 import type { EngineDescriptor } from '$lib/engines/registry';
-import { createJanusLinkClient } from '$lib/engines/remote/janusLinkClient';
+import { getRemoteProviderClient } from '$lib/engines/remote/providers';
 import {
+	defaultBaseUrlForProvider,
 	loadRemoteConfig,
 	remoteEngineConfigSchema,
-	saveRemoteConfig
+	saveRemoteConfig,
+	type RemoteEngineConfig,
+	type RemoteProviderId
 } from '$lib/engines/remote/remoteConfig';
 import type {
 	DeviceCapability,
@@ -59,8 +62,14 @@ export class EngineStore {
 	switchingLocked = $state(false);
 
 	showRemoteSetup = $state(false);
+	remoteProvider = $state<RemoteProviderId>('januslink');
 	remoteBaseUrl = $state('');
 	remoteApiKey = $state('');
+	remoteGenerateModel = $state('');
+	remoteCritiqueModel = $state('');
+	remoteCritiqueProvider = $state<'ollama' | 'lmstudio'>('ollama');
+	remoteCritiqueBaseUrl = $state('http://localhost:11434');
+	remoteAvailableModels = $state<string[]>([]);
 	remoteTestState = $state<'idle' | 'testing' | 'success' | 'error'>('idle');
 	remoteTestError = $state<string | null>(null);
 
@@ -157,9 +166,17 @@ export class EngineStore {
 	openRemoteSetup(): void {
 		const existing = loadRemoteConfig();
 		if (existing) {
-			this.remoteBaseUrl = existing.baseUrl;
-			this.remoteApiKey = existing.apiKey;
+			this.applyRemoteConfigToFields(existing);
+		} else {
+			this.remoteProvider = 'januslink';
+			this.remoteBaseUrl = defaultBaseUrlForProvider('januslink');
+			this.remoteApiKey = '';
+			this.remoteGenerateModel = '';
+			this.remoteCritiqueModel = '';
+			this.remoteCritiqueProvider = 'ollama';
+			this.remoteCritiqueBaseUrl = 'http://localhost:11434';
 		}
+		this.remoteAvailableModels = [];
 		this.remoteTestState = 'idle';
 		this.remoteTestError = null;
 		this.showRemoteSetup = true;
@@ -171,38 +188,62 @@ export class EngineStore {
 		this.remoteTestError = null;
 	}
 
+	setRemoteProvider(provider: RemoteProviderId): void {
+		this.remoteProvider = provider;
+		this.remoteBaseUrl = defaultBaseUrlForProvider(provider);
+		this.remoteTestState = 'idle';
+		this.remoteTestError = null;
+		this.remoteAvailableModels = [];
+		if (provider === 'automatic1111') {
+			this.remoteCritiqueBaseUrl = defaultBaseUrlForProvider('ollama');
+			this.remoteCritiqueProvider = 'ollama';
+		}
+	}
+
+	async refreshRemoteModels(): Promise<void> {
+		const draft = this.buildRemoteConfigFromFields();
+		const parsed = remoteEngineConfigSchema.safeParse(draft);
+		if (!parsed.success) {
+			this.remoteAvailableModels = [];
+			return;
+		}
+		try {
+			const client = getRemoteProviderClient(parsed.data.provider);
+			const models = (await client.listModels?.(parsed.data)) ?? [];
+			this.remoteAvailableModels = models;
+		} catch {
+			this.remoteAvailableModels = [];
+		}
+	}
+
 	async testRemoteConnection(): Promise<void> {
 		this.remoteTestState = 'testing';
 		this.remoteTestError = null;
 
-		const parsed = remoteEngineConfigSchema.safeParse({
-			baseUrl: this.remoteBaseUrl,
-			apiKey: this.remoteApiKey
-		});
+		const parsed = remoteEngineConfigSchema.safeParse(this.buildRemoteConfigFromFields());
 		if (!parsed.success) {
 			this.remoteTestState = 'error';
-			this.remoteTestError = 'Enter a valid Tailscale HTTPS URL and an API key (24+ characters).';
+			this.remoteTestError =
+				this.remoteProvider === 'januslink'
+					? 'Enter a valid Tailscale HTTPS URL and an API key (24+ characters).'
+					: 'Enter a valid base URL and the required model fields for this provider.';
 			return;
 		}
 
-		const result = await createJanusLinkClient().testConnection(parsed.data);
+		const result = await getRemoteProviderClient(parsed.data.provider).testConnection(parsed.data);
 		if (!result.ok) {
 			this.remoteTestState = 'error';
 			this.remoteTestError = result.reason;
 			return;
 		}
 
-		this.remoteBaseUrl = parsed.data.baseUrl;
-		this.remoteApiKey = parsed.data.apiKey;
+		this.applyRemoteConfigToFields(parsed.data);
 		this.remoteTestState = 'success';
 		this.remoteTestError = null;
 	}
 
 	async connectRemote(): Promise<void> {
-		const parsed = remoteEngineConfigSchema.safeParse({
-			baseUrl: this.remoteBaseUrl,
-			apiKey: this.remoteApiKey
-		});
+		const parsed = remoteEngineConfigSchema.safeParse(this.buildRemoteConfigFromFields());
 		if (!parsed.success || this.remoteTestState !== 'success') {
 			this.remoteTestState = 'error';
 			this.remoteTestError = 'Test the connection successfully before connecting.';
@@ -212,6 +253,49 @@ export class EngineStore {
 		saveRemoteConfig(parsed.data);
 		this.showRemoteSetup = false;
 		await this.select('remote');
+	}
+
+	private buildRemoteConfigFromFields(): unknown {
+		if (this.remoteProvider === 'januslink') {
+			return {
+				provider: 'januslink',
+				baseUrl: this.remoteBaseUrl,
+				apiKey: this.remoteApiKey
+			};
+		}
+		if (this.remoteProvider === 'ollama' || this.remoteProvider === 'lmstudio') {
+			return {
+				provider: this.remoteProvider,
+				baseUrl: this.remoteBaseUrl,
+				apiKey: this.remoteApiKey,
+				generateModel: this.remoteGenerateModel,
+				critiqueModel: this.remoteCritiqueModel
+			};
+		}
+		return {
+			provider: 'automatic1111',
+			baseUrl: this.remoteBaseUrl,
+			apiKey: this.remoteApiKey,
+			generateModel: this.remoteGenerateModel,
+			critiqueProvider: this.remoteCritiqueProvider,
+			critiqueBaseUrl: this.remoteCritiqueBaseUrl,
+			critiqueModel: this.remoteCritiqueModel
+		};
+	}
+
+	private applyRemoteConfigToFields(config: RemoteEngineConfig): void {
+		this.remoteProvider = config.provider;
+		this.remoteBaseUrl = config.baseUrl;
+		this.remoteApiKey = config.apiKey;
+		if (config.provider === 'ollama' || config.provider === 'lmstudio') {
+			this.remoteGenerateModel = config.generateModel;
+			this.remoteCritiqueModel = config.critiqueModel;
+		} else if (config.provider === 'automatic1111') {
+			this.remoteGenerateModel = config.generateModel;
+			this.remoteCritiqueModel = config.critiqueModel;
+			this.remoteCritiqueProvider = config.critiqueProvider;
+			this.remoteCritiqueBaseUrl = config.critiqueBaseUrl;
+		}
 	}
 
 	private syncFromManager(): void {

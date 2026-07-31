@@ -3,6 +3,7 @@ import { createJanusLinkClient } from './janusLinkClient';
 import type { RemoteEngineConfig } from './remoteConfig';
 
 const config: RemoteEngineConfig = {
+	provider: 'januslink',
 	baseUrl: 'https://pc.tailnet-xxxx.ts.net',
 	apiKey: 'k'.repeat(32)
 };
