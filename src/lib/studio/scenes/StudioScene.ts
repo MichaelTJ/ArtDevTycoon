@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../bridge';
+import { clientLookForTier } from '../clientLooks';
 import {
 	CLIENT_SPEED,
 	INTERACT_KEYS,
@@ -11,8 +12,15 @@ import {
 } from '../config';
 import { slotsForVenue, type EaselSlot } from '../easelLayout';
 import { nextWanderTarget, stepToward, type WanderState } from '../npcWander';
-import type { ResidentNpcDef, RoomDef, RoomZone } from '../rooms';
+import type { ResidentNpcDef, RoomDef, RoomZone, TileMarker } from '../rooms';
 import { isSafeStudioImageUrl } from '../safeImageUrl';
+import {
+	curatorPatrol,
+	floorStaffFromHired,
+	staffAnchorForRole,
+	staffLookForRole,
+	type FloorStaffRoleId
+} from '../staffPresence';
 import { getRoomForVenue } from '../venueRooms';
 import { DEFAULT_WORK_ESTIMATE_MS, workBarProgress } from '../workProgress';
 
@@ -24,6 +32,15 @@ interface EaselView {
 	stand: Phaser.GameObjects.Image;
 	art: Phaser.GameObjects.Image | null;
 	entryId: string | null;
+}
+
+interface StaffSprite {
+	roleId: FloorStaffRoleId;
+	sprite: Phaser.Physics.Arcade.Sprite;
+	lookFrame: number;
+	patrol: readonly TileMarker[] | null;
+	wander: WanderState | null;
+	pauseUntil: number;
 }
 
 /**
@@ -49,6 +66,8 @@ export class StudioScene extends Phaser.Scene {
 	#mumDef: ResidentNpcDef | null = null;
 	#mumWander: WanderState | null = null;
 	#mumPauseUntil = 0;
+	#mumUsesSheet = false;
+	#staff = new Map<FloorStaffRoleId, StaffSprite>();
 	#prompt!: Phaser.GameObjects.Image;
 	#snapshot: StudioSnapshot | null = null;
 	#easels: EaselView[] = [];
@@ -108,6 +127,7 @@ export class StudioScene extends Phaser.Scene {
 		}
 
 		this.#updateMumWander(delta / 1000);
+		this.#updateStaffWander(delta / 1000);
 		this.#updateWorkBar();
 		this.#updateInteractPrompt();
 		if (!this.#working && this.#consumeInteract()) {
@@ -137,11 +157,14 @@ export class StudioScene extends Phaser.Scene {
 			this.#clientArrived = false;
 		}
 
+		this.#destroyAllStaff();
+
 		if (!keepMum && this.#mum) {
 			this.#mum.destroy();
 			this.#mum = null;
 			this.#mumDef = null;
 			this.#mumWander = null;
+			this.#mumUsesSheet = false;
 		}
 
 		this.#furnitureGroup?.clear(true, true);
@@ -175,6 +198,7 @@ export class StudioScene extends Phaser.Scene {
 			this.#spawnResidents();
 		}
 		this.#rebuildEasels();
+		this.#syncStaff();
 	}
 
 	#resizeToRoom(): void {
@@ -255,6 +279,41 @@ export class StudioScene extends Phaser.Scene {
 			frameRate: 6,
 			repeat: -1
 		});
+
+		// Mum / staff sheets share the clients bob layout; dedicated anim keys avoid
+		// Phaser swapping the sprite texture back to `clients` mid-idle.
+		if (this.textures.exists('mum') && !this.anims.exists('mum-idle')) {
+			this.anims.create({
+				key: 'mum-idle',
+				frames: [{ key: 'mum', frame: 0 }],
+				frameRate: 1
+			});
+			this.anims.create({
+				key: 'mum-walk',
+				frames: [
+					{ key: 'mum', frame: 0 },
+					{ key: 'mum', frame: 1 }
+				],
+				frameRate: 6,
+				repeat: -1
+			});
+		}
+		if (this.textures.exists('staff') && !this.anims.exists('staff-idle')) {
+			this.anims.create({
+				key: 'staff-idle',
+				frames: [{ key: 'staff', frame: 0 }],
+				frameRate: 1
+			});
+			this.anims.create({
+				key: 'staff-walk',
+				frames: [
+					{ key: 'staff', frame: 0 },
+					{ key: 'staff', frame: 1 }
+				],
+				frameRate: 6,
+				repeat: -1
+			});
+		}
 	}
 
 	#buildTilemap(): void {
@@ -342,13 +401,15 @@ export class StudioScene extends Phaser.Scene {
 			}
 			this.#mumDef = null;
 			this.#mumWander = null;
+			this.#mumUsesSheet = false;
 			return;
 		}
 		if (this.#mum) return;
 
 		this.#mumDef = mum;
-		// `mum.spriteKey` is `'mum'` per Spec 19; fall back to tinted clients until shipped.
+		// Prefer dedicated `mum` sheet; else tinted clients (Spec 21a §4).
 		const useMumSheet = this.textures.exists('mum');
+		this.#mumUsesSheet = useMumSheet;
 		const key = useMumSheet ? 'mum' : 'clients';
 		this.#mum = this.physics.add.sprite(
 			mum.spawn.tx * TILE_SIZE + TILE_SIZE / 2,
@@ -362,7 +423,7 @@ export class StudioScene extends Phaser.Scene {
 		}
 		this.#mumWander = { waypointIndex: 0, target: mum.patrol[0]! };
 		this.#mumPauseUntil = 0;
-		this.#mum.anims.play('client-idle', true);
+		this.#playMumAnim('idle');
 	}
 
 	#mumIsCommissionTarget(): boolean {
@@ -373,19 +434,32 @@ export class StudioScene extends Phaser.Scene {
 		return false;
 	}
 
+	#playMumAnim(kind: 'idle' | 'walk'): void {
+		if (!this.#mum) return;
+		const key =
+			this.#mumUsesSheet && this.anims.exists(kind === 'idle' ? 'mum-idle' : 'mum-walk')
+				? kind === 'idle'
+					? 'mum-idle'
+					: 'mum-walk'
+				: kind === 'idle'
+					? 'client-idle'
+					: 'client-walk';
+		this.#mum.anims.play(key, true);
+	}
+
 	#updateMumWander(dtSec: number): void {
 		if (!this.#mum || !this.#mumDef || !this.#mumWander) return;
 
 		if (this.#mumIsCommissionTarget()) {
 			this.#mum.setVelocity(0, 0);
-			this.#mum.anims.play('client-idle', true);
+			this.#playMumAnim('idle');
 			return;
 		}
 
 		const now = this.time.now;
 		if (now < this.#mumPauseUntil) {
 			this.#mum.setVelocity(0, 0);
-			this.#mum.anims.play('client-idle', true);
+			this.#playMumAnim('idle');
 			return;
 		}
 
@@ -402,13 +476,132 @@ export class StudioScene extends Phaser.Scene {
 		this.#mum.setVelocity(0, 0);
 
 		if (step.arrived) {
-			this.#mum.anims.play('client-idle', true);
+			this.#playMumAnim('idle');
 			this.#mumWander = nextWanderTarget(this.#mumDef.patrol, this.#mumWander.waypointIndex);
 			this.#mumPauseUntil = now + Phaser.Math.Between(200, 600);
 		} else {
-			this.#mum.anims.play('client-walk', true);
+			this.#playMumAnim('walk');
 			if (step.x < prevX - 0.05) this.#mum.setFlipX(true);
 			if (step.x > prevX + 0.05) this.#mum.setFlipX(false);
+		}
+	}
+
+	#destroyAllStaff(): void {
+		for (const entry of this.#staff.values()) {
+			entry.sprite.destroy();
+		}
+		this.#staff.clear();
+	}
+
+	#staffTextureKey(): string {
+		return this.textures.exists('staff') ? 'staff' : 'clients';
+	}
+
+	#playStaffIdle(entry: StaffSprite): void {
+		const key = this.#staffTextureKey();
+		// Keep role frame — shared client-idle always forces frame 0.
+		if (entry.sprite.anims.isPlaying) {
+			entry.sprite.anims.stop();
+		}
+		if (entry.sprite.texture.key !== key) {
+			entry.sprite.setTexture(key, entry.lookFrame);
+			return;
+		}
+		if (Number(entry.sprite.frame.name) !== entry.lookFrame) {
+			entry.sprite.setFrame(entry.lookFrame);
+		}
+	}
+
+	#playStaffWalk(entry: StaffSprite): void {
+		const useStaff = this.textures.exists('staff') && this.anims.exists('staff-walk');
+		entry.sprite.anims.play(useStaff ? 'staff-walk' : 'client-walk', true);
+	}
+
+	#syncStaff(): void {
+		const desired = floorStaffFromHired(this.#snapshot?.hiredRoleIds ?? []);
+		const desiredSet = new Set(desired);
+
+		for (const [roleId, entry] of [...this.#staff.entries()]) {
+			if (!desiredSet.has(roleId)) {
+				entry.sprite.destroy();
+				this.#staff.delete(roleId);
+			}
+		}
+
+		for (const roleId of desired) {
+			if (this.#staff.has(roleId)) continue;
+			const anchor = staffAnchorForRole(roleId, this.#room);
+			const look = staffLookForRole(roleId);
+			const key = this.#staffTextureKey();
+			const sprite = this.physics.add.sprite(
+				anchor.tx * TILE_SIZE + TILE_SIZE / 2,
+				anchor.ty * TILE_SIZE + TILE_SIZE / 2,
+				key,
+				look.frame
+			);
+			sprite.setDepth(10);
+			sprite.setTint(look.tint);
+
+			const patrol = roleId === 'curator' ? curatorPatrol(this.#room) : null;
+			const entry: StaffSprite = {
+				roleId,
+				sprite,
+				lookFrame: look.frame,
+				patrol,
+				wander: patrol ? { waypointIndex: 0, target: patrol[0]! } : null,
+				pauseUntil: 0
+			};
+			this.#playStaffIdle(entry);
+			this.#staff.set(roleId, entry);
+		}
+	}
+
+	#updateStaffWander(dtSec: number): void {
+		const now = this.time.now;
+		for (const entry of this.#staff.values()) {
+			if (entry.roleId !== 'curator' || !entry.patrol || !entry.wander) {
+				entry.sprite.setVelocity(0, 0);
+				this.#playStaffIdle(entry);
+				continue;
+			}
+
+			if (now < entry.pauseUntil) {
+				entry.sprite.setVelocity(0, 0);
+				this.#playStaffIdle(entry);
+				continue;
+			}
+
+			const prevX = entry.sprite.x;
+			const step = stepToward(
+				prevX,
+				entry.sprite.y,
+				entry.wander.target,
+				CLIENT_SPEED,
+				dtSec,
+				TILE_SIZE
+			);
+			entry.sprite.setPosition(step.x, step.y);
+			entry.sprite.setVelocity(0, 0);
+
+			if (step.arrived) {
+				this.#playStaffIdle(entry);
+				entry.wander = nextWanderTarget(entry.patrol, entry.wander.waypointIndex);
+				entry.pauseUntil = now + Phaser.Math.Between(200, 600);
+			} else {
+				this.#playStaffWalk(entry);
+				if (step.x < prevX - 0.05) entry.sprite.setFlipX(true);
+				if (step.x > prevX + 0.05) entry.sprite.setFlipX(false);
+			}
+		}
+	}
+
+	#applyClientLook(sprite: Phaser.Physics.Arcade.Sprite): void {
+		const look = clientLookForTier(this.#snapshot?.client?.tier ?? 'walk-in');
+		sprite.setFrame(look.frame);
+		if (look.tint === null) {
+			sprite.clearTint();
+		} else {
+			sprite.setTint(look.tint);
 		}
 	}
 
@@ -529,6 +722,10 @@ export class StudioScene extends Phaser.Scene {
 				this.#rebuildForVenue(cmd.snapshot.activeVenueId);
 			} else {
 				this.#rebuildEasels();
+				this.#syncStaff();
+			}
+			if (this.#client) {
+				this.#applyClientLook(this.#client);
 			}
 			return;
 		}
@@ -555,16 +752,16 @@ export class StudioScene extends Phaser.Scene {
 
 	#spawnDoorVisitor(): void {
 		if (this.#client) return;
-		const variant = Math.floor(Math.random() * 3) * 2;
+		const look = clientLookForTier(this.#snapshot?.client?.tier ?? 'walk-in');
 		const { door, clientWait } = this.#room;
 		this.#client = this.physics.add.sprite(
 			door.tx * TILE_SIZE + TILE_SIZE / 2,
 			door.ty * TILE_SIZE + TILE_SIZE / 2,
 			'clients',
-			variant
+			look.frame
 		);
 		this.#client.setDepth(10);
-		this.#client.clearTint();
+		this.#applyClientLook(this.#client);
 		this.#clientArrived = false;
 		this.#client.anims.play('client-walk', true);
 

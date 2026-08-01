@@ -9,7 +9,11 @@ export class BootScene extends Phaser.Scene {
 	}
 
 	preload(): void {
-		this.load.on('loaderror', () => {
+		this.load.on('loaderror', (file: Phaser.Loader.File) => {
+			// Optional character sheets may 404 — ignore so Boot still reaches StudioScene.
+			if (file.key === 'mum' || file.key === 'staff') {
+				return;
+			}
 			this.#loadFailed = true;
 		});
 
@@ -26,8 +30,14 @@ export class BootScene extends Phaser.Scene {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		// Optional `mum.png` is not shipped yet — do not queue a 404. When added, load
-		// the `mum` spritesheet here; StudioScene already prefers that key when present.
+		this.load.spritesheet('mum', '/studio/characters/mum.png', {
+			frameWidth: 16,
+			frameHeight: 16
+		});
+		this.load.spritesheet('staff', '/studio/characters/staff.png', {
+			frameWidth: 16,
+			frameHeight: 16
+		});
 		this.load.image('prompt-e', '/studio/ui/prompt-e.png');
 	}
 

@@ -387,21 +387,21 @@ Document under Mum / new “Staff & client looks” bullets:
 
 ## 9. Definition of done
 
-- [ ] `StudioSnapshot.hiredRoleIds` exists; defaults to `[]` in bridge fixtures/tests.
-- [ ] `+page` sync passes `hiredRoleIds: game.hiredStaffIds` and `client.tier`.
-- [ ] BootScene registers `mum` spritesheet load; missing file does not break Boot→Studio.
-- [ ] Mum uses `'mum'` texture when present; else tinted `clients` `0xffc9a8`.
-- [ ] Hiring `apprentice` shows a floor sprite at the second work spot; firing removes it.
-- [ ] Hiring `curator` shows a pacing sprite (show/window zone on storefront+).
-- [ ] Hiring `marketing-director` shows an idle sprite at `clientWait`.
-- [ ] `print-shop` alone never spawns a floor NPC.
-- [ ] Door visitors apply `clientLookForTier` for all four tier ids (tint table above).
-- [ ] `staffPresence.test.ts` + `clientLooks.test.ts` green with literal tables above.
-- [ ] Bridge tests updated for `hiredRoleIds: []`.
-- [ ] No new economy / scoring / unlock-table behaviour.
-- [ ] `npm run check`, `npm run lint`, and
+- [x] `StudioSnapshot.hiredRoleIds` exists; defaults to `[]` in bridge fixtures/tests.
+- [x] `+page` sync passes `hiredRoleIds: game.hiredStaffIds` and `client.tier`.
+- [x] BootScene registers `mum` spritesheet load; missing file does not break Boot→Studio.
+- [x] Mum uses `'mum'` texture when present; else tinted `clients` `0xffc9a8`.
+- [x] Hiring `apprentice` shows a floor sprite at the second work spot; firing removes it.
+- [x] Hiring `curator` shows a pacing sprite (show/window zone on storefront+).
+- [x] Hiring `marketing-director` shows an idle sprite at `clientWait`.
+- [x] `print-shop` alone never spawns a floor NPC.
+- [x] Door visitors apply `clientLookForTier` for all four tier ids (tint table above).
+- [x] `staffPresence.test.ts` + `clientLooks.test.ts` green with literal tables above.
+- [x] Bridge tests updated for `hiredRoleIds: []`.
+- [x] No new economy / scoring / unlock-table behaviour.
+- [x] `npm run check`, `npm run lint`, and
       `npm run test:unit -- --run src/lib/studio` green for owned files.
-- [ ] `src/lib/studio/README.md` + `CREDITS.md` (if assets) + `docs/agent-log.md` handoff.
+- [x] `src/lib/studio/README.md` + `CREDITS.md` (if assets) + `docs/agent-log.md` handoff.
 
 ### Verification commands
 

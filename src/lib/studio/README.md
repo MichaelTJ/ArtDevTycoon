@@ -14,6 +14,8 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `getRoomForEnvironment` / `ROOMS`            | Tile grids + markers (Level env stubs too)      |
 | `slotsForVenue`                              | Venue → easel/magnet anchors                    |
 | `nextWanderTarget` / `stepToward`            | Pure Mum patrol helpers                         |
+| `floorStaffFromHired` / `staffAnchorForRole` | Hired staff → floor NPCs (presentation only)    |
+| `clientLookForTier`                          | Door-visitor tint/frame by client tier          |
 
 ## Venue floor plans
 
@@ -72,9 +74,24 @@ Player animations use a single walk loop + `flipX` (Tiny Dungeon sheet has no fu
 
 ## Mum art
 
-No dedicated `mum.png` ships yet. Mum reuses the `clients` sheet frame 0 with tint
-`0xffc9a8` so she reads as distinct from door visitors. Drop a Tiny Dungeon sheet at
-`static/studio/characters/mum.png` later and BootScene can load the `mum` key.
+BootScene always registers `/studio/characters/mum.png`. If the file is missing (404),
+loaderror is ignored (required tiles/player still gate boot via `studioBootFailed`) and
+StudioScene falls back to `clients` frame 0 with tint `0xffc9a8`. When `mum.png` is
+present, Mum uses the `mum` key with **no** tint and dedicated `mum-idle` / `mum-walk`
+anims so Phaser does not swap her back onto the clients sheet.
+
+## Staff & client looks
+
+- Snapshot field `hiredRoleIds` mirrors `GameStore.hiredStaffIds`. Floor sprites spawn
+  for `apprentice` (second desk tile), `marketing-director` (idle at `clientWait`), and
+  `curator` (patrols gallery/window zone, or a short east-wall pace in the kitchen).
+  `print-shop` never appears on the floor. Staff are presentation-only — not talk
+  targets and never emit `talk-to-client`.
+- Optional `staff.png` loads the same way as Mum; otherwise staff reuse `clients` with
+  role tints from `staffLookForRole` in `staffPresence.ts`.
+- Door visitors use `clientLookForTier` (`clientLooks.ts`): `walk-in` untinted;
+  `corporate` `0x7a9cc4`; `billionaire` `0xb48cff`; `auction-house` `0xc47878`.
+  Unknown tiers map to walk-in. Mum never uses this helper.
 
 ## Assets
 

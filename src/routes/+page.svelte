@@ -105,14 +105,20 @@
 		studioBridge.sync({
 			phase: game.phase,
 			client: client
-				? { id: client.id, clientName: client.clientName, avatarUrl: client.avatarUrl }
+				? {
+						id: client.id,
+						clientName: client.clientName,
+						avatarUrl: client.avatarUrl,
+						tier: client.tier ?? 'walk-in'
+					}
 				: null,
 			displayedEntries: game.displayedGalleryEntries,
 			activeVenueId: game.unlockedVenueId,
 			autoInviteArmed,
 			estimatedWorkMs: game.lastWorkDurationMs,
 			workStartedAt: game.workStartedAt,
-			residentClientArmed: clientSummoned && kitchenHasMum && game.phase === 'idle'
+			residentClientArmed: clientSummoned && kitchenHasMum && game.phase === 'idle',
+			hiredRoleIds: game.hiredStaffIds
 		});
 	}
 
@@ -160,6 +166,7 @@
 		void autoInviteArmed;
 		void game.lastWorkDurationMs;
 		void game.workStartedAt;
+		void game.hiredStaffIds;
 		void clientSummoned;
 		void kitchenHasMum;
 		syncStudio();
