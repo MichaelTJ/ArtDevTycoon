@@ -68,7 +68,9 @@ to `false` to fall back to the CSS `KitchenScene`.
 Spec 19 authors distinct venue floor plans via `getRoomForVenue` (6×6 Mum kitchen through
 28×16 mega-museum). Mum is a resident wander NPC in the fridge kitchen — she never uses
 the door — while non-Mum briefs still `spawn-visitor` through the entrance; Phaser
-rebuilds the tilemap when `activeVenueId` changes.
+rebuilds the tilemap when `activeVenueId` changes. Spec 21b tags a few furniture props
+(`interactableId`) so E can open the fridge (frame swap + bark) or the toolkit shop via
+bridge `open-shop` / `prop-bark` without touching commission talk/deliver priority.
 
 Pure game rules in `src/lib/game/**` depend on nothing — no Svelte, no DOM, no engine.
 That is what makes them exhaustively unit-testable and reusable by every engine.

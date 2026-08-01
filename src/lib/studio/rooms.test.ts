@@ -94,4 +94,21 @@ describe('rooms', () => {
 		expect(getRoomForEnvironment('unknown').id).toBe('home-kitchen');
 		expect(getRoomForEnvironment('home-kitchen').id).toBe('home-kitchen');
 	});
+
+	it('tags MVP interactables on kitchen fridge and garage toolkit shelf only', () => {
+		const fridge = ROOMS['home-kitchen'].furniture.find((p) => p.interactableId === 'fridge');
+		expect(fridge).toBeDefined();
+		expect(fridge!.tx).toBe(1);
+		expect(fridge!.ty).toBe(1);
+
+		const shelf = ROOMS['art-room'].furniture.find((p) => p.interactableId === 'toolkit-shelf');
+		expect(shelf).toBeDefined();
+		expect(shelf!.tx).toBe(3);
+		expect(shelf!.ty).toBe(5);
+
+		for (const id of ['studio', 'gallery', 'mega-museum'] as const) {
+			const tagged = ROOMS[id].furniture.filter((p) => p.interactableId != null);
+			expect(tagged).toHaveLength(0);
+		}
+	});
 });

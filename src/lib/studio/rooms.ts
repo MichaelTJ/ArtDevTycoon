@@ -1,4 +1,5 @@
 import { TILE } from './config';
+import type { InteractableId } from './interactables';
 
 export type RoomId = 'home-kitchen' | 'art-room' | 'studio' | 'gallery' | 'mega-museum';
 
@@ -20,6 +21,8 @@ export interface FurnitureProp {
 	ty: number;
 	/** Blocks walking when true. */
 	solid: boolean;
+	/** When set, player may E-interact via interactables registry. */
+	interactableId?: InteractableId;
 }
 
 export interface RoomZone {
@@ -154,7 +157,7 @@ function buildKitchen(): RoomDef {
 		fridgeAnchor,
 		furniture: [
 			{ frame: 0, tx: 2, ty: 3, solid: true },
-			{ frame: 2, tx: 1, ty: 1, solid: true }
+			{ frame: 2, tx: 1, ty: 1, solid: true, interactableId: 'fridge' }
 		],
 		zones: [],
 		residents: [
@@ -205,7 +208,7 @@ function buildGarage(): RoomDef {
 		playerSpawn: { tx: 2, ty: 7 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: 0, tx: 3, ty: 5, solid: true },
+			{ frame: 0, tx: 3, ty: 5, solid: true, interactableId: 'toolkit-shelf' },
 			{ frame: 0, tx: 4, ty: 5, solid: true },
 			{ frame: 4, tx: 10, ty: 3, solid: true },
 			{ frame: 4, tx: 10, ty: 6, solid: true },

@@ -24,6 +24,8 @@
 		engineMenuTitle: string;
 		engineMenuDisabled: boolean;
 		onopenenginemenu: () => void;
+		/** Increment to request opening the toolkit (studio floor E). */
+		openToolkitNonce?: number;
 		/** Fired after a slot switch/new/delete so the page can dismiss studio clients. */
 		onafterslotchange?: () => void;
 		notice?: Snippet;
@@ -39,6 +41,7 @@
 		engineMenuTitle,
 		engineMenuDisabled,
 		onopenenginemenu,
+		openToolkitNonce = 0,
 		onafterslotchange,
 		notice
 	}: Props = $props();
@@ -48,6 +51,15 @@
 	let showStaffOffice = $state(false);
 	let showProgress = $state(false);
 	let showSaves = $state(false);
+	let lastToolkitNonce = 0;
+
+	$effect(() => {
+		const n = openToolkitNonce;
+		if (n > lastToolkitNonce) {
+			lastToolkitNonce = n;
+			showToolkit = true;
+		}
+	});
 
 	const savesBusy = $derived(game.phase !== 'idle');
 

@@ -1189,3 +1189,43 @@ tests. Commands: `npm run check` (0 errors); `npm run lint` green; scoped
 
 - No export/import JSON (Spec 23).
 - No cloud sync / more than 3 slots (explicitly out of scope).
+
+## 2026-08-01 — Spec 21b gap review (Interactables)
+
+**Zone:** `interactables*`, `rooms.ts` (+ test), `bridge.ts` (+ test), `StudioScene.ts`
+(furniture + interact tails only), `README.md`, `GameMenuBar*` (nonce open), `+page.svelte`,
+`docs/tasks/21b-interactables.md` (DoD), `docs/architecture.md` §3.1, `docs/agent-log.md`
+
+**Built:** Gap audit found Spec 21b unimplemented on this branch (prior impl lived only
+on `agent/interactables` @ `40285ce`; HEAD already had 21a). Ported B1/B2/B5 without
+touching staff/Mum spawn: data-driven `interactables.ts`; kitchen fridge + garage
+workbench tags; outbound `open-shop` / `prop-bark`; scene prop tail after talk/deliver/
+desk/easel/look; fridge frame swap + bark + 2s auto-close; toolkit shelf →
+`openToolkitNonce` → existing `ToolkitShop`.
+
+**Public surface:**
+
+- `InteractableId`, `StudioShopId`, `FRIDGE`, `TOOLKIT_SHELF`
+- `nearestInteractable` / `defForInteractable` / `fridgeBarkLine` / `interactPromptText`
+- `FurnitureProp.interactableId?`
+- Bridge: `{ type: 'open-shop'; shop }` / `{ type: 'prop-bark'; propId; text }`
+- `GameMenuBar` prop `openToolkitNonce?: number`
+
+**Tests:** `interactables.test.ts` §8.1 table; rooms tag assertions; bridge emit coverage;
+GameMenuBar nonce opens toolkit. Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run` (owned files + full unit gate).
+
+**Decisions:**
+
+- Kept 21a spawn / Mum / staff methods untouched; scene edits limited to conflict-table
+  areas (`#placeFurniture`, `#nearestTarget` prop tail, `#tryInteract` prop branch,
+  `#updateInteractPrompt`).
+- Preferred nonce wiring over lifting `showToolkit` to `+page`.
+- `prop-bark` toast left as optional no-op in `+page` (Phaser frame swap is the feedback).
+
+**Requests:** None.
+
+**Known gaps:**
+
+- B3–B12 catalog extras remain follow-up / out of scope (radio needs 21c, etc.).
+- Full verb polish for talk/deliver/desk is 21f F4 — props only get `E — …` text labels.
