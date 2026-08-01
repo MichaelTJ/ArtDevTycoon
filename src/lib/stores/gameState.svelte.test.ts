@@ -1381,6 +1381,76 @@ describe('GameStore', () => {
 		expect(skillPayoutMultiplier(skilled.skillXp)).toBe(1.09);
 		expect(skilled.presentationMultiplier).toBeCloseTo(1.09, 5);
 	});
+
+	it('receptionistAvailable is false on fridge and true on garage', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.receptionistAvailable).toBe(false);
+		store.cash = 50;
+		store.reputation = 4;
+		expect(store.unlockVenue('garage')).toBe(true);
+		expect(store.receptionistAvailable).toBe(true);
+	});
+
+	it('hireArtist and assignBriefToArtist complete via work ticker', () => {
+		vi.useFakeTimers();
+		try {
+			let nowMs = 1000;
+			const store = createStore(
+				{ generate: vi.fn(), critique: vi.fn() },
+				{ now: () => nowMs, tickIntervalMs: 500 }
+			);
+			store.cash = 100;
+			store.reputation = 8;
+			expect(store.hireArtist('jade-ink')).toBe(true);
+			store.inviteClient();
+			expect(store.assignBriefToArtist('jade-ink')).toBe(true);
+			expect(store.artistAssignment).not.toBeNull();
+
+			const cleanup = store.startIncomeTicker();
+			nowMs += 9000;
+			vi.advanceTimersByTime(500);
+			expect(store.phase).toBe('results');
+			expect(store.currentCritique).not.toBeNull();
+			expect(store.artistAssignment).toBeNull();
+			expect(store.hiredArtists[0]?.xp).toBe(25);
+			cleanup();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('acceptBoardBrief sets chosen client in briefing', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { random: () => 0 });
+		const offers = store.pickCommissionBoardOffers(2);
+		store.acceptBoardBrief(offers[0]);
+		expect(store.phase).toBe('briefing');
+		expect(store.currentClient?.id).toBe(offers[0].id);
+	});
+
+	it('major project beat completes and payout collects', () => {
+		vi.useFakeTimers();
+		try {
+			let nowMs = 5000;
+			const store = createStore(
+				{ generate: vi.fn(), critique: vi.fn() },
+				{ now: () => nowMs, tickIntervalMs: 200 }
+			);
+			store.reputation = 12;
+			store.cash = 100;
+			expect(store.hireArtist('jade-ink')).toBe(true);
+			expect(store.acceptMajorProject('comic-lunch-legend')).toBe(true);
+			expect(store.assignCrewToBeat(0, 'jade-ink')).toBe(true);
+			expect(store.startMajorProjectBeat(0)).toBe(true);
+
+			const cleanup = store.startIncomeTicker();
+			nowMs += 15_000;
+			vi.advanceTimersByTime(200);
+			expect(store.majorProjectProgress?.beatsCompleted).toBe(1);
+			cleanup();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
 });
 
 describe('GameStore save slots', () => {

@@ -3,6 +3,7 @@ import { ROOMS } from './rooms';
 import {
 	curatorPatrol,
 	floorStaffFromHired,
+	receptionistAnchor,
 	staffAnchorForRole,
 	staffLookForRole
 } from './staffPresence';
@@ -42,6 +43,13 @@ describe('curatorPatrol', () => {
 	it('returns ≥2 waypoints; kitchen uses east-wall pace of length 2', () => {
 		expect(curatorPatrol(getRoomForVenue('storefront')).length).toBeGreaterThanOrEqual(2);
 		expect(curatorPatrol(ROOMS['home-kitchen']).length).toBe(2);
+	});
+});
+
+describe('receptionistAnchor', () => {
+	it('uses clientWait tile near the door', () => {
+		const garage = getRoomForVenue('garage');
+		expect(receptionistAnchor(garage)).toEqual(garage.clientWait);
 	});
 });
 

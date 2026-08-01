@@ -90,6 +90,9 @@ describe('save', () => {
 			skillXpPrompting: 0,
 			skillXpImagination: 0,
 			skillXpHustle: 0,
+			hiredArtists: [],
+			artistAssignment: null,
+			majorProjectProgress: null,
 			savedAt: 1_700_000_000_000
 		};
 		persistSave(saved);
@@ -146,6 +149,9 @@ describe('save', () => {
 		expect(loaded.skillXpPrompting).toBe(0);
 		expect(loaded.skillXpImagination).toBe(0);
 		expect(loaded.skillXpHustle).toBe(0);
+		expect(loaded.hiredArtists).toEqual([]);
+		expect(loaded.artistAssignment).toBeNull();
+		expect(loaded.majorProjectProgress).toBeNull();
 		expect(getActiveSlotId()).toBe('0');
 		expect(storage.getItem(SLOTS_STORAGE_KEY)).not.toBeNull();
 	});
@@ -162,6 +168,33 @@ describe('save', () => {
 		expect(loaded.skillXpImagination).toBe(8);
 		expect(loaded.skillXpHustle).toBe(4);
 		expect(peekSlot('0', 100)?.skillXpPrompting).toBe(15);
+	});
+
+	it('round-trips spec 24 artist fields through the active slot', () => {
+		const data = createDefaultSave(100, () => 1);
+		data.hiredArtists = [{ catalogId: 'jade-ink', xp: 25 }];
+		data.artistAssignment = {
+			artistCatalogId: 'jade-ink',
+			briefId: 'c1',
+			startedAt: 100,
+			durationMs: 8000,
+			mediumTierId: 'crayon'
+		};
+		data.majorProjectProgress = {
+			projectId: 'comic-lunch-legend',
+			beatsCompleted: 1,
+			crewByBeat: ['jade-ink', '', '', ''],
+			activeBeatIndex: null,
+			beatStartedAt: null,
+			beatDurationMs: null
+		};
+		persistSave(data);
+
+		expect(loadSave(100, () => 0)).toMatchObject({
+			hiredArtists: data.hiredArtists,
+			artistAssignment: data.artistAssignment,
+			majorProjectProgress: data.majorProjectProgress
+		});
 	});
 
 	it('falls back to default when localStorage.getItem throws', () => {

@@ -30,7 +30,15 @@
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
 	import type { SubmitChoice } from '$lib/game/submitChoice';
-	import { LEVEL_1, type EngineId, type GalleryEntry } from '$lib/types/contracts';
+	import { artistLevel } from '$lib/game/artistTraining';
+	import { getArtistCatalogEntry } from '$lib/data/artists';
+	import { AssignArtistModal, ReceptionDesk } from '$lib/components';
+	import {
+		LEVEL_1,
+		type ClientBrief,
+		type EngineId,
+		type GalleryEntry
+	} from '$lib/types/contracts';
 	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -48,6 +56,9 @@
 	let latchTick = $state(0);
 	/** Identity of last collect toast that already fired stingers (avoid replay on clear). */
 	let lastStingerGains: typeof game.lastCollectedGains = null;
+	let showReceptionDesk = $state(false);
+	let boardOffers = $state<ClientBrief[]>([]);
+	let showAssignArtist = $state(false);
 
 	async function submitCommission(): Promise<void> {
 		await game.createArt();
@@ -151,7 +162,8 @@
 			workStartedAt: game.workStartedAt,
 			residentClientArmed: clientSummoned && kitchenHasMum && game.phase === 'idle',
 			hiredRoleIds: game.hiredStaffIds,
-			reducedVfx
+			reducedVfx,
+			receptionistVisible: game.receptionistAvailable
 		});
 	}
 
@@ -171,6 +183,34 @@
 			studioBridge.send({ type: 'spawn-visitor' });
 		}
 	}
+
+	function openReceptionDesk(): void {
+		if (!game.receptionistAvailable || game.phase !== 'idle') return;
+		boardOffers = game.pickCommissionBoardOffers(3);
+		showReceptionDesk = true;
+	}
+
+	function acceptBoardBrief(brief: ClientBrief): void {
+		game.acceptBoardBrief(brief);
+		showReceptionDesk = false;
+		clientSummoned = false;
+		syncStudio();
+		if (game.currentClient?.clientName !== 'Mum') {
+			studioBridge.send({ type: 'spawn-visitor' });
+		}
+	}
+
+	const assignArtistOptions = $derived(
+		game.hiredArtists.map((row) => {
+			const entry = getArtistCatalogEntry(row.catalogId);
+			return {
+				catalogId: row.catalogId,
+				name: entry?.name ?? row.catalogId,
+				portrait: entry?.portrait ?? '🎨',
+				level: artistLevel(row.xp)
+			};
+		})
+	);
 
 	async function deliverToClient(): Promise<void> {
 		if (game.phase !== 'results') return;
@@ -219,6 +259,7 @@
 		void game.lastWorkDurationMs;
 		void game.workStartedAt;
 		void game.hiredStaffIds;
+		void game.receptionistAvailable;
 		void clientSummoned;
 		void kitchenHasMum;
 		void reducedVfx;
@@ -247,6 +288,10 @@
 			}
 			if (event.type === 'talk-to-client') {
 				talkToClient();
+				return;
+			}
+			if (event.type === 'open-reception') {
+				openReceptionDesk();
 				return;
 			}
 			if (event.type === 'deliver-to-client') {
@@ -444,6 +489,18 @@
 					onretry={() => game.retry()}
 					ondismisserror={dismissError}
 				/>
+				{#if game.phase === 'briefing' && game.currentClient}
+					<button
+						type="button"
+						class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+						aria-label="Assign commission to artist"
+						onclick={() => {
+							showAssignArtist = true;
+						}}
+					>
+						Assign to artist…
+					</button>
+				{/if}
 			</div>
 		{:else}
 			<GameScene
@@ -566,5 +623,29 @@
 	<IdleEarningsModal
 		amount={game.idleEarningsToShow}
 		ondismiss={() => game.dismissIdleEarnings()}
+	/>
+{/if}
+
+{#if showReceptionDesk}
+	<ReceptionDesk
+		offers={boardOffers}
+		onaccept={acceptBoardBrief}
+		onclose={() => {
+			showReceptionDesk = false;
+		}}
+	/>
+{/if}
+
+{#if showAssignArtist && game.currentClient}
+	<AssignArtistModal
+		artists={assignArtistOptions}
+		clientName={game.currentClient.clientName}
+		assignmentFill={game.artistAssignmentFill}
+		onassign={(id) => {
+			game.assignBriefToArtist(id);
+		}}
+		onclose={() => {
+			showAssignArtist = false;
+		}}
 	/>
 {/if}

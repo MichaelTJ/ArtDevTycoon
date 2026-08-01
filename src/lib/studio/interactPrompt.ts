@@ -10,6 +10,7 @@ export type InteractPromptKind =
 	| 'radio'
 	| 'mail'
 	| 'doorbell'
+	| 'reception'
 	| 'prop'; // generic 21b fallback
 
 export interface InteractPromptInput {
@@ -54,6 +55,8 @@ export function interactPromptLabel(input: InteractPromptInput): string {
 			return 'Read mail';
 		case 'doorbell':
 			return 'Ring doorbell';
+		case 'reception':
+			return 'Talk to Receptionist';
 		case 'prop':
 			return 'Inspect';
 		default:

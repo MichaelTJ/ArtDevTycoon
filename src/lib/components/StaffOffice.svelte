@@ -8,9 +8,10 @@
 		reputation: number;
 		onhire: (id: string) => void;
 		onclose: () => void;
+		onopenteam?: () => void;
 	}
 
-	let { roles, hiredIds, cash, reputation, onhire, onclose }: Props = $props();
+	let { roles, hiredIds, cash, reputation, onhire, onclose, onopenteam }: Props = $props();
 
 	function isHired(id: string): boolean {
 		return hiredIds.includes(id);
@@ -47,7 +48,20 @@
 			<div>
 				<h2 class="text-lg font-semibold text-stone-800">Staff Office</h2>
 				<p class="mt-1 text-sm text-stone-500">
-					Hire once. Staff keep the studio earning and running while you are away.
+					Hire once. Staff keep the studio earning and running while you are away. Named artists
+					live in the
+					{#if onopenteam}
+						<button
+							type="button"
+							class="font-medium text-amber-700 underline hover:text-amber-800"
+							onclick={onopenteam}
+						>
+							Artist team
+						</button>
+					{:else}
+						Artist team
+					{/if}
+					panel.
 				</p>
 			</div>
 			<button

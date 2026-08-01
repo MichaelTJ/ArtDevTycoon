@@ -52,6 +52,7 @@ import { isSafeStudioImageUrl } from '../safeImageUrl';
 import {
 	curatorPatrol,
 	floorStaffFromHired,
+	receptionistAnchor,
 	staffAnchorForRole,
 	staffLookForRole,
 	type FloorStaffRoleId
@@ -121,6 +122,8 @@ export class StudioScene extends Phaser.Scene {
 	#mumWander: WanderState | null = null;
 	#mumPauseUntil = 0;
 	#mumUsesSheet = false;
+	/** Spec 24 — front-desk NPC when venue ≥ garage. */
+	#receptionist: Phaser.Physics.Arcade.Sprite | null = null;
 	#staff = new Map<FloorStaffRoleId, StaffSprite>();
 	#prompt!: Phaser.GameObjects.Image;
 	#promptLabel!: Phaser.GameObjects.Text;
@@ -256,6 +259,11 @@ export class StudioScene extends Phaser.Scene {
 
 		this.#destroyAllStaff();
 
+		if (this.#receptionist) {
+			this.#receptionist.destroy();
+			this.#receptionist = null;
+		}
+
 		if (!keepMum && this.#mum) {
 			this.#mum.destroy();
 			this.#mum = null;
@@ -301,6 +309,7 @@ export class StudioScene extends Phaser.Scene {
 		}
 		this.#rebuildEasels();
 		this.#syncStaff();
+		this.#syncReceptionist();
 		this.#createVfxEmitters();
 		this.#syncWorkParticles();
 	}
@@ -683,6 +692,37 @@ export class StudioScene extends Phaser.Scene {
 		}
 	}
 
+	#syncReceptionist(): void {
+		const visible = this.#snapshot?.receptionistVisible ?? false;
+		if (!visible) {
+			if (this.#receptionist) {
+				this.#receptionist.destroy();
+				this.#receptionist = null;
+			}
+			return;
+		}
+		if (this.#receptionist) return;
+
+		const anchor = receptionistAnchor(this.#room);
+		const key = this.#staffTextureKey();
+		this.#receptionist = this.physics.add.sprite(
+			anchor.tx * TILE_SIZE + TILE_SIZE / 2,
+			anchor.ty * TILE_SIZE + TILE_SIZE / 2,
+			key,
+			0
+		);
+		this.#receptionist.setDepth(10);
+		this.#receptionist.setTint(0xc8ffb8);
+		this.#playStaffIdle({
+			roleId: 'marketing-director',
+			sprite: this.#receptionist,
+			lookFrame: 0,
+			patrol: null,
+			wander: null,
+			pauseUntil: 0
+		});
+	}
+
 	#destroyAllStaff(): void {
 		for (const entry of this.#staff.values()) {
 			entry.sprite.destroy();
@@ -1026,6 +1066,7 @@ export class StudioScene extends Phaser.Scene {
 			} else {
 				this.#rebuildEasels();
 				this.#syncStaff();
+				this.#syncReceptionist();
 			}
 			if (this.#client) {
 				this.#applyClientLook(this.#client);
@@ -1195,6 +1236,7 @@ export class StudioScene extends Phaser.Scene {
 	#nearestTarget():
 		| { kind: 'talk' }
 		| { kind: 'deliver' }
+		| { kind: 'reception' }
 		| { kind: 'desk' }
 		| { kind: 'easel'; entryId: string }
 		| { kind: 'look'; entryId: string | null; zoneId: RoomZone['id'] }
@@ -1211,6 +1253,9 @@ export class StudioScene extends Phaser.Scene {
 			} else if (this.#client && this.#clientArrived) {
 				const d = Phaser.Math.Distance.Between(px, py, this.#client.x, this.#client.y);
 				if (d < INTERACT_RANGE_PX) return { kind: 'talk' };
+			} else if (this.#receptionist && this.#snapshot?.receptionistVisible) {
+				const d = Phaser.Math.Distance.Between(px, py, this.#receptionist.x, this.#receptionist.y);
+				if (d < INTERACT_RANGE_PX) return { kind: 'reception' };
 			}
 		}
 
@@ -1267,7 +1312,7 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#interactPromptKind(target: {
-		kind: 'talk' | 'deliver' | 'desk' | 'easel' | 'look' | 'prop';
+		kind: 'talk' | 'deliver' | 'reception' | 'desk' | 'easel' | 'look' | 'prop';
 		id?: InteractableId;
 	}): { kind: InteractPromptKind; registryLabel?: string | null; clientName?: string | null } {
 		if (target.kind === 'prop') {
@@ -1302,6 +1347,10 @@ export class StudioScene extends Phaser.Scene {
 			x = npc.x;
 			y = npc.y - 18;
 		}
+		if (target.kind === 'reception' && this.#receptionist) {
+			x = this.#receptionist.x;
+			y = this.#receptionist.y - 18;
+		}
 		if (target.kind === 'prop') {
 			const prop = this.#interactProps.find((p) => p.id === target.id);
 			if (prop) {
@@ -1329,6 +1378,10 @@ export class StudioScene extends Phaser.Scene {
 		if (!target) return;
 		if (target.kind === 'talk') {
 			this.#bridge.emit({ type: 'talk-to-client' });
+			return;
+		}
+		if (target.kind === 'reception') {
+			this.#bridge.emit({ type: 'open-reception' });
 			return;
 		}
 		if (target.kind === 'deliver') {

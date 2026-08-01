@@ -10,6 +10,37 @@ import {
 export const SAVE_STORAGE_KEY = 'adt.save.v1';
 export const CURRENT_SAVE_VERSION = 1;
 
+/** One hired named artist on the spec 24 roster (parallel to spec 16 staff ids). */
+export const hiredArtistSchema = z.object({
+	catalogId: z.string().min(1),
+	xp: z.number().int().min(0).default(0)
+});
+
+export type HiredArtistSave = z.infer<typeof hiredArtistSchema>;
+
+/** Active hand-off of the live commission to one artist (simulated timer). */
+export const artistAssignmentSchema = z.object({
+	artistCatalogId: z.string().min(1),
+	briefId: z.string().min(1),
+	startedAt: z.number().int().nonnegative(),
+	durationMs: z.number().int().positive(),
+	mediumTierId: z.string().min(1)
+});
+
+export type ArtistAssignmentSave = z.infer<typeof artistAssignmentSchema>;
+
+/** In-progress major project (comic / animated series). */
+export const majorProjectProgressSchema = z.object({
+	projectId: z.string().min(1),
+	beatsCompleted: z.number().int().min(0).default(0),
+	crewByBeat: z.array(z.string()).default([]),
+	activeBeatIndex: z.number().int().min(0).nullable().default(null),
+	beatStartedAt: z.number().int().nonnegative().nullable().default(null),
+	beatDurationMs: z.number().int().positive().nullable().default(null)
+});
+
+export type MajorProjectProgressSave = z.infer<typeof majorProjectProgressSchema>;
+
 /**
  * Everything a progression system needs to persist. Specs 13-16 each own one array of
  * string ids on this shape — string ids (not enums) so a later spec can add new tiers,
@@ -50,6 +81,13 @@ export const saveDataSchema = z.object({
 	skillXpPrompting: z.number().int().min(0).default(0),
 	skillXpImagination: z.number().int().min(0).default(0),
 	skillXpHustle: z.number().int().min(0).default(0),
+
+	/** Spec 24. Named artist roster — separate from spec 16 hiredStaffIds. */
+	hiredArtists: z.array(hiredArtistSchema).default([]),
+	/** Null when the player is painting personally or idle. */
+	artistAssignment: artistAssignmentSchema.nullable().default(null),
+	/** Null when no major project is active. */
+	majorProjectProgress: majorProjectProgressSchema.nullable().default(null),
 
 	/** Epoch ms this blob was written. Not shown to the player; useful for debugging. */
 	savedAt: z.number().int().nonnegative()

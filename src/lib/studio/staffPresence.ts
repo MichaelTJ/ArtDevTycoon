@@ -53,6 +53,11 @@ export function staffAnchorForRole(roleId: FloorStaffRoleId, room: RoomDef): Til
 	return curatorPatrol(room)[0]!;
 }
 
+/** Spec 24 — reception desk near the entrance (same tile as client wait). */
+export function receptionistAnchor(room: RoomDef): TileMarker {
+	return room.clientWait;
+}
+
 /** Tint / frame so each floor role reads apart on the shared clients/staff sheet. */
 export function staffLookForRole(roleId: FloorStaffRoleId): { frame: number; tint: number } {
 	switch (roleId) {

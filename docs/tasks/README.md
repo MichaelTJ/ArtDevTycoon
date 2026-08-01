@@ -172,12 +172,12 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 22  | [Multiple save slots](./22-multiple-saves.md) | `saveSlots.ts`, `SaveSlotsPanel`, GameStore switch/new/delete, migration from `adt.save.v1` | 12 (+ ideally 20)                                 |
 | 23  | [Dev mode](./23-dev-mode.md)                  | `src/lib/dev/**`, `DevPanel`, gated cheats + modifier peek; subsumes `?studioDebug`         | 01–04, 12; **after 22** if both touch GameMenuBar |
 
-### Studio ops / late game (24–25 — design / in flight)
+### Studio ops / late game (24–25)
 
-| #   | Spec                                                 | Owns (new)                                                                                                                         | Depends on                        |
-| --- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| 24  | [Artist team & major projects](./24-artist-team.md)  | Catalog: receptionist + NPC talk, trainable artists, commission hand-off, comic/series projects — MVP agent on `agent/artist-team` | 16, 21a–21b; after playtest P1–P5 |
-| 25  | [Brush types & painting medium](./25-brush-media.md) | Outline: painting medium picker + crayon/pencil/ink/watercolour brush feel on `SketchCanvas` — **design only**                     | 11, 13; playtest P16              |
+| #   | Spec                                                 | Owns (new)                                                                                                      | Depends on           |
+| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 24  | [Artist team & major projects](./24-artist-team.md)  | Receptionist, artist roster/training, assign timer, major projects — **MVP shipped**                            | 16, 21a–21b          |
+| 25  | [Brush types & painting medium](./25-brush-media.md) | Outline: painting medium picker + crayon/pencil/ink/watercolour brush feel on `SketchCanvas` — **design only** | 11, 13; playtest P16 |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -205,12 +205,12 @@ Wave J  (meta / tooling — after 12; prefer serial GameMenuBar)
    ├── 22 Multiple saves    → ../adt-wt-multiple-saves   branch agent/multiple-saves
    └── 23 Dev mode          → ../adt-wt-dev-mode         branch agent/dev-mode  (after 22)
 
-Wave K  (studio ops — design; implement after playtest stabilise)
-   └── 24 Artist team & major projects → catalog docs/tasks/24-artist-team.md
-       ├── 24a Receptionist + NPC talk + commission board
-       ├── 24b Artist roster + training
-       ├── 24c Assign commissions to artists
-       └── 24d Major projects (comic / animated series)
+Wave K  (studio ops — **MVP shipped**)
+   └── 24 Artist team & major projects → docs/tasks/24-artist-team.md
+       ├── 24a Receptionist + NPC talk + commission board ✅
+       ├── 24b Artist roster + training ✅
+       ├── 24c Assign commissions to artists ✅
+       └── 24d Major projects (comic / animated series) ✅
 
 Wave L  (painting feel — outline; after P6 loop stable)
    └── 25 Brush media → docs/tasks/25-brush-media.md (25a picker, 25b stroke profiles)

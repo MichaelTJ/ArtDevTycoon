@@ -21,6 +21,7 @@ describe('interactPromptLabel', () => {
 			{ kind: 'talk', clientName: 'Alex', label: 'Talk to Alex' },
 			{ kind: 'talk', clientName: null, label: 'Talk' },
 			{ kind: 'talk', clientName: '', label: 'Talk' },
+			{ kind: 'reception', label: 'Talk to Receptionist' },
 			{ kind: 'deliver', clientName: 'Mum', label: 'Deliver to Mum' },
 			{ kind: 'deliver', clientName: null, label: 'Deliver art' },
 			{ kind: 'desk', label: 'Work at desk' },
