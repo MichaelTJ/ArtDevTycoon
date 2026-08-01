@@ -39,8 +39,8 @@ Multi-provider paths use **two model fields** where needed: **generation model**
 
 ### Sketch / refine (11 — ready)
 
-| #   | Spec                                 | Owns                                                                 | Depends on |
-| --- | ------------------------------------ | -------------------------------------------------------------------- | ---------- |
+| #   | Spec                                 | Owns                                                                  | Depends on |
+| --- | ------------------------------------ | --------------------------------------------------------------------- | ---------- |
 | 11  | [BAGEL sketch](./11-bagel-sketch.md) | `SketchCanvas`, optional `sketchImage` on generate, JanusLink `/edit` | 07–09      |
 
 Companion: ADTLocalServe `POST /api/janus/edit` (not ComfyUI).

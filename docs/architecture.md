@@ -88,6 +88,10 @@ best tier it can actually run.
 | 1    | `remote`         | none          | Player-run host + optional key | My PC: JanusLink, Ollama, LM Studio, A1111, or BYO cloud keys (specs 07–09). No WebGPU. |
 | 2    | `sdturbo-webgpu` | ~1.5 GB extra | WebGPU, desktop                | SD-Turbo paints at 512px; Janus still critiques.                                        |
 
+Walk-in briefing can include an optional sketch refined via JanusLink
+`POST /api/janus/edit` (BAGEL when installed on ADTLocalServe; mock uses the sketch as
+artwork). ComfyUI is not used.
+
 Selection rules:
 
 - Probe the device, then offer the best supported tier — but **never auto-download**.

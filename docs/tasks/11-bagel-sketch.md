@@ -80,21 +80,21 @@ No new `EngineId`. No new `GamePhase`.
 
 Presentational canvas. Size **384×384** CSS pixels (devicePixelRatio-aware backing store).
 
-| Prop | Type | Notes |
-| ---- | ---- | ----- |
-| `disabled` | `boolean` | default false |
-| `hasStrokes` | `$bindable` boolean | true after any paint stroke; false after clear |
-| `onexportready` | optional `(getBlob: () => Promise<Blob \| null>) => void` | parent registers exporter |
+| Prop            | Type                                                      | Notes                                          |
+| --------------- | --------------------------------------------------------- | ---------------------------------------------- |
+| `disabled`      | `boolean`                                                 | default false                                  |
+| `hasStrokes`    | `$bindable` boolean                                       | true after any paint stroke; false after clear |
+| `onexportready` | optional `(getBlob: () => Promise<Blob \| null>) => void` | parent registers exporter                      |
 
 **Tools (basic painting properties):**
 
-| Control | Behaviour |
-| ------- | --------- |
-| Tool | `brush` \| `eraser` (segmented buttons) |
-| Size | range 2–40, default 8 |
-| Color | palette swatches: black, white, red, orange, yellow, green, blue, purple + `<input type="color">` |
-| Clear | wipe to white; `hasStrokes = false` |
-| Undo | last stroke (stack depth 20) |
+| Control | Behaviour                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------- |
+| Tool    | `brush` \| `eraser` (segmented buttons)                                                           |
+| Size    | range 2–40, default 8                                                                             |
+| Color   | palette swatches: black, white, red, orange, yellow, green, blue, purple + `<input type="color">` |
+| Clear   | wipe to white; `hasStrokes = false`                                                               |
+| Undo    | last stroke (stack depth 20)                                                                      |
 
 Drawing: pointer events, round line caps/joins, eraser uses `destination-out` or paints white.
 
@@ -221,8 +221,9 @@ Add `POST /api/janus/edit` (janus-api + phone-app proxy), auth identical to unde
 
 **FakeEngine.edit:** re-encode input PIL image to PNG base64 (deterministic refine stub).
 
-**JanusEngine.edit:**  
-- If `BAGEL_MODEL_DIR` env set and weights loadable → BAGEL image-edit (future).  
+**JanusEngine.edit:**
+
+- If `BAGEL_MODEL_DIR` env set and weights loadable → BAGEL image-edit (future).
 - Else → `501` `{"error":"BAGEL not installed. Set BAGEL_MODEL_DIR or use Crayon Mode sketch."}`
 
 Document in ADTLocalServe `docs/SPEC.md` §2.x. **ComfyUI is explicitly out.**
