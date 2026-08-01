@@ -21,6 +21,7 @@ import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../brid
 import { cameraZoomToFitRoom } from '../cameraFit';
 import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
+import { applyDomEditableKeyboardGate } from '../domInputKeyboardGate';
 import {
 	CLIENT_SPEED,
 	INTERACT_KEYS,
@@ -858,9 +859,7 @@ export class StudioScene extends Phaser.Scene {
 		const focused = this.game.registry.get(STUDIO_DOM_EDITABLE_FOCUSED_KEY) === true;
 		if (focused === this.#domEditableFocused) return;
 		this.#domEditableFocused = focused;
-		if (this.input.keyboard) {
-			this.input.keyboard.enabled = !focused;
-		}
+		applyDomEditableKeyboardGate(this.input.keyboard, focused);
 		if (focused) {
 			this.#player.setVelocity(0, 0);
 		}

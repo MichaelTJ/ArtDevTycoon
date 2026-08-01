@@ -78,3 +78,28 @@ test('syncs DOM editable focus to Phaser registry', async () => {
 	document.body.removeChild(input);
 	document.body.removeChild(button);
 });
+
+test('blurs Phaser canvas when an editable control gains focus', async () => {
+	createPhaserGame.mockClear();
+	const bridge = new StudioBridge();
+	const screen = render(StudioFloor, { bridge });
+	await vi.waitFor(() => {
+		expect(createPhaserGame).toHaveBeenCalled();
+	});
+
+	const host = screen.getByTestId('studio-floor').element();
+	const canvas = document.createElement('canvas');
+	canvas.tabIndex = 0;
+	host.appendChild(canvas);
+	canvas.focus();
+	expect(document.activeElement).toBe(canvas);
+
+	const textarea = document.createElement('textarea');
+	document.body.appendChild(textarea);
+	textarea.focus();
+	await vi.waitFor(() => {
+		expect(document.activeElement).toBe(textarea);
+	});
+
+	document.body.removeChild(textarea);
+});

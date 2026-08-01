@@ -47,7 +47,14 @@
 		const syncDomEditableFocus = () => {
 			queueMicrotask(() => {
 				if (!game) return;
-				game.registry.set(STUDIO_DOM_EDITABLE_FOCUSED_KEY, isDomEditableFocused());
+				const focused = isDomEditableFocused();
+				game.registry.set(STUDIO_DOM_EDITABLE_FOCUSED_KEY, focused);
+				if (focused) {
+					const canvas = containerEl?.querySelector('canvas');
+					if (canvas instanceof HTMLCanvasElement) {
+						canvas.blur();
+					}
+				}
 			});
 		};
 

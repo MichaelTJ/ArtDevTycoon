@@ -1855,3 +1855,40 @@ marked fixed. Spec 16 idle income and Mum kitchen loop unchanged.
 - Manual playthrough not run (headless/component tests only).
 - B4 artist floor desks, C4 parallel jobs, D5 continuity deferred.
 - Full major-project beat loop to payout requires playing through all beats in UI (no dev skip).
+
+## 2026-08-01 — Playtest fix P11 (DOM prompt typing / Phaser capture)
+
+**Zone:** `src/lib/studio/**`, `StudioFloor.svelte`, `StudioFloor.svelte.test.ts`,
+`src/lib/studio/README.md`, `docs/agent-log.md`, `docs/playtest-notes.md`
+
+**Built:** Playtest bug P11 (P5 regression) — focusing the HUD prompt (or any DOM text
+control) now lets letters and WASD reach the field instead of moving the Phaser player.
+Root cause: `addKeys` / `createCursorKeys` register global key captures whose
+`preventDefault` runs in `KeyboardManager` even when the scene plugin is disabled.
+`applyDomEditableKeyboardGate` calls `disableGlobalCapture` + `resetKeys` while focused
+and restores capture on blur; `StudioFloor` blurs the game canvas on focus-in so
+keystrokes target the editable control. Touch pads unchanged.
+
+**Public surface:**
+
+- `applyDomEditableKeyboardGate(keyboard, focused)` — toggles plugin + global capture
+- Existing `STUDIO_DOM_EDITABLE_FOCUSED_KEY`, `isDomEditableFocused` unchanged
+
+**Tests:** `domInputKeyboardGate.test.ts` (capture toggle); `StudioFloor.svelte.test.ts`
+(registry sync + canvas blur); existing `domInputFocus.test.ts`. Commands: `npm run check`;
+`npm run lint`; `npm run test:unit -- --run src/lib/studio
+src/lib/components/StudioFloor.svelte.test.ts`.
+
+**Decisions:**
+
+- Phaser-recommended `disableGlobalCapture` / `enableGlobalCapture` pair — preserves
+  capture list without re-registering keys on blur.
+- Canvas blur in `StudioFloor` (not scene) — keeps focus sync co-located with registry
+  writes; scene still gates `#drivePlayer` / `#consumeInteract`.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual Phaser walkthrough with live prompt field not run headless.
+- Letter keys were never captured; only WASD/arrows/E — regression was capture + movement.
