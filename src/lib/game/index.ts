@@ -20,6 +20,7 @@ export {
 } from './abstractCritique';
 export type { ClusterMatch } from './abstractCritique';
 export { isLevelComplete, levelProgress } from './levelRules';
+export { isSketchBlank } from './sketchBlank';
 export { normalize, stem, STOPWORDS } from './text';
 export {
 	buildOperationalSnapshot,

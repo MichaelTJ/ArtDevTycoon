@@ -12,6 +12,7 @@
 	import PromptComposer from './PromptComposer.svelte';
 	import ResultsPanel from './ResultsPanel.svelte';
 	import ScoreBadge from './ScoreBadge.svelte';
+	import SketchCanvas from './SketchCanvas.svelte';
 	import WorkGainToast from './WorkGainToast.svelte';
 
 	interface Props {
@@ -36,6 +37,8 @@
 		 */
 		floorInteract?: boolean;
 		pendingSkillGains?: SkillGainPreview | null;
+		/** Parent registers the sketch PNG exporter for createArt. */
+		onsketchexportready?: (getBlob: () => Promise<Blob | null>) => void;
 		oninvite: () => void;
 		ontalk: () => void;
 		ondeliver: () => void;
@@ -61,6 +64,7 @@
 		studioDebug = false,
 		floorInteract = true,
 		pendingSkillGains = null,
+		onsketchexportready,
 		oninvite,
 		ontalk,
 		ondeliver,
@@ -69,6 +73,8 @@
 		onretry,
 		ondismisserror
 	}: Props = $props();
+
+	let sketchHasStrokes = $state(false);
 
 	const pendingReputation = $derived(
 		currentCritique
@@ -111,6 +117,7 @@
 				<AbstractBriefHint abstractness={currentClient.abstractness ?? 0} />
 			{/if}
 		{/if}
+		<SketchCanvas bind:hasStrokes={sketchHasStrokes} onexportready={onsketchexportready} />
 		<PromptComposer bind:value={draftPrompt} {onsubmit} />
 	{:else if phase === 'generating'}
 		{#if currentClient}

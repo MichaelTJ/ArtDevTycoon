@@ -69,21 +69,35 @@ export class MockEngine implements ArtEngine {
 		prompt: string;
 		seed?: number;
 		signal?: AbortSignal;
+		sketchImage?: Blob;
 	}): Promise<Artwork> {
 		throwIfAborted(input.signal);
 
 		const started = performance.now();
 		const seed = input.seed ?? hashString(input.prompt);
-		const svg = paintProceduralArt(seed);
-		const imageUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
+		let imageUrl: string;
+		let width = 512;
+		let height = 512;
+
+		if (input.sketchImage && input.sketchImage.size > 0) {
+			imageUrl = await blobToDataUrl(input.sketchImage);
+			const size = await readBlobImageSize(input.sketchImage);
+			width = size.width;
+			height = size.height;
+		} else {
+			const svg = paintProceduralArt(seed);
+			imageUrl = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+		}
+
 		const generationMs = Math.max(0, Math.round(performance.now() - started));
 
 		const artwork: Artwork = {
 			id: `mock-${seed.toString(36)}`,
 			imageUrl,
 			playerPrompt: input.playerPrompt,
-			width: 512,
-			height: 512,
+			width,
+			height,
 			generationMs,
 			engineId: 'mock'
 		};
@@ -160,5 +174,27 @@ function buildMockReview(
 function throwIfAborted(signal?: AbortSignal): void {
 	if (signal?.aborted) {
 		throw new EngineError('cancelled', 'The operation was cancelled.');
+	}
+}
+
+async function blobToDataUrl(blob: Blob): Promise<string> {
+	const buffer = await blob.arrayBuffer();
+	const bytes = new Uint8Array(buffer);
+	let binary = '';
+	for (let i = 0; i < bytes.length; i++) {
+		binary += String.fromCharCode(bytes[i]!);
+	}
+	const mime = blob.type && blob.type.length > 0 ? blob.type : 'image/png';
+	return `data:${mime};base64,${btoa(binary)}`;
+}
+
+async function readBlobImageSize(blob: Blob): Promise<{ width: number; height: number }> {
+	try {
+		const bitmap = await createImageBitmap(blob);
+		const size = { width: bitmap.width, height: bitmap.height };
+		bitmap.close();
+		return size;
+	} catch {
+		return { width: 384, height: 384 };
 	}
 }

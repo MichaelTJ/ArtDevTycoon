@@ -89,4 +89,26 @@ describe('janusLinkClient', () => {
 			'Unexpected generate response'
 		);
 	});
+
+	it('edit posts multipart to /api/janus/edit', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					promptId: 'e1',
+					images: [{ mimeType: 'image/png', base64: 'BBBB' }]
+				}),
+				{ status: 200 }
+			)
+		);
+		const client = createJanusLinkClient({ fetch: fetchMock });
+		const result = await client.edit(config, {
+			image: new Blob(['x'], { type: 'image/png' }),
+			prompt: 'a fox, crayon texture',
+			seed: 3
+		});
+		expect(result.images[0]?.base64).toBe('BBBB');
+		expect(fetchMock.mock.calls[0]?.[0]).toBe('https://pc.tailnet-xxxx.ts.net/api/janus/edit');
+		const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+		expect(init.body).toBeInstanceOf(FormData);
+	});
 });

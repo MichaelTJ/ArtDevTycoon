@@ -9,6 +9,7 @@ export { default as ClientCard } from './ClientCard.svelte';
 export { default as ClientTierBadge } from './ClientTierBadge.svelte';
 export { default as AbstractBriefHint } from './AbstractBriefHint.svelte';
 export { default as PromptComposer } from './PromptComposer.svelte';
+export { default as SketchCanvas } from './SketchCanvas.svelte';
 export { default as GeneratingPanel } from './GeneratingPanel.svelte';
 export { default as ArtworkFrame } from './ArtworkFrame.svelte';
 export { default as ResultsPanel } from './ResultsPanel.svelte';

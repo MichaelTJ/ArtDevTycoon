@@ -48,6 +48,9 @@ function fakeClient(overrides: Partial<RemoteProviderClient> = {}): RemoteProvid
 			images: [{ mimeType: 'image/png', base64: TINY_PNG_B64 }]
 		}),
 		understand: vi.fn().mockResolvedValue({ text: 'yes' }),
+		edit: vi.fn().mockResolvedValue({
+			images: [{ mimeType: 'image/png', base64: TINY_PNG_B64 }]
+		}),
 		...overrides
 	};
 }
@@ -160,6 +163,47 @@ describe('RemoteEngine', () => {
 		expect(draft.accuracyScore).toBe(10);
 		expect(draft.criticReview).toMatch(/charming cup/i);
 		expect(understand).toHaveBeenCalledTimes(5);
+		await engine.unload();
+	});
+
+	it('calls edit when sketchImage is provided', async () => {
+		const client = fakeClient();
+		const engine = new RemoteEngine({
+			getClient: () => client,
+			loadConfig: () => config
+		});
+		await engine.load();
+		const sketch = new Blob([Uint8Array.from([1, 2, 3])], { type: 'image/png' });
+		await engine.generate({
+			playerPrompt: 'a cat',
+			prompt: 'a cat, crayon texture',
+			sketchImage: sketch
+		});
+		expect(client.edit).toHaveBeenCalledWith(
+			config,
+			expect.objectContaining({
+				prompt: 'a cat, crayon texture',
+				image: sketch
+			}),
+			undefined
+		);
+		expect(client.generate).not.toHaveBeenCalled();
+		await engine.unload();
+	});
+
+	it('calls generate when sketchImage is absent', async () => {
+		const client = fakeClient();
+		const engine = new RemoteEngine({
+			getClient: () => client,
+			loadConfig: () => config
+		});
+		await engine.load();
+		await engine.generate({
+			playerPrompt: 'a cat',
+			prompt: 'a cat, crayon texture'
+		});
+		expect(client.generate).toHaveBeenCalledOnce();
+		expect(client.edit).not.toHaveBeenCalled();
 		await engine.unload();
 	});
 

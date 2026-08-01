@@ -52,6 +52,12 @@ export interface JanusLinkClient {
 		body: { image: Blob; question: string; filename?: string },
 		signal?: AbortSignal
 	): Promise<JanusUnderstandResult>;
+	/** Sketch/image refine via ADTLocalServe `/api/janus/edit` (BAGEL when installed). */
+	edit(
+		config: RemoteEngineConfig,
+		body: { image: Blob; prompt: string; seed?: number; filename?: string },
+		signal?: AbortSignal
+	): Promise<JanusGenerateResult>;
 }
 
 function reachabilityReason(baseUrl: string): string {
@@ -182,6 +188,40 @@ export function createJanusLinkClient(deps: JanusLinkClientDeps = {}): JanusLink
 			const parsed = janusUnderstandResultSchema.safeParse(data);
 			if (!parsed.success) {
 				throw new Error('Unexpected understand response from JanusLink.');
+			}
+			return parsed.data;
+		},
+
+		async edit(config, body, signal) {
+			const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+			const combined = signal !== undefined ? AbortSignal.any([signal, timeout]) : timeout;
+
+			const form = new FormData();
+			form.append('image', body.image, body.filename ?? 'sketch.png');
+			form.append('prompt', body.prompt);
+			if (body.seed !== undefined) {
+				form.append('seed', String(body.seed));
+			}
+
+			let response: Response;
+			try {
+				response = await authorizedFetch(
+					config,
+					'/api/janus/edit',
+					{ method: 'POST', body: form },
+					combined
+				);
+			} catch {
+				throw new Error(reachabilityReason(config.baseUrl));
+			}
+
+			const data = await parseJson(response);
+			if (!response.ok) {
+				throw new Error(errorMessageFromBody(data, response.status));
+			}
+			const parsed = janusGenerateResultSchema.safeParse(data);
+			if (!parsed.success) {
+				throw new Error('Unexpected edit response from JanusLink.');
 			}
 			return parsed.data;
 		}

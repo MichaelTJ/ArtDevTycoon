@@ -112,6 +112,7 @@ export class RemoteEngine implements ArtEngine {
 		prompt: string;
 		seed?: number;
 		signal?: AbortSignal;
+		sketchImage?: Blob;
 	}): Promise<Artwork> {
 		if (!this.config || !this.client) {
 			throw new EngineError('internal', 'Engine is not loaded.');
@@ -120,11 +121,19 @@ export class RemoteEngine implements ArtEngine {
 		try {
 			const seed = input.seed ?? hashString(input.prompt);
 			const started = performance.now();
-			const data = await this.client.generate(
-				this.config,
-				{ prompt: input.prompt, seed },
-				input.signal
-			);
+			const data =
+				input.sketchImage && this.client.edit
+					? await this.client.edit(
+							this.config,
+							{
+								image: input.sketchImage,
+								prompt: input.prompt,
+								seed,
+								filename: 'sketch.png'
+							},
+							input.signal
+						)
+					: await this.client.generate(this.config, { prompt: input.prompt, seed }, input.signal);
 			const generationMs = Math.round(performance.now() - started);
 
 			const first = data.images[0];
