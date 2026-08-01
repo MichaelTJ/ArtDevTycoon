@@ -174,9 +174,9 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 
 ### Studio ops / late game (24–25)
 
-| #   | Spec                                                 | Owns (new)                                                                                                      | Depends on           |
-| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------- |
-| 24  | [Artist team & major projects](./24-artist-team.md)  | Receptionist, artist roster/training, assign timer, major projects — **MVP shipped**                            | 16, 21a–21b          |
+| #   | Spec                                                 | Owns (new)                                                                                                     | Depends on           |
+| --- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 24  | [Artist team & major projects](./24-artist-team.md)  | Receptionist, artist roster/training, assign timer, major projects — **MVP shipped**                           | 16, 21a–21b          |
 | 25  | [Brush types & painting medium](./25-brush-media.md) | Outline: painting medium picker + crayon/pencil/ink/watercolour brush feel on `SketchCanvas` — **design only** | 11, 13; playtest P16 |
 
 ```
@@ -262,11 +262,11 @@ Spec 22 adds three local save slots (`adt.save.slots.v1`) with migration from le
 save import/export, and a dev-only Level 1 modifier peek — production players without
 the gate never see it. Run **22 before 23** so GameMenuBar gains Saves, then Dev.
 
-Spec 24 (design) is the active-studio fantasy on top of Spec 16’s idle staffing: talkable
-NPCs and a **receptionist** commission board, a trainable **artist team**, hand-off of
+Spec 24 MVP is the active-studio fantasy on top of Spec 16’s idle staffing: talkable NPCs
+and a **receptionist** commission board, a trainable **artist team**, hand-off of
 individual jobs, and **major projects** (comic book / animated series). See
-[24-artist-team.md](./24-artist-team.md). Do not implement until the catalog is split into
-24a–24d with locked formulas; keep distinct from Spec 16 passive income.
+[24-artist-team.md](./24-artist-team.md). Keep distinct from Spec 16 passive income.
+Deferred: artist floor desks (B4), parallel jobs (C4), continuity rules (D5).
 
 ## Worktrees are already set up
 
