@@ -29,15 +29,17 @@ const chatSchema = z.object({
 		.array(
 			z.object({
 				message: z.object({
-					content: z.union([
-						z.string(),
-						z.array(
-							z.object({
-								type: z.string().optional(),
-								text: z.string().optional()
-							})
-						)
-					])
+					content: z
+						.union([
+							z.string(),
+							z.array(
+								z.object({
+									type: z.string().optional(),
+									text: z.string().optional()
+								})
+							)
+						])
+						.optional()
 				})
 			})
 		)
@@ -67,6 +69,9 @@ function safeErrorMessage(data: unknown, status: number, apiKey: string): string
 function extractChatContent(
 	content: z.infer<typeof chatSchema>['choices'][0]['message']['content']
 ): string {
+	if (content === undefined) {
+		return '';
+	}
 	if (typeof content === 'string') {
 		return content;
 	}

@@ -34,8 +34,9 @@ export interface RemoteEngineDeps {
 }
 
 /**
- * My PC ArtEngine — generate and critique via JanusLink or a local provider
- * (Ollama, LM Studio, Automatic1111). No WebGPU; player runs the models.
+ * My PC ArtEngine — generate and critique via JanusLink, a local provider
+ * (Ollama, LM Studio, Automatic1111), or BYO cloud keys (OpenRouter, OpenAI).
+ * No WebGPU; the player runs the models or bills their own API account.
  */
 export class RemoteEngine implements ArtEngine {
 	readonly id = 'remote' as const;

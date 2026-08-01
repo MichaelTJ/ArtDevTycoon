@@ -9,6 +9,13 @@ describe('getRemoteProviderClient', () => {
 		expect(getRemoteProviderClient('automatic1111').generate).toBeTypeOf('function');
 	});
 
+	it('returns clients for Spec 09 cloud providers', () => {
+		expect(getRemoteProviderClient('openrouter').generate).toBeTypeOf('function');
+		expect(getRemoteProviderClient('openai').generate).toBeTypeOf('function');
+		expect(getRemoteProviderClient('openrouter').listModels).toBeTypeOf('function');
+		expect(getRemoteProviderClient('openai').listModels).toBeTypeOf('function');
+	});
+
 	it('throws on unknown provider', () => {
 		expect(() => getRemoteProviderClient('comfyui')).toThrow(/Unknown remote provider: comfyui/);
 	});

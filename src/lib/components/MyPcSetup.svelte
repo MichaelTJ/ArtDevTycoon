@@ -48,6 +48,24 @@
 	);
 	const showCloudWarning = $derived(provider === 'openrouter' || provider === 'openai');
 	const showA1111Critique = $derived(provider === 'automatic1111');
+	const baseUrlPlaceholder = $derived.by(() => {
+		if (provider === 'januslink') {
+			return 'https://your-pc.tailnet-xxxx.ts.net';
+		}
+		if (provider === 'openrouter') {
+			return 'https://openrouter.ai/api/v1';
+		}
+		if (provider === 'openai') {
+			return 'https://api.openai.com/v1';
+		}
+		if (provider === 'lmstudio') {
+			return 'http://localhost:1234';
+		}
+		if (provider === 'automatic1111') {
+			return 'http://127.0.0.1:7860';
+		}
+		return 'http://localhost:11434';
+	});
 
 	const testDisabled = $derived.by(() => {
 		if (inputsDisabled || !baseUrl.trim()) {
@@ -83,8 +101,8 @@
 	>
 		<h2 id="my-pc-setup-title" class="text-xl font-bold text-stone-800">Connect My PC</h2>
 		<p class="text-sm text-stone-600">
-			Run JanusLink, Ollama, LM Studio, or Automatic1111 on your machine, then connect from this
-			browser. Split generate and critique models when your stack needs it.
+			Connect JanusLink, Ollama, LM Studio, or Automatic1111 on your machine — or bring your own
+			OpenRouter / OpenAI key. Pick an image model and a vision critic when the stack needs it.
 		</p>
 
 		<label class="block text-sm font-medium text-stone-800">
@@ -109,9 +127,7 @@
 			<input
 				type="url"
 				class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-				placeholder={provider === 'januslink'
-					? 'https://your-pc.tailnet-xxxx.ts.net'
-					: 'http://localhost:11434'}
+				placeholder={baseUrlPlaceholder}
 				autocomplete="off"
 				disabled={inputsDisabled}
 				bind:value={baseUrl}

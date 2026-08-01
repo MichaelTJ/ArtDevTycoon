@@ -358,4 +358,66 @@ describe('EngineStore My PC remote setup', () => {
 			critiqueModel: 'llava'
 		});
 	});
+
+	it('setRemoteProvider applies OpenRouter cloud defaults', () => {
+		const store = new EngineStore(createFakeManager({}));
+		store.setRemoteProvider('openrouter');
+		expect(store.remoteProvider).toBe('openrouter');
+		expect(store.remoteBaseUrl).toBe('https://openrouter.ai/api/v1');
+		expect(store.remoteTestState).toBe('idle');
+	});
+
+	it('refreshRemoteModels works for openrouter before models/key are filled', async () => {
+		const listModels = vi.fn().mockResolvedValue(['black-forest-labs/flux', 'openai/gpt-4o']);
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn(),
+			listModels,
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteProvider = 'openrouter';
+		store.remoteBaseUrl = 'https://openrouter.ai/api/v1';
+		store.remoteApiKey = '';
+		store.remoteGenerateModel = '';
+		store.remoteCritiqueModel = '';
+
+		await store.refreshRemoteModels();
+
+		expect(listModels).toHaveBeenCalledOnce();
+		expect(store.remoteAvailableModels).toEqual(['black-forest-labs/flux', 'openai/gpt-4o']);
+	});
+
+	it('connectRemote saves openai cloud config', async () => {
+		const select = vi.fn(async (id: EngineId) => {
+			void id;
+		});
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn().mockResolvedValue({ ok: true }),
+			listModels: vi.fn().mockResolvedValue([]),
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({ select }));
+		store.remoteProvider = 'openai';
+		store.remoteBaseUrl = 'https://api.openai.com/v1/';
+		store.remoteApiKey = 'test-key-not-real-00000000';
+		store.remoteGenerateModel = 'dall-e-3';
+		store.remoteCritiqueModel = 'gpt-4o';
+		store.remoteTestState = 'success';
+		store.showRemoteSetup = true;
+
+		await store.connectRemote();
+
+		expect(select).toHaveBeenCalledWith('remote', expect.any(Function));
+		expect(loadRemoteConfig()).toEqual({
+			provider: 'openai',
+			baseUrl: 'https://api.openai.com/v1',
+			apiKey: 'test-key-not-real-00000000',
+			generateModel: 'dall-e-3',
+			critiqueModel: 'gpt-4o'
+		});
+	});
 });

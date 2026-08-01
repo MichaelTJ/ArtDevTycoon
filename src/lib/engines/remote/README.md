@@ -58,11 +58,20 @@ remains how phones use JanusLink's own UI; this client does not mint pairing tok
 **CORS:** `phone-app` CORS-enables `/api/janus/*` for origins in `JANUS_ALLOWED_ORIGINS`.
 Without that allowlist entry, the browser blocks the game.
 
-## Player setup — other providers
+## Player setup — other local providers
 
 1. Engine menu → **My PC** → Set up My PC.
-2. Choose a provider.
+2. Choose Ollama, LM Studio, or Automatic1111.
 3. Paste URL / models / key as required → **Test connection** → **Connect**.
+
+## Player setup — OpenRouter / OpenAI (BYO key)
+
+1. Get an API key from the vendor (OpenRouter or OpenAI).
+2. Engine menu → **My PC** → choose **OpenRouter** or **OpenAI**.
+3. Paste the key, pick an image model + a vision-capable critique model → **Test connection** →
+   **Connect**.
+4. **Cost warning:** cloud calls bill the player's own account. Keys live in this browser's
+   `localStorage` only and are sent only to the configured vendor.
 
 ### CORS / network
 

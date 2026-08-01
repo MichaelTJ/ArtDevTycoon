@@ -375,14 +375,14 @@ Document OpenRouter and OpenAI setup in `src/lib/engines/remote/README.md`:
 
 ## 11. Definition of done
 
-- [ ] `openrouter` and `openai` in config union + defaults
-- [ ] `openAiCompatClient` + vendor wrappers registered in factory
-- [ ] MyPcSetup enables both; warning copy present; Comfy/Cloud still Coming soon
-- [ ] Store builds/saves cloud configs; models refresh works with fakes in tests
-- [ ] No apiKey leakage in errors; no real network in tests; no `+server.ts`
-- [ ] Spec 08 providers still pass their tests
-- [ ] `npm run check` green; owned unit tests green
-- [ ] README + agent-log handoff
+- [x] `openrouter` and `openai` in config union + defaults
+- [x] `openAiCompatClient` + vendor wrappers registered in factory
+- [x] MyPcSetup enables both; warning copy present; Comfy/Cloud still Coming soon
+- [x] Store builds/saves cloud configs; models refresh works with fakes in tests
+- [x] No apiKey leakage in errors; no real network in tests; no `+server.ts`
+- [x] Spec 08 providers still pass their tests
+- [x] `npm run check` green; owned unit tests green
+- [x] README + agent-log handoff
 
 ---
 

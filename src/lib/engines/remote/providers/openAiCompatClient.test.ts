@@ -86,6 +86,60 @@ describe('openAiCompatClient', () => {
 		expect(result.text).toBe('yes');
 	});
 
+	it('understand joins array text parts and treats missing content as empty', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content: [
+										{ type: 'text', text: 'looks' },
+										{ type: 'text', text: 'good' }
+									]
+								}
+							}
+						]
+					}),
+					{ status: 200 }
+				)
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ choices: [{ message: {} }] }), { status: 200 })
+			);
+		const client = createOpenAiCompatClient({
+			fetch: fetchMock,
+			deviceLabel: 'openai',
+			reachabilityHint: 'unreachable'
+		});
+		const joined = await client.understand(config, {
+			image: new Blob(['x'], { type: 'image/png' }),
+			question: 'cat?'
+		});
+		expect(joined.text).toBe('looks good');
+		const missing = await client.understand(config, {
+			image: new Blob(['x'], { type: 'image/png' }),
+			question: 'cat?'
+		});
+		expect(missing.text).toBe('');
+	});
+
+	it('generate with neither b64 nor url throws no-image message', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify({ data: [{}] }), { status: 200 }));
+		const client = createOpenAiCompatClient({
+			fetch: fetchMock,
+			deviceLabel: 'openai',
+			reachabilityHint: 'unreachable'
+		});
+		await expect(client.generate(config, { prompt: 'a cat' })).rejects.toThrow(
+			/Image API returned no image data/
+		);
+	});
+
 	it('401 does not leak api key', async () => {
 		const fetchMock = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ error: { message: `bad ${FAKE_KEY}` } }), {
@@ -103,6 +157,15 @@ describe('openAiCompatClient', () => {
 			expect(result.reason).not.toContain(FAKE_KEY);
 			expect(result.reason).toMatch(/Authentication failed/);
 		}
+		let generateError: unknown;
+		try {
+			await client.generate(config, { prompt: 'a cat' });
+		} catch (error) {
+			generateError = error;
+		}
+		expect(generateError).toBeInstanceOf(Error);
+		expect((generateError as Error).message).not.toContain(FAKE_KEY);
+		expect((generateError as Error).message).toMatch(/Authentication failed/);
 	});
 
 	it('404 generate uses image-model message', async () => {

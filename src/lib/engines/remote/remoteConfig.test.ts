@@ -154,6 +154,19 @@ describe('remoteConfig', () => {
 		});
 	});
 
+	it('returns null when openai apiKey is missing', () => {
+		store.set(
+			REMOTE_CONFIG_STORAGE_KEY,
+			JSON.stringify({
+				provider: 'openai',
+				baseUrl: 'https://api.openai.com/v1',
+				generateModel: 'dall-e-3',
+				critiqueModel: 'gpt-4o'
+			})
+		);
+		expect(loadRemoteConfig()).toBeNull();
+	});
+
 	it('returns null when openai apiKey is too short', () => {
 		store.set(
 			REMOTE_CONFIG_STORAGE_KEY,
@@ -166,5 +179,17 @@ describe('remoteConfig', () => {
 			})
 		);
 		expect(loadRemoteConfig()).toBeNull();
+	});
+
+	it('save throws when cloud apiKey length is 7', () => {
+		expect(() =>
+			saveRemoteConfig({
+				provider: 'openrouter',
+				baseUrl: 'https://openrouter.ai/api/v1',
+				apiKey: '1234567',
+				generateModel: 'flux',
+				critiqueModel: 'gpt-4o'
+			})
+		).toThrow();
 	});
 });

@@ -1061,6 +1061,33 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - Optional dedicated `mum.png` spritesheet (Spec 21a).
 - Mum waypoint slide has no furniture pathfinding (explicitly out of scope).
 
+## 2026-08-01 — Spec 09 gap review (BYO API)
+
+**Zone:** `src/lib/engines/remote/**` (cloud clients/config), `MyPcSetup*`, `engineStore*`, READMEs, Spec 09 DoD, agent-log
+
+**Built:** Gap audit against Spec 09 after the initial BYO landing (+ Spec 08 coexistence). Core OpenRouter/OpenAI path was already present. Closed remaining quality gaps:
+
+- `openAiCompatClient.understand` treats missing `content` as `''`; joins array text parts (covered by tests).
+- Spec table gaps: openai missing apiKey → null; apiKey length 7 save throws; generate no-image + 401 no key leak; factory registers cloud providers; store setRemoteProvider/openrouter refresh/openai connect.
+- MyPcSetup intro + baseUrl placeholders mention cloud vendors; Coming soon stays ComfyUI + ADT Cloud.
+- Remote README adds dedicated OpenRouter/OpenAI setup steps + cost warning; Spec 09 DoD ticked.
+
+**Public surface:** Unchanged — `createOpenAiCompatClient` / `createOpenRouterClient` / `createOpenAIClient`, cloud arms of `remoteEngineConfigSchema`, `REMOTE_PROVIDER_IDS`, `EngineStore` cloud fields, `MyPcSetup` OpenRouter/OpenAI tabs.
+
+**Tests:** Owned Spec 09 paths via `openAiCompatClient*`, `openrouterClient*`, `openaiClient*`, `remoteConfig*`, `providers/index*`, `engineStore.svelte.test.ts`, `MyPcSetup.svelte.test.ts`. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run`.
+
+**Decisions:**
+
+- Left Spec 08 local providers intact; only tightened Spec 09 cloud clients/UI/tests/docs.
+- Refresh-models still injects temporary key/model placeholders for Zod; Connect requires a full valid cloud config.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual live commission against OpenRouter/OpenAI not run (needs player keys).
+- ComfyUI / Art Dev Tycoon Cloud remain Coming soon (intentional).
+
 ## 2026-08-01 — Spec 20 gap review (progression feedback)
 
 **Zone:** Spec 20 ownership (`skills*`, `nextUnlock*`, `save` skill XP, `gameState` skill wiring, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`, `HudBar` / `GameMenuBar` / `ResultsPanel` / `StudioHudOverlay`, docs)
