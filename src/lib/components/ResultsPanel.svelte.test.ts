@@ -5,7 +5,7 @@ import ResultsPanel from './ResultsPanel.svelte';
 
 const artwork: Artwork = {
 	id: 'art-1',
-	imageUrl: '/test.png',
+	imageUrl: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"/%3E',
 	playerPrompt: 'a cat',
 	width: 512,
 	height: 512,

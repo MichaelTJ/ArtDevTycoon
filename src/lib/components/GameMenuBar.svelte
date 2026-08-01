@@ -11,6 +11,7 @@
 	import ProgressPanel from './ProgressPanel.svelte';
 	import StaffOffice from './StaffOffice.svelte';
 	import ToolkitShop from './ToolkitShop.svelte';
+	import WorkGainToast from './WorkGainToast.svelte';
 
 	interface Props {
 		cash: number;
@@ -141,6 +142,16 @@
 			/>
 		</div>
 	</div>
+	{#if game.lastCollectedGains}
+		<div class="mt-3">
+			<WorkGainToast
+				gains={game.lastCollectedGains.skills}
+				reputation={game.lastCollectedGains.reputation}
+				cash={game.lastCollectedGains.cash}
+				mode="collected"
+			/>
+		</div>
+	{/if}
 	{#if notice}
 		<div class="mt-3">{@render notice()}</div>
 	{/if}

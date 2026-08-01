@@ -144,13 +144,7 @@ export function buildProgressMeters(state: ProgressionSnapshot): {
 				next.requiredReputation,
 				remainingRepLabel(state.reputation, next.requiredReputation)
 			)
-		: meter(
-				'reputation',
-				'Max prestige',
-				state.reputation,
-				Math.max(state.reputation, 1),
-				'Max prestige'
-			);
+		: meter('reputation', 'Max prestige', state.reputation, state.reputation, 'Max prestige');
 
 	return { commissions, cash, reputation };
 }

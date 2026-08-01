@@ -1061,3 +1061,32 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - Optional dedicated `mum.png` spritesheet (Spec 21a).
 - Mum waypoint slide has no furniture pathfinding (explicitly out of scope).
 
+## 2026-08-01 — Spec 20 gap review (progression feedback)
+
+**Zone:** Spec 20 ownership (`skills*`, `nextUnlock*`, `save` skill XP, `gameState` skill wiring, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`, `HudBar` / `GameMenuBar` / `ResultsPanel` / `StudioHudOverlay`, docs)
+
+**Built:** Gap audit against Spec 20. Core domain math, save fields, GameStore XP/multiplier wiring, HUD meters, Progress panel, and pending results toast were already present. Closed remaining quality gaps:
+
+- `ProgressMeter` treats `max <= 0` as a full bar (capped skills).
+- `ProgressPanel` shows skill taglines; capped skill meters no longer render empty.
+- Compact `HudBar` reputation hint now includes the next-unlock label.
+- `GameMenuBar` mounts `WorkGainToast` in `collected` mode from `lastCollectedGains`.
+- `nextUnlock` Max prestige uses current/current (not `max(rep, 1)`).
+- `ResultsPanel` tests use a data-URL artwork (no `/test.png` 404 flake).
+- Added StudioHudOverlay pending-gains coverage + ProgressMeter max-0 / banked-toast tests.
+
+**Public surface:** Unchanged from Spec 20 (`skillProgress`, `previewSkillGains`, `buildProgressMeters`, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`, GameStore skill fields).
+
+**Tests:** Spec 20 suite green; full `npm run test:unit -- --run` → 91 files / 548 passed. Commands: `npm run check` (0 errors); `npm run lint` green.
+
+**Decisions:**
+
+- Banked toast lives on `GameMenuBar` (results UI unmounts on collect; menu strip stays visible for the 1.6s pulse).
+- Did not redesign shop unlock tables or Phaser desk XP bars (out of scope).
+
+**Requests:** None.
+
+**Known gaps:**
+
+- None material for Spec 20 acceptance criteria.
+- Skill trees / Phaser desk XP bars remain deliberately out of scope.
