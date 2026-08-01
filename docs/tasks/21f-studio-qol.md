@@ -441,16 +441,16 @@ Do **not** block MVP on these.
 
 ## 5. Definition of done
 
-- [ ] `interactPromptLabel` unit tests match the fallback table; registry label wins when set.
-- [ ] World interact prompt shows contextual verbs (Talk to Mum / Work at desk / View show / …), not a bare mute E-only affordance.
-- [ ] `findPath` / `findPathInRoom` unit tests cover examples A–D + null / mega open grid.
-- [ ] Mum patrol uses BFS tile paths; she does not slide through kitchen fridge/table tiles.
-- [ ] `reducedVfx` is on the snapshot (default false), set from `prefers-reduced-motion`, documented in studio README; 21f respects it for Mum pause (and camera if F2 shipped).
-- [ ] `StudioScene` edits limited to prompt draw + Mum path follow (+ optional camera); spawn/registry/particles untouched.
-- [ ] `npm run check`, `npm run lint`, and
+- [x] `interactPromptLabel` unit tests match the fallback table; registry label wins when set.
+- [x] World interact prompt shows contextual verbs (Talk to Mum / Work at desk / View show / …), not a bare mute E-only affordance.
+- [x] `findPath` / `findPathInRoom` unit tests cover examples A–D + null / mega open grid.
+- [x] Mum patrol uses BFS tile paths; she does not slide through kitchen fridge/table tiles.
+- [x] `reducedVfx` is on the snapshot (default false), set from `prefers-reduced-motion`, documented in studio README; 21f respects it for Mum pause (and camera if F2 shipped).
+- [x] `StudioScene` edits limited to prompt draw + Mum path follow (+ optional camera); spawn/registry/particles untouched.
+- [x] `npm run check`, `npm run lint`, and
       `npm run test:unit -- --run src/lib/studio/pathfind.test.ts src/lib/studio/interactPrompt.test.ts`
       (plus full owned suite) green.
-- [ ] `src/lib/studio/README.md` + `docs/agent-log.md` handoff.
+- [x] `src/lib/studio/README.md` + `docs/agent-log.md` handoff.
 
 ---
 

@@ -14,11 +14,19 @@ import { slotsForVenue, type EaselSlot } from '../easelLayout';
 import {
 	FRIDGE,
 	fridgeBarkLine,
-	interactPromptText,
 	nearestInteractable,
+	TOOLKIT_SHELF,
 	type InteractableId
 } from '../interactables';
-import { nextWanderTarget, stepToward, type WanderState } from '../npcWander';
+import { interactPromptLabel, type InteractPromptKind } from '../interactPrompt';
+import {
+	nextWanderTarget,
+	stepToward,
+	tileFromPixel,
+	withPath,
+	type WanderState
+} from '../npcWander';
+import { findPathInRoom } from '../pathfind';
 import type { ResidentNpcDef, RoomDef, RoomZone, TileMarker } from '../rooms';
 import { isSafeStudioImageUrl } from '../safeImageUrl';
 import {
@@ -43,6 +51,8 @@ import { DEFAULT_WORK_ESTIMATE_MS, workBarProgress } from '../workProgress';
 
 /** Warm tint so Mum reads apart from door visitors when using the clients sheet. */
 const MUM_TINT = 0xffc9a8;
+const MUM_PAUSE_MS_MIN = 200;
+const MUM_PAUSE_MS_MAX = 600;
 
 interface InteractPropView {
 	id: InteractableId;
@@ -134,16 +144,17 @@ export class StudioScene extends Phaser.Scene {
 		this.#setupInput();
 		this.#setupTouchPad();
 		this.#prompt = this.add.image(0, 0, 'prompt-e').setDepth(20).setVisible(false);
+		// Spec 21f: contextual verb Text (preferred); prompt-e kept loaded for later polish.
 		this.#promptLabel = this.add
 			.text(0, 0, '', {
 				fontFamily: 'monospace',
 				fontSize: '8px',
 				color: '#fafaf9',
-				backgroundColor: '#1c1917cc',
-				padding: { x: 2, y: 1 }
+				stroke: '#1c1917',
+				strokeThickness: 3
 			})
 			.setOrigin(0.5, 1)
-			.setDepth(21)
+			.setDepth(20)
 			.setVisible(false);
 		this.#createWorkBar();
 		this.#createVfxEmitters();
@@ -480,8 +491,16 @@ export class StudioScene extends Phaser.Scene {
 			this.physics.add.collider(this.#player, this.#groundLayer);
 		}
 		this.physics.add.collider(this.#player, this.#furnitureGroup);
-		this.cameras.main.startFollow(this.#player, true, 0.12, 0.12);
+		this.#applyCameraFollow();
 		this.#player.anims.play('player-idle');
+	}
+
+	/** Soft follow lerp unless `reducedVfx` — then hard follow. */
+	#applyCameraFollow(): void {
+		if (!this.#player) return;
+		const reduced = this.#snapshot?.reducedVfx ?? false;
+		const lerp = reduced ? 1 : 0.12;
+		this.cameras.main.startFollow(this.#player, true, lerp, lerp);
 	}
 
 	#spawnResidents(): void {
@@ -513,7 +532,12 @@ export class StudioScene extends Phaser.Scene {
 		if (!useMumSheet) {
 			this.#mum.setTint(MUM_TINT);
 		}
-		this.#mumWander = { waypointIndex: 0, target: mum.patrol[0]! };
+		this.#mumWander = {
+			waypointIndex: 0,
+			target: mum.patrol[0]!,
+			path: [],
+			pathIndex: 0
+		};
 		this.#mumPauseUntil = 0;
 		this.#playMumAnim('idle');
 	}
@@ -539,6 +563,37 @@ export class StudioScene extends Phaser.Scene {
 		this.#mum.anims.play(key, true);
 	}
 
+	#mumPauseDurationMs(): number {
+		if (this.#snapshot?.reducedVfx) return MUM_PAUSE_MS_MAX;
+		return Phaser.Math.Between(MUM_PAUSE_MS_MIN, MUM_PAUSE_MS_MAX);
+	}
+
+	/** Compute BFS path to the current patrol waypoint; skip unreachable goals. */
+	#ensureMumPath(): void {
+		if (!this.#mum || !this.#mumDef || !this.#mumWander) return;
+		if (this.#mumWander.path.length > 0) return;
+
+		const from = tileFromPixel(this.#mum.x, this.#mum.y, TILE_SIZE);
+		let attempts = 0;
+		while (attempts < this.#mumDef.patrol.length) {
+			const path = findPathInRoom(
+				this.#room.width,
+				this.#room.height,
+				this.#room.collision,
+				from,
+				this.#mumWander.target
+			);
+			if (path) {
+				this.#mumWander = withPath(this.#mumWander, path);
+				return;
+			}
+			this.#mumWander = nextWanderTarget(this.#mumDef.patrol, this.#mumWander.waypointIndex);
+			attempts += 1;
+		}
+		// All waypoints unreachable — idle in place.
+		this.#mumWander = withPath(this.#mumWander, [from]);
+	}
+
 	#updateMumWander(dtSec: number): void {
 		if (!this.#mum || !this.#mumDef || !this.#mumWander) return;
 
@@ -555,22 +610,33 @@ export class StudioScene extends Phaser.Scene {
 			return;
 		}
 
+		this.#ensureMumPath();
+		const stepTile = this.#mumWander.path[this.#mumWander.pathIndex];
+		if (!stepTile) {
+			// Path exhausted → patrol waypoint arrived.
+			this.#playMumAnim('idle');
+			this.#mumWander = nextWanderTarget(this.#mumDef.patrol, this.#mumWander.waypointIndex);
+			this.#mumPauseUntil = now + this.#mumPauseDurationMs();
+			return;
+		}
+
 		const prevX = this.#mum.x;
-		const step = stepToward(
-			prevX,
-			this.#mum.y,
-			this.#mumWander.target,
-			CLIENT_SPEED,
-			dtSec,
-			TILE_SIZE
-		);
+		const step = stepToward(prevX, this.#mum.y, stepTile, CLIENT_SPEED, dtSec, TILE_SIZE);
 		this.#mum.setPosition(step.x, step.y);
 		this.#mum.setVelocity(0, 0);
 
 		if (step.arrived) {
-			this.#playMumAnim('idle');
-			this.#mumWander = nextWanderTarget(this.#mumDef.patrol, this.#mumWander.waypointIndex);
-			this.#mumPauseUntil = now + Phaser.Math.Between(200, 600);
+			this.#mumWander = {
+				...this.#mumWander,
+				pathIndex: this.#mumWander.pathIndex + 1
+			};
+			if (this.#mumWander.pathIndex >= this.#mumWander.path.length) {
+				this.#playMumAnim('idle');
+				this.#mumWander = nextWanderTarget(this.#mumDef.patrol, this.#mumWander.waypointIndex);
+				this.#mumPauseUntil = now + this.#mumPauseDurationMs();
+			} else {
+				this.#playMumAnim('walk');
+			}
 		} else {
 			this.#playMumAnim('walk');
 			if (step.x < prevX - 0.05) this.#mum.setFlipX(true);
@@ -640,7 +706,7 @@ export class StudioScene extends Phaser.Scene {
 				sprite,
 				lookFrame: look.frame,
 				patrol,
-				wander: patrol ? { waypointIndex: 0, target: patrol[0]! } : null,
+				wander: patrol ? { waypointIndex: 0, target: patrol[0]!, path: [], pathIndex: 0 } : null,
 				pauseUntil: 0
 			};
 			this.#playStaffIdle(entry);
@@ -913,6 +979,7 @@ export class StudioScene extends Phaser.Scene {
 			}
 			this.#syncWorkParticles();
 			this.#tryCashBurst();
+			this.#applyCameraFollow();
 			return;
 		}
 		if (cmd.type === 'summon-client') {
@@ -1139,6 +1206,35 @@ export class StudioScene extends Phaser.Scene {
 		return null;
 	}
 
+	#promptClientName(): string | null {
+		const snap = this.#snapshot;
+		if (!snap) return null;
+		if (snap.residentClientArmed) return 'Mum';
+		return snap.client?.clientName ?? null;
+	}
+
+	#interactPromptKind(target: {
+		kind: 'talk' | 'deliver' | 'desk' | 'easel' | 'look' | 'prop';
+		id?: InteractableId;
+	}): { kind: InteractPromptKind; registryLabel?: string | null; clientName?: string | null } {
+		if (target.kind === 'prop') {
+			if (target.id === 'fridge') {
+				return {
+					kind: 'fridge',
+					registryLabel: this.#fridgeOpen ? FRIDGE.promptLabelOpen : FRIDGE.promptLabelClosed
+				};
+			}
+			if (target.id === 'toolkit-shelf') {
+				return { kind: 'toolkit', registryLabel: TOOLKIT_SHELF.promptLabel };
+			}
+			return { kind: 'prop' };
+		}
+		if (target.kind === 'talk' || target.kind === 'deliver') {
+			return { kind: target.kind, clientName: this.#promptClientName() };
+		}
+		return { kind: target.kind };
+	}
+
 	#updateInteractPrompt(): void {
 		const target = this.#nearestTarget();
 		if (!target) {
@@ -1159,16 +1255,10 @@ export class StudioScene extends Phaser.Scene {
 				x = prop.sprite.x;
 				y = prop.sprite.y - 12;
 			}
-			const label =
-				target.id === 'fridge'
-					? interactPromptText({ kind: 'fridge', open: this.#fridgeOpen })
-					: interactPromptText({ kind: 'toolkit-shelf' });
-			this.#prompt.setVisible(false);
-			this.#promptLabel.setText(label).setPosition(x, y).setVisible(true);
-			return;
 		}
-		this.#promptLabel.setVisible(false);
-		this.#prompt.setPosition(x, y).setVisible(true);
+		const label = interactPromptLabel(this.#interactPromptKind(target));
+		this.#prompt.setVisible(false);
+		this.#promptLabel.setText(label).setPosition(x, y).setVisible(true);
 	}
 
 	#consumeInteract(): boolean {

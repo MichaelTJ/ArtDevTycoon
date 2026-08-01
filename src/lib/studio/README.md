@@ -5,20 +5,22 @@ saves stay in `$lib/game` / `$lib/stores`.
 
 ## Public surface
 
-| Export                                       | Role                                            |
-| -------------------------------------------- | ----------------------------------------------- |
-| `STUDIO_FLOOR_ENABLED`                       | Feature flag; `false` restores `KitchenScene`   |
-| `StudioBridge`                               | Typed events/commands between Svelte and Phaser |
-| `createPhaserGame(parent, bridge, options?)` | Boots Phaser; `initialVenueId` picks the plan   |
-| `getRoomForVenue` / `roomIdForVenue`         | Progressive gallery venue → authored floor      |
-| `getRoomForEnvironment` / `ROOMS`            | Tile grids + markers (Level env stubs too)      |
-| `slotsForVenue`                              | Venue → easel/magnet anchors                    |
-| `nextWanderTarget` / `stepToward`            | Pure Mum patrol helpers                         |
-| `floorStaffFromHired` / `staffAnchorForRole` | Hired staff → floor NPCs (presentation only)    |
-| `clientLookForTier`                          | Door-visitor tint/frame by client tier          |
-| `nearestInteractable` / `interactPromptText` | Pure prop interact helpers (spec 21b)           |
-| `FRIDGE` / `TOOLKIT_SHELF`                   | Data-driven interactable registry               |
-| `shouldEmitWorkParticles` / VFX caps         | Pure desk/cash particle helpers (spec 21d)      |
+| Export                                         | Role                                            |
+| ---------------------------------------------- | ----------------------------------------------- |
+| `STUDIO_FLOOR_ENABLED`                         | Feature flag; `false` restores `KitchenScene`   |
+| `StudioBridge`                                 | Typed events/commands between Svelte and Phaser |
+| `createPhaserGame(parent, bridge, options?)`   | Boots Phaser; `initialVenueId` picks the plan   |
+| `getRoomForVenue` / `roomIdForVenue`           | Progressive gallery venue → authored floor      |
+| `getRoomForEnvironment` / `ROOMS`              | Tile grids + markers (Level env stubs too)      |
+| `slotsForVenue`                                | Venue → easel/magnet anchors                    |
+| `nextWanderTarget` / `stepToward` / `withPath` | Pure Mum patrol + path-queue helpers            |
+| `findPath` / `findPathInRoom`                  | 4-neighbour BFS on room collision (spec 21f)    |
+| `interactPromptLabel` / `prefersReducedMotion` | Contextual E verbs + motion helper (21f)        |
+| `floorStaffFromHired` / `staffAnchorForRole`   | Hired staff → floor NPCs (presentation only)    |
+| `clientLookForTier`                            | Door-visitor tint/frame by client tier          |
+| `nearestInteractable` / `interactPromptText`   | Pure prop interact helpers (spec 21b)           |
+| `FRIDGE` / `TOOLKIT_SHELF`                     | Data-driven interactable registry               |
+| `shouldEmitWorkParticles` / VFX caps           | Pure desk/cash particle helpers (spec 21d)      |
 
 ## Venue floor plans
 
@@ -83,14 +85,23 @@ Furniture may carry an optional `interactableId` (`rooms.ts`). Registry lives in
 | `toolkit-shelf` | `art-room`     | Emit `open-shop` / `toolkit` → `+page` bumps `openToolkitNonce` → menu bar opens existing `ToolkitShop` |
 
 Interact priority (must not reorder): talk → deliver → desk → easel → look → **prop**.
-Commission talk/deliver always wins when in range. Contextual prompt text for props is
-`E — …` via a Phaser Text label (glyph prompt stays for talk/deliver/desk/easel).
+Commission talk/deliver always wins when in range. World prompts use
+`interactPromptLabel` (Phaser Text) — e.g. “Talk to Mum”, “Work at desk”,
+“View show”, “Open fridge”. 21b registry `promptLabel` wins when present.
+The `prompt-e` glyph stays loaded but unused (text-only UI approach).
 
 **Manual check:** kitchen E on fridge swaps frame + bark; garage E on west workbench
 opens ToolkitShop; standing on Mum while armed still Talks, not Open fridge.
 
 Player animations use a single walk loop + `flipX` (Tiny Dungeon sheet has no full
 4-direction set). Work frames are ADT-authored pencil overlays on the same sheet.
+
+## Pathfinding (spec 21f)
+
+Mum patrols with 4-neighbour BFS over `RoomDef.collision` (`findPathInRoom`). She
+steps tile-to-tile via `stepToward` so she routes around solid furniture (kitchen
+fridge/table). Unreachable waypoints are skipped. Staff curator still uses
+straight-line patrol (optional reuse later).
 
 ## Mum art
 
@@ -126,6 +137,11 @@ Both are gated by snapshot `reducedVfx` (default `false`). Svelte sets it from
 `matchMedia('(prefers-reduced-motion: reduce)')` on every `syncStudio()`. When true,
 emitters stay stopped; HudBar cash number tween (spec 20) is unchanged. Particle
 textures are generated in-scene (`textures.generate`) — no new PNGs.
+
+`StudioSnapshot.reducedVfx` mirrors `prefers-reduced-motion: reduce`. Spec 21f uses it
+for NPC pacing / camera; spec 21d uses it for particles and confetti. One field, both
+consumers. When true: Mum waypoint pauses always use the high end (~600 ms); camera
+follow lerp is hard (1) instead of soft (0.12).
 
 ## Assets
 

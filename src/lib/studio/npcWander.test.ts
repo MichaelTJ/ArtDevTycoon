@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextWanderTarget, stepToward } from './npcWander';
+import { nextWanderTarget, stepToward, tileFromPixel, withPath } from './npcWander';
 
 describe('npcWander', () => {
 	it('nextWanderTarget advances and wraps', () => {
@@ -10,6 +10,30 @@ describe('npcWander', () => {
 		expect(nextWanderTarget(patrol, 0).waypointIndex).toBe(1);
 		expect(nextWanderTarget(patrol, 1).waypointIndex).toBe(0);
 		expect(nextWanderTarget(patrol, 0).target).toEqual({ tx: 1, ty: 0 });
+		expect(nextWanderTarget(patrol, 0).path).toEqual([]);
+	});
+
+	it('tileFromPixel floors into tile coords', () => {
+		expect(tileFromPixel(8, 24, 16)).toEqual({ tx: 0, ty: 1 });
+	});
+
+	it('withPath skips start tile for multi-step paths', () => {
+		const base = nextWanderTarget(
+			[
+				{ tx: 0, ty: 0 },
+				{ tx: 2, ty: 0 }
+			],
+			0
+		);
+		const path = [
+			{ tx: 0, ty: 0 },
+			{ tx: 1, ty: 0 },
+			{ tx: 2, ty: 0 }
+		];
+		const bound = withPath(base, path);
+		expect(bound.pathIndex).toBe(1);
+		expect(bound.path[bound.pathIndex]).toEqual({ tx: 1, ty: 0 });
+		expect(withPath(base, [{ tx: 2, ty: 0 }]).pathIndex).toBe(1);
 	});
 
 	it('stepToward reaches tile center and never returns NaN', () => {
