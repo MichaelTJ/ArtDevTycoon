@@ -38,7 +38,8 @@ Import everything from `$lib/components` (barrel `index.ts`):
 | `GalleryUpgradeShop`   | `venues`/`layouts`/`atmosphereItems`, unlock/active/owned ids, `cash`, `reputation`                                                                                                                                                                          | `onunlockvenue`/`onunlocklayout`/`onselectlayout`/`onbuyatmosphere`/`onclose`                 |
 | `StaffOffice`          | `roles: StaffRole[]`, `hiredIds`, `cash`, `reputation`                                                                                                                                                                                                       | `onhire(id)`, `onclose()`                                                                     |
 | `IdleEarningsModal`    | `amount`                                                                                                                                                                                                                                                     | `ondismiss()`                                                                                 |
-| `GameMenuBar`          | `cash`, `levelName`, progress fields, engine button props; opens Toolkit / Gallery / Staff / Progress / **Saves**                                                                                                                                            | `onopenenginemenu()`, `onafterslotchange?()`                                                  |
+| `GameMenuBar`          | `cash`, `levelName`, progress fields, engine button props; opens Toolkit / Gallery / Staff / Progress / **Saves**; `devEnabled?` / `devReason?` open **Dev**                                                                                                 | `onopenenginemenu()`, `onafterslotchange?()`, `onlatchchange?()`                              |
+| `DevPanel`             | `enabled`, `reason`, economy fields, `draftPrompt`, `modifiedPrompt`; hidden when `enabled=false`                                                                                                                                                            | cash/rep/commissions/unlock/idle/export/import/latch + optional `onopensaves`                 |
 | `GameScene`            | `environment`, `galleryEntries`, `galleryLayoutClassName?`                                                                                                                                                                                                   | `onselectentry(entry)`                                                                        |
 | `WorkspaceZone`        | `label`, `children` snippet                                                                                                                                                                                                                                  | —                                                                                             |
 | `FridgeGallery`        | `entries` (order preserved), `label?`, `emptyMessage?`, `layoutClassName?`                                                                                                                                                                                   | `onselect(entry)`                                                                             |
@@ -51,9 +52,16 @@ Import everything from `$lib/components` (barrel `index.ts`):
 When `STUDIO_FLOOR_ENABLED` is true (default), `+page` mounts `StudioFloor` +
 `StudioHudOverlay` for Level 1 instead of `KitchenScene`. `GameScene` still hosts the
 CSS kitchen when the flag is false, and Coming Soon for levels 2–4. Phaser is created
-via dynamic import in `StudioFloor` and destroyed on unmount. E2E uses `?studioDebug=1`
-for a Talk button so pathfinding stays out of Playwright. `AbstractBriefHint` mounts
-inside `StudioHudOverlay` during briefing when abstractness ≥ 1.
+via dynamic import in `StudioFloor` and destroyed on unmount. E2E uses `?dev=1` (or the
+`?studioDebug=1` alias) so Talk/Deliver stay out of Playwright pathfinding.
+`AbstractBriefHint` mounts inside `StudioHudOverlay` during briefing when abstractness ≥ 1.
+
+### `DevPanel` (Spec 23)
+
+Gated developer dialog: cheats, save import/export, and the Level 1 modifier peek.
+Mounted only when `resolveDevMode` is on. Modifier text must never appear outside this
+panel. When Spec 22 Saves is present, DevPanel links “Open saves” instead of duplicating
+slot UI.
 
 Types (`ClientBrief`, `Artwork`, `Critique`, `GalleryEntry`, `EngineOption`) come from
 `$lib/types/contracts`. Operations types come from `$lib/game/operations`. Medium tiers

@@ -69,6 +69,23 @@ test('saves button opens the Save slots dialog', async () => {
 	await expect.element(screen.getByText('Slot 1')).toBeVisible();
 });
 
+test('Dev button is hidden when devEnabled is false', async () => {
+	const screen = render(GameMenuBar, defaultProps);
+	await expect.element(screen.getByRole('button', { name: 'Dev' })).not.toBeInTheDocument();
+});
+
+test('Dev button opens Developer tools when enabled', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, {
+		...defaultProps,
+		devEnabled: true,
+		devReason: 'query'
+	});
+	await screen.getByRole('button', { name: 'Dev' }).click();
+	await expect.element(screen.getByRole('dialog', { name: 'Developer tools' })).toBeVisible();
+	await expect.element(screen.getByText('Dev only — players never see this.')).toBeVisible();
+});
+
 test('shows banked gains toast after collect pulse', async () => {
 	game.reset();
 	game.lastCollectedGains = {

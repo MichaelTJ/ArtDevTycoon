@@ -127,6 +127,11 @@ Spec 22 stores up to three named `SaveData` slots in `adt.save.slots.v1` with an
 pointer. Legacy `adt.save.v1` migrates into slot 0. Switching slots reloads meta-progress
 and returns to `idle`; engine choice and audio prefs remain browser-global.
 
+Spec 23 adds gated Dev mode (`?dev=1`, Vite `import.meta.env.DEV`, or `adt.dev.v1`
+latch). When enabled, a Dev panel exposes cheats, save import/export, and the hidden
+Level 1 modifier peek. Production visits without the query or latch never see it.
+`?studioDebug=1` remains an alias for floor e2e controls.
+
 ### Why Janus does both jobs
 
 Janus-Pro-1B is a _unified_ multimodal model — the same weights handle text-to-image
@@ -225,6 +230,7 @@ player never loses their typed prompt.
 | `src/lib/engines/janus/**`                                           | Janus-Pro-1B worker engine                 | 05           |
 | `src/lib/engines/sdturbo/**`                                         | SD-Turbo desktop engine                    | 06           |
 | `src/lib/studio/**`, `static/studio/**`                              | Phaser studio floor + CC0 assets           | 17           |
+| `src/lib/dev/**`, `DevPanel`                                         | Gated Dev mode cheats + modifier peek      | 23           |
 
 ---
 

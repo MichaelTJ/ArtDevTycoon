@@ -1300,6 +1300,67 @@ describe('GameStore save slots', () => {
 	});
 });
 
+describe('GameStore Spec 23 dev cheats', () => {
+	it('devImportSave rejects invalid JSON', () => {
+		const store = createStore({
+			generate: async () => fakeArtwork,
+			critique: async () => fakeDraft
+		});
+		expect(store.devImportSave('{')).toEqual({
+			ok: false,
+			error: 'Invalid save JSON'
+		});
+	});
+
+	it('devImportSave accepts valid SaveData and applies cash', () => {
+		const store = createStore({
+			generate: async () => fakeArtwork,
+			critique: async () => fakeDraft
+		});
+		const raw = JSON.stringify(createDefaultSave(250, () => 1_000));
+		expect(store.devImportSave(raw)).toEqual({ ok: true });
+		expect(store.cash).toBe(250);
+		expect(store.phase).toBe('idle');
+	});
+
+	it('devSetCash clamps and unlock-all grants progression', () => {
+		const store = createStore({
+			generate: async () => fakeArtwork,
+			critique: async () => fakeDraft
+		});
+		store.devSetCash(-1);
+		expect(store.cash).toBe(0);
+		store.devSetCash(3.7);
+		expect(store.cash).toBe(3);
+		store.devUnlockAllProgression();
+		expect(store.unlockedMediumTierIds.length).toBeGreaterThan(1);
+		expect(store.hiredStaffIds.length).toBeGreaterThan(0);
+		expect(store.reputation).toBeGreaterThanOrEqual(50);
+		expect(store.unlockedVenueId).toBe('mega-museum');
+	});
+
+	it('devForceIdle aborts an in-flight commission', async () => {
+		let releaseGenerate!: (art: Artwork) => void;
+		const generateGate = new Promise<Artwork>((resolve) => {
+			releaseGenerate = resolve;
+		});
+		const store = createStore({
+			generate: () => generateGate,
+			critique: async () => fakeDraft
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+		const pending = store.createArt();
+		expect(store.phase).toBe('generating');
+		store.devForceIdle();
+		expect(store.phase).toBe('idle');
+		expect(store.currentClient).toBeNull();
+		releaseGenerate(fakeArtwork);
+		await pending;
+		expect(store.phase).toBe('idle');
+	});
+});
+
 afterEach(() => {
 	vi.useRealTimers();
 });

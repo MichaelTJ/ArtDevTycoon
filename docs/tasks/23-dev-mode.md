@@ -306,15 +306,15 @@ Pass `dev.enabled` into GameMenuBar + StudioHudOverlay. Wire DevPanel callbacks 
 
 ## 8. Definition of done
 
-- [ ] `resolveDevMode` table green; `dev=0` overrides latch.
-- [ ] Latch load/persist/clear never throws.
-- [ ] Cheat clamps + import validation unit-tested.
-- [ ] DevPanel hidden when `enabled=false`; visible controls when true.
-- [ ] Modifier peek only rendered inside DevPanel.
-- [ ] GameMenuBar Dev entry gated; Studio Talk/Deliver tied to same gate.
-- [ ] e2e updated to `?dev=1` (alias still works).
-- [ ] `npm run check`, `npm run lint`, scoped `test:unit` green for owned files.
-- [ ] `src/lib/dev/README.md` + architecture blurb + agent-log handoff.
+- [x] `resolveDevMode` table green; `dev=0` overrides latch.
+- [x] Latch load/persist/clear never throws.
+- [x] Cheat clamps + import validation unit-tested.
+- [x] DevPanel hidden when `enabled=false`; visible controls when true.
+- [x] Modifier peek only rendered inside DevPanel.
+- [x] GameMenuBar Dev entry gated; Studio Talk/Deliver tied to same gate.
+- [x] e2e updated to `?dev=1` (alias still works).
+- [x] `npm run check`, `npm run lint`, scoped `test:unit` green for owned files.
+- [x] `src/lib/dev/README.md` + architecture blurb + agent-log handoff.
 
 ---
 

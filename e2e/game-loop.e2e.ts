@@ -13,7 +13,7 @@ async function deliverPainting(page: import('@playwright/test').Page) {
 }
 
 test('a player can complete a full commission', async ({ page }) => {
-	await page.goto('/?studioDebug=1');
+	await page.goto('/?dev=1');
 	await expect(page.locator('main')).toHaveAttribute('data-engines-ready', 'true');
 	await expect(page.getByText('Home Kitchen')).toBeVisible();
 	await expect(page.getByLabel('Current cash')).toHaveText('$100');
@@ -37,7 +37,7 @@ test('a player can complete a full commission', async ({ page }) => {
 });
 
 test('empty prompt is rejected', async ({ page }) => {
-	await page.goto('/?studioDebug=1');
+	await page.goto('/?dev=1');
 	await waitForClientAndTalk(page);
 
 	const createButton = page.getByRole('button', { name: 'Create Art' });
@@ -48,7 +48,7 @@ test('empty prompt is rejected', async ({ page }) => {
 });
 
 test('hidden modifiers never leak into the UI', async ({ page }) => {
-	await page.goto('/?studioDebug=1');
+	await page.goto('/?dev=1');
 	await waitForClientAndTalk(page);
 	await page.getByLabel('Your prompt').fill('a cozy coffee cup on a wooden table');
 	await page.getByRole('button', { name: 'Create Art' }).click();
@@ -68,14 +68,14 @@ test('nothing downloads on its own', async ({ page }) => {
 		void route.continue();
 	});
 
-	await page.goto('/?studioDebug=1');
+	await page.goto('/?dev=1');
 	await page.waitForTimeout(1_500);
 
 	expect(downloads).toHaveLength(0);
 });
 
 test('engine menu is disabled during a commission', async ({ page }) => {
-	await page.goto('/?studioDebug=1');
+	await page.goto('/?dev=1');
 	await expect(page.locator('main')).toHaveAttribute('data-engines-ready', 'true');
 	await waitForClientAndTalk(page);
 	await page.getByLabel('Your prompt').fill('a cozy coffee cup on a wooden table');
@@ -99,7 +99,7 @@ test('engine menu is disabled during a commission', async ({ page }) => {
 
 test('mobile viewport supports the happy path', async ({ page }) => {
 	await page.setViewportSize({ width: 360, height: 740 });
-	await page.goto('/?studioDebug=1');
+	await page.goto('/?dev=1');
 
 	await waitForClientAndTalk(page);
 	await page.getByLabel('Your prompt').fill('a cozy coffee cup on a wooden table');
