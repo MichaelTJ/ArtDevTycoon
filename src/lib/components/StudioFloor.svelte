@@ -1,4 +1,6 @@
 <script lang="ts">
+	import BarkLiveRegion from '$lib/components/BarkLiveRegion.svelte';
+	import type { BarkAnnounceHandler } from '$lib/studio/barkPresenter';
 	import type { StudioBridge } from '$lib/studio/bridge';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -15,10 +17,23 @@
 	let containerEl: HTMLDivElement | undefined = $state();
 	let game: {
 		destroy: (removeCanvas: boolean, noReturn?: boolean) => void;
-		registry: { get: (key: string) => unknown };
+		registry: { get: (key: string) => unknown; set: (key: string, value: unknown) => void };
 	} | null = null;
 	let bootState: 'loading' | 'ready' | 'error' = $state('loading');
 	let bootError = $state('Studio failed to load.');
+
+	let barkSpeakerLabel = $state<string | null>(null);
+	let barkLine = $state<string | null>(null);
+
+	const onBark: BarkAnnounceHandler = (payload) => {
+		if (!payload) {
+			barkSpeakerLabel = null;
+			barkLine = null;
+			return;
+		}
+		barkSpeakerLabel = payload.speakerLabel;
+		barkLine = payload.text;
+	};
 
 	const BOOT_TIMEOUT_MS = 20_000;
 
@@ -69,6 +84,7 @@
 					return;
 				}
 				game = created;
+				game.registry.set('onBark', onBark);
 				pollId = setInterval(() => {
 					if (game?.registry.get('studioBootFailed') === true) {
 						markError('Studio assets failed to load.');
@@ -87,33 +103,37 @@
 	});
 
 	onDestroy(() => {
+		game?.registry.set('onBark', null);
 		game?.destroy(true);
 		game = null;
 	});
 </script>
 
-<div
-	bind:this={containerEl}
-	data-testid="studio-floor"
-	class="studio-floor relative min-h-[420px] w-full overflow-hidden rounded-xl border border-stone-400 bg-stone-900 {className}"
-	aria-label="Studio floor"
-	aria-busy={bootState === 'loading'}
->
-	{#if bootState === 'loading'}
-		<p
-			class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-sm text-stone-200"
-			role="status"
-			data-testid="studio-floor-loading"
-		>
-			Loading studio…
-		</p>
-	{:else if bootState === 'error'}
-		<p
-			class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 text-center text-sm text-amber-100"
-			role="alert"
-			data-testid="studio-floor-error"
-		>
-			{bootError}
-		</p>
-	{/if}
+<div class="studio-floor-wrap relative {className}">
+	<div
+		bind:this={containerEl}
+		data-testid="studio-floor"
+		class="studio-floor relative min-h-[420px] w-full overflow-hidden rounded-xl border border-stone-400 bg-stone-900"
+		aria-label="Studio floor"
+		aria-busy={bootState === 'loading'}
+	>
+		{#if bootState === 'loading'}
+			<p
+				class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-sm text-stone-200"
+				role="status"
+				data-testid="studio-floor-loading"
+			>
+				Loading studio…
+			</p>
+		{:else if bootState === 'error'}
+			<p
+				class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4 text-center text-sm text-amber-100"
+				role="alert"
+				data-testid="studio-floor-error"
+			>
+				{bootError}
+			</p>
+		{/if}
+	</div>
+	<BarkLiveRegion speakerLabel={barkSpeakerLabel} line={barkLine} />
 </div>

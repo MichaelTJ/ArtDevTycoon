@@ -35,4 +35,5 @@ export { default as StaffOffice } from './StaffOffice.svelte';
 export { default as IdleEarningsModal } from './IdleEarningsModal.svelte';
 export { default as ArtworkFullView } from './ArtworkFullView.svelte';
 export { default as StudioFloor } from './StudioFloor.svelte';
+export { default as BarkLiveRegion } from './BarkLiveRegion.svelte';
 export { default as StudioHudOverlay } from './StudioHudOverlay.svelte';

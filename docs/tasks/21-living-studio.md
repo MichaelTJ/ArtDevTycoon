@@ -1,8 +1,8 @@
 # Spec 21 — Living Studio (NPCs, interactables, AV polish)
 
 **Status:** Parent catalog. Six implementable slices exist; **MVP shortlist for
-21a–21d is shipped** on the integration tip (gap-review merges). **21e / 21f remain
-open** (sibling gap worktrees — do not claim done here).
+21a–21f MVP is shipped** on the integration tip (gap-review merges). Deferred
+catalog rows (A4–A8, B3–B12 extras, etc.) remain open.
 
 | Slice | Spec                                             | MVP status on this tip                                    |
 | ----- | ------------------------------------------------ | --------------------------------------------------------- |
@@ -10,8 +10,8 @@ open** (sibling gap worktrees — do not claim done here).
 | 21b   | [21b-interactables.md](./21b-interactables.md)   | **Shipped** — B1, B2, B5                                  |
 | 21c   | [21c-studio-audio.md](./21c-studio-audio.md)     | **Shipped** — C1, C3, C4, C8                              |
 | 21d   | [21d-studio-vfx.md](./21d-studio-vfx.md)         | **Shipped** — D3, D4 + `reducedVfx`                       |
-| 21e   | [21e-ambient-events.md](./21e-ambient-events.md) | **Not on this tip** — E1 (sibling `gap-ambient`)          |
-| 21f   | [21f-studio-qol.md](./21f-studio-qol.md)         | **Not on this tip** — F1/F4/F6 (sibling `gap-studio-qol`) |
+| 21e   | [21e-ambient-events.md](./21e-ambient-events.md) | **Shipped** — E1 ambient barks + BarkLiveRegion           |
+| 21f   | [21f-studio-qol.md](./21f-studio-qol.md)         | **Shipped** — F1 pathfind, F4 verbs, F6 reducedVfx consumers |
 
 Boss tracking: [21-boss-plan.md](./21-boss-plan.md).
 **Depends on:** Specs 17–20 merged (walkable venues, Mum resident, HUD/skills). Does
@@ -137,7 +137,7 @@ Phaser stays audio-free; Svelte owns HTMLAudioElement playback.
 
 | #   | Feature                    | Pitch                                                                     | Size | Status                     |
 | --- | -------------------------- | ------------------------------------------------------------------------- | ---- | -------------------------- |
-| E1  | **Bark / thought bubbles** | Mum + staff + visitors show 1-line bubbles on a timer (data pool, no LLM) | M    | **Not shipped** (21e open) |
+| E1  | **Bark / thought bubbles** | Mum + staff + visitors show 1-line bubbles on a timer (data pool, no LLM) | M    | **Shipped**                |
 | E2  | **Phone rings**            | Rare event: answer for a flavour corporate brief teaser (or decline)      | M    | Deferred                   |
 | E3  | **Noise complaint**        | Joke event if player idles in kitchen too long; Mum “clears throat”       | S    | Deferred                   |
 | E4  | **Opening night**          | On venue unlock, one-shot visitor burst + banner toast                    | M    | Deferred                   |
@@ -149,12 +149,12 @@ Phaser stays audio-free; Svelte owns HTMLAudioElement playback.
 
 | #   | Feature                      | Pitch                                                                          | Size | Status                                                |
 | --- | ---------------------------- | ------------------------------------------------------------------------------ | ---- | ----------------------------------------------------- |
-| F1  | **Pathfinding vs furniture** | Replace Mum waypoint slide with simple A\* / funnel around props (spec 19 gap) | M    | **Not shipped** (21f MVP)                             |
+| F1  | **Pathfinding vs furniture** | Replace Mum waypoint slide with simple A\* / funnel around props (spec 19 gap) | M    | **Shipped** (BFS tile path)                           |
 | F2  | **Camera follow easing**     | Smoother pan in large museums; optional look-ahead                             | S    | Deferred (MAY in 21f)                                 |
 | F3  | **Minimap (mega-museum)**    | Tiny zone dots: atelier / gallery / foyer                                      | S    | Deferred                                              |
-| F4  | **Interact prompt polish**   | Contextual verb (“Talk to Mum”, “Open fridge”, “View show”) not bare “E”       | S    | **Not shipped** (21f MVP; props already have `E — …`) |
+| F4  | **Interact prompt polish**   | Contextual verb (“Talk to Mum”, “Open fridge”, “View show”) not bare “E”       | S    | **Shipped**                                           |
 | F5  | **Gamepad / Space**          | Map interact; hold-to-run optional                                             | S    | Deferred                                              |
-| F6  | **Reduced-motion profile**   | One flag dims particles, camera shake, confetti, NPC density                   | S    | Partial — `reducedVfx` from 21d; 21f consumers open   |
+| F6  | **Reduced-motion profile**   | One flag dims particles, camera shake, confetti, NPC density                   | S    | **Shipped** — `reducedVfx` + camera/Mum consumers     |
 | F7  | **Performance budget**       | Cap ambient NPCs on low `deviceMemory` / coarse pointer heuristics             | S    | Deferred                                              |
 
 ---
@@ -228,7 +228,7 @@ Original MVP set and current tip status:
 - [x] Grounded in current gaps (Mum tint, silent loop, staff off-floor, scenery props).
 - [x] Individual 21a–21f specs written with ownership zones + tests.
 - [x] `docs/tasks/README.md` indexes Spec 21 (this file).
-- [x] Parent status board matches shipped MVP (21a–21d) vs open (21e/21f) + deferred catalog rows.
+- [x] Parent status board matches shipped MVP (21a–21f) + deferred catalog rows.
 
 ---
 

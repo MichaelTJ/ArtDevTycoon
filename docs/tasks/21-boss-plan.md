@@ -34,8 +34,8 @@
 | 4b   | Implement 21b                | **shipped on tip** | gap port → merge `7b9f191`                          | B1/B2/B5; DoD ticked                                  |
 | 4c   | Implement 21c                | **shipped on tip** | gap port → merge `998f046`                          | C1/C3/C4/C8; DoD ticked                               |
 | 4d   | Implement 21d                | **shipped on tip** | gap port → merge `e94c9e6`                          | D3/D4 + `reducedVfx`; DoD ticked                      |
-| 4e   | Implement 21e                | **open**           | `../adt-wt-gap-ambient` / `agent/gap-ambient`       | E1 — **do not tick parent** until DoD lands on tip    |
-| 4f   | Implement 21f                | **open**           | `../adt-wt-gap-studio-qol` / `agent/gap-studio-qol` | F1/F4/F6 — sibling zone; do not edit from living-meta |
+| 4e   | Implement 21e                | **shipped on tip** | gap port → merge (this wave)                        | E1 barks + BarkLiveRegion; DoD ticked                 |
+| 4f   | Implement 21f                | **shipped on tip** | gap port → merge (this wave)                        | F1/F4/F6; DoD ticked                                  |
 
 **Phase 1 complete** (all six specs). Bridge extras from 21b (frozen): outbound
 `open-shop`, `prop-bark`. Snapshot: `hiredRoleIds`, `client.tier`, `reducedVfx`.
@@ -119,8 +119,8 @@ Historical safe parallelization (still applies for remaining e/f):
 | R1    | 21a only  | Owns characters + first bridge fields | **shipped** |
 | R2    | 21b       | Prop registry                         | **shipped** |
 | R3    | 21c + 21d | Audio mostly new dirs; VFX scene      | **shipped** |
-| R4    | 21f       | QoL prompts / pathfinding             | **open**    |
-| R5    | 21e       | Barks / events                        | **open**    |
+| R4    | 21f       | QoL prompts / pathfinding             | **shipped** |
+| R5    | 21e       | Barks / events                        | **shipped** |
 
 **Conflict rule:** Only one agent may edit `StudioScene.ts` at a time. Assign scene
 touches: 21a (NPCs) → 21b (interact) → 21d/21f → 21e. Living-meta docs agents **MUST

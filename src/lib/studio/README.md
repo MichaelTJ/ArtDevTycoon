@@ -21,6 +21,8 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `nearestInteractable` / `interactPromptText`   | Pure prop interact helpers (spec 21b)           |
 | `FRIDGE` / `TOOLKIT_SHELF`                     | Data-driven interactable registry               |
 | `shouldEmitWorkParticles` / VFX caps           | Pure desk/cash particle helpers (spec 21d)      |
+| `pickBark` / `eligibleBarkSpeakers` / schedule | Ambient bark picker + phase gate (spec 21e)     |
+| `shouldShowBark` / bark lifetime helpers       | Bubble gating (prompt + phase)                  |
 
 ## Venue floor plans
 
@@ -136,7 +138,29 @@ Presentation-only Phaser particles — no economy side effects:
 Both are gated by snapshot `reducedVfx` (default `false`). Svelte sets it from
 `matchMedia('(prefers-reduced-motion: reduce)')` on every `syncStudio()`. When true,
 emitters stay stopped; HudBar cash number tween (spec 20) is unchanged. Particle
-textures are generated in-scene (`textures.generate`) — no new PNGs.
+textures are generated in-scene (`textures.generate`) — no new PNGs. Spec 21e also
+shortens bark bubble lifetime and skips fade tweens when `reducedVfx` is true.
+
+## Ambient barks (spec 21e)
+
+Static pools in `$lib/data/barks` — **no LLM**. Phaser shows one thought bubble at a
+time above Mum / hired floor staff. `StudioFloor` registers an `onBark` registry
+callback so `BarkLiveRegion` announces `Speaker: line` via `aria-live="polite"`.
+Optional `cueId` may be forwarded on the payload; **no audio playback** in this zone
+(`audioEnabled` is not on `StudioSnapshot`).
+
+| `GamePhase`     | Barks allowed? |
+| --------------- | -------------- |
+| `idle`          | **yes**        |
+| `briefing`      | no             |
+| `generating`    | no             |
+| `critiquing`    | no             |
+| `results`       | no             |
+| `failed`        | no             |
+| `levelComplete` | no             |
+
+Leaving `idle` hides any visible bubble and clears the live region immediately; the
+attempt countdown resets so returning to idle waits a full jittered interval.
 
 `StudioSnapshot.reducedVfx` mirrors `prefers-reduced-motion: reduce`. Spec 21f uses it
 for NPC pacing / camera; spec 21d uses it for particles and confetti. One field, both
