@@ -42,27 +42,41 @@ function scanZoneSlots(
 }
 
 /**
+ * Fridge / unknown → magnets. Garage → 3 magnets + easels (spec 19 kitchen-scale mix).
+ * Storefront and above → freestanding easels only (spec 17 §6.5).
+ */
+function magnetCountForVenue(venueId: string, slotCount: number): number {
+	if (!(venueId in VENUE_SLOT_COUNTS) || venueId === 'fridge') {
+		return slotCount;
+	}
+	if (venueId === 'garage') {
+		return Math.min(3, slotCount);
+	}
+	return 0;
+}
+
+/**
  * How many on-floor display slots for a venue id (capped below mega capacity so the
  * HUD strip remains the full list).
  */
 export function slotsForVenue(venueId: string, room: RoomDef): EaselSlot[] {
 	const count = VENUE_SLOT_COUNTS[venueId] ?? VENUE_SLOT_COUNTS.fridge;
 	const slots: EaselSlot[] = [];
+	const magnetCount = magnetCountForVenue(venueId, count);
 
-	// First three: magnets around the fridge wall.
 	const magnetOrigins = [
 		{ tx: room.fridgeAnchor.tx, ty: room.fridgeAnchor.ty },
 		{ tx: room.fridgeAnchor.tx, ty: room.fridgeAnchor.ty + 1 },
 		{ tx: room.fridgeAnchor.tx + 1, ty: room.fridgeAnchor.ty }
 	];
-	for (let i = 0; i < Math.min(3, count); i++) {
-		const origin = magnetOrigins[i] ?? magnetOrigins[0]!;
+	for (let i = 0; i < magnetCount; i++) {
+		const origin = magnetOrigins[i % magnetOrigins.length]!;
 		slots.push({ tx: origin.tx, ty: origin.ty, kind: 'magnet' });
 	}
 
-	if (count <= 3) return finalizeSlots(slots, room);
+	if (count <= magnetCount) return finalizeSlots(slots, room);
 
-	const easelCount = count - 3;
+	const easelCount = count - magnetCount;
 	const showZone = room.zones.find((z) => z.id === 'gallery' || z.id === 'window');
 	let easelMarkers: TileMarker[] = [];
 

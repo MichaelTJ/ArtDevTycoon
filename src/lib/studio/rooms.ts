@@ -161,7 +161,7 @@ function buildKitchen(): RoomDef {
 			{
 				id: 'mum',
 				clientName: 'Mum',
-				spriteKey: 'clients',
+				spriteKey: 'mum',
 				frame: 0,
 				spawn: { tx: 4, ty: 2 },
 				patrol

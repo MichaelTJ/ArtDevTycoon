@@ -37,9 +37,22 @@ describe('slotsForVenue', () => {
 		}
 	});
 
-	it('mega-museum caps at 12 floor slots', () => {
+	it('mega-museum caps at 12 floor slots, all easels', () => {
 		const mega = getRoomForVenue('mega-museum');
-		expect(slotsForVenue('mega-museum', mega)).toHaveLength(12);
+		const slots = slotsForVenue('mega-museum', mega);
+		expect(slots).toHaveLength(12);
+		expect(slots.every((s) => s.kind === 'easel')).toBe(true);
+	});
+
+	it('storefront and gallery-hall use easels only', () => {
+		const storefront = getRoomForVenue('storefront');
+		const hall = getRoomForVenue('gallery-hall');
+		const shopSlots = slotsForVenue('storefront', storefront);
+		const hallSlots = slotsForVenue('gallery-hall', hall);
+		expect(shopSlots).toHaveLength(8);
+		expect(hallSlots).toHaveLength(10);
+		expect(shopSlots.every((s) => s.kind === 'easel')).toBe(true);
+		expect(hallSlots.every((s) => s.kind === 'easel')).toBe(true);
 	});
 
 	it('never produces out-of-bounds slots on 6×6 kitchen', () => {

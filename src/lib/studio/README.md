@@ -33,6 +33,19 @@ venue id changes.
 - Phaser never imports `GameStore` or engines.
 - `StudioBridge.send` before a command handler is registered must not throw.
 - Unit tests must not construct a real `Phaser.Game` (mock `createGame` in component tests).
+- Gallery thumbnails on easels pass `isSafeStudioImageUrl` before `load.image`; textures
+  keyed `art-<entryId>` are unloaded when the entry leaves the displayed list.
+- `StudioFloor` shows a loading status until the bridge `ready` event (error after timeout).
+
+## Easel kinds (spec 17 §6.5)
+
+| Venue          | Floor slots | Kind                 |
+| -------------- | ----------- | -------------------- |
+| `fridge`       | 3           | magnets              |
+| `garage`       | 6           | 3 magnets + 3 easels |
+| `storefront`   | 8           | easels               |
+| `gallery-hall` | 10          | easels               |
+| `mega-museum`  | 12          | easels               |
 
 ## Client flow
 
@@ -47,10 +60,15 @@ venue id changes.
    `collectCash()` → `dismiss-client` (Mum stays; door visitor walks out).
 
 During `generating` / `critiquing` the player snaps to the desk with a progress bar
-sized from `lastWorkDurationMs` / `DEFAULT_WORK_ESTIMATE_MS`.
+sized from `lastWorkDurationMs` / `DEFAULT_WORK_ESTIMATE_MS`. Walk input is ignored
+until those phases end. During `briefing` / `results` / `failed` the player may walk;
+door visitors idle at the wait spot (Mum patrols unless she is the commission target).
 
 Storefront+ show/window zones also show an E prompt; pressing it opens the first
 displayed gallery entry (or emits `inspect-zone` when the wall is empty).
+
+Player animations use a single walk loop + `flipX` (Tiny Dungeon sheet has no full
+4-direction set). Work frames are ADT-authored pencil overlays on the same sheet.
 
 ## Mum art
 
