@@ -19,23 +19,23 @@
 
 ## Status board
 
-| Step | Item                         | Status             | Branch / worktree / tip                             | Notes                                                 |
-| ---- | ---------------------------- | ------------------ | --------------------------------------------------- | ----------------------------------------------------- |
-| 0    | Boss plan (this file)        | **done**           | docs                                                | Gap-meta pass refreshes ship vs deferred              |
-| 1a   | Spec doc `21a-living-npcs`   | **done**           | `docs/tasks/21a-living-npcs.md`                     |                                                       |
-| 1b   | Spec doc `21b-interactables` | **done**           | `docs/tasks/21b-interactables.md`                   |                                                       |
-| 1c   | Spec doc `21c-studio-audio`  | **done**           | `docs/tasks/21c-studio-audio.md`                    | `adt.audio.v1`, no snapshot mute                      |
-| 1d   | Spec doc `21d-studio-vfx`    | **done**           | `docs/tasks/21d-studio-vfx.md`                      |                                                       |
-| 1e   | Spec doc `21e-ambient`       | **done**           | `docs/tasks/21e-ambient-events.md`                  |                                                       |
-| 1f   | Spec doc `21f-studio-qol`    | **done**           | `docs/tasks/21f-studio-qol.md`                      |                                                       |
-| 2    | Index README + living-studio | **done**           | docs                                                | Parent catalog status synced in gap-living-meta       |
-| 3    | Bridge field freeze          | **landed**         | inside 21a / 21b / 21d                              | see Boss decisions                                    |
-| 4a   | Implement 21a                | **shipped on tip** | gap port → merge `355b503`                          | A1–A3; DoD ticked                                     |
-| 4b   | Implement 21b                | **shipped on tip** | gap port → merge `7b9f191`                          | B1/B2/B5; DoD ticked                                  |
-| 4c   | Implement 21c                | **shipped on tip** | gap port → merge `998f046`                          | C1/C3/C4/C8; DoD ticked                               |
-| 4d   | Implement 21d                | **shipped on tip** | gap port → merge `e94c9e6`                          | D3/D4 + `reducedVfx`; DoD ticked                      |
-| 4e   | Implement 21e                | **shipped on tip** | gap port → merge (this wave)                        | E1 barks + BarkLiveRegion; DoD ticked                 |
-| 4f   | Implement 21f                | **shipped on tip** | gap port → merge (this wave)                        | F1/F4/F6; DoD ticked                                  |
+| Step | Item                         | Status             | Branch / worktree / tip            | Notes                                           |
+| ---- | ---------------------------- | ------------------ | ---------------------------------- | ----------------------------------------------- |
+| 0    | Boss plan (this file)        | **done**           | docs                               | Gap-meta pass refreshes ship vs deferred        |
+| 1a   | Spec doc `21a-living-npcs`   | **done**           | `docs/tasks/21a-living-npcs.md`    |                                                 |
+| 1b   | Spec doc `21b-interactables` | **done**           | `docs/tasks/21b-interactables.md`  |                                                 |
+| 1c   | Spec doc `21c-studio-audio`  | **done**           | `docs/tasks/21c-studio-audio.md`   | `adt.audio.v1`, no snapshot mute                |
+| 1d   | Spec doc `21d-studio-vfx`    | **done**           | `docs/tasks/21d-studio-vfx.md`     |                                                 |
+| 1e   | Spec doc `21e-ambient`       | **done**           | `docs/tasks/21e-ambient-events.md` |                                                 |
+| 1f   | Spec doc `21f-studio-qol`    | **done**           | `docs/tasks/21f-studio-qol.md`     |                                                 |
+| 2    | Index README + living-studio | **done**           | docs                               | Parent catalog status synced in gap-living-meta |
+| 3    | Bridge field freeze          | **landed**         | inside 21a / 21b / 21d             | see Boss decisions                              |
+| 4a   | Implement 21a                | **shipped on tip** | gap port → merge `355b503`         | A1–A3; DoD ticked                               |
+| 4b   | Implement 21b                | **shipped on tip** | gap port → merge `7b9f191`         | B1/B2/B5; DoD ticked                            |
+| 4c   | Implement 21c                | **shipped on tip** | gap port → merge `998f046`         | C1/C3/C4/C8; DoD ticked                         |
+| 4d   | Implement 21d                | **shipped on tip** | gap port → merge `e94c9e6`         | D3/D4 + `reducedVfx`; DoD ticked                |
+| 4e   | Implement 21e                | **shipped on tip** | gap port → merge (this wave)       | E1 barks + BarkLiveRegion; DoD ticked           |
+| 4f   | Implement 21f                | **shipped on tip** | gap port → merge (this wave)       | F1/F4/F6; DoD ticked                            |
 
 **Phase 1 complete** (all six specs). Bridge extras from 21b (frozen): outbound
 `open-shop`, `prop-bark`. Snapshot: `hiredRoleIds`, `client.tier`, `reducedVfx`.

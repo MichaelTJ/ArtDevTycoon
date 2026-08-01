@@ -4,13 +4,13 @@
 21a–21f MVP is shipped** on the integration tip (gap-review merges). Deferred
 catalog rows (A4–A8, B3–B12 extras, etc.) remain open.
 
-| Slice | Spec                                             | MVP status on this tip                                    |
-| ----- | ------------------------------------------------ | --------------------------------------------------------- |
-| 21a   | [21a-living-npcs.md](./21a-living-npcs.md)       | **Shipped** — A1–A3                                       |
-| 21b   | [21b-interactables.md](./21b-interactables.md)   | **Shipped** — B1, B2, B5                                  |
-| 21c   | [21c-studio-audio.md](./21c-studio-audio.md)     | **Shipped** — C1, C3, C4, C8                              |
-| 21d   | [21d-studio-vfx.md](./21d-studio-vfx.md)         | **Shipped** — D3, D4 + `reducedVfx`                       |
-| 21e   | [21e-ambient-events.md](./21e-ambient-events.md) | **Shipped** — E1 ambient barks + BarkLiveRegion           |
+| Slice | Spec                                             | MVP status on this tip                                       |
+| ----- | ------------------------------------------------ | ------------------------------------------------------------ |
+| 21a   | [21a-living-npcs.md](./21a-living-npcs.md)       | **Shipped** — A1–A3                                          |
+| 21b   | [21b-interactables.md](./21b-interactables.md)   | **Shipped** — B1, B2, B5                                     |
+| 21c   | [21c-studio-audio.md](./21c-studio-audio.md)     | **Shipped** — C1, C3, C4, C8                                 |
+| 21d   | [21d-studio-vfx.md](./21d-studio-vfx.md)         | **Shipped** — D3, D4 + `reducedVfx`                          |
+| 21e   | [21e-ambient-events.md](./21e-ambient-events.md) | **Shipped** — E1 ambient barks + BarkLiveRegion              |
 | 21f   | [21f-studio-qol.md](./21f-studio-qol.md)         | **Shipped** — F1 pathfind, F4 verbs, F6 reducedVfx consumers |
 
 Boss tracking: [21-boss-plan.md](./21-boss-plan.md).
@@ -135,27 +135,27 @@ Phaser stays audio-free; Svelte owns HTMLAudioElement playback.
 
 ### E. Ambient life & comedy systems — sub-spec **21e**
 
-| #   | Feature                    | Pitch                                                                     | Size | Status                     |
-| --- | -------------------------- | ------------------------------------------------------------------------- | ---- | -------------------------- |
-| E1  | **Bark / thought bubbles** | Mum + staff + visitors show 1-line bubbles on a timer (data pool, no LLM) | M    | **Shipped**                |
-| E2  | **Phone rings**            | Rare event: answer for a flavour corporate brief teaser (or decline)      | M    | Deferred                   |
-| E3  | **Noise complaint**        | Joke event if player idles in kitchen too long; Mum “clears throat”       | S    | Deferred                   |
-| E4  | **Opening night**          | On venue unlock, one-shot visitor burst + banner toast                    | M    | Deferred                   |
-| E5  | **Series wall plaque**     | Completing a palette series (spec 15) drops a permanent plaque prop       | M    | Deferred                   |
-| E6  | **Tutorial ghosts**        | First-run translucent arrows to Mum / desk / Collect (dismissible, saved) | M    | Deferred                   |
-| E7  | **Photo mode**             | Freeze NPCs, hide HUD, pan camera for postcard (ties D9)                  | S    | Deferred                   |
+| #   | Feature                    | Pitch                                                                     | Size | Status      |
+| --- | -------------------------- | ------------------------------------------------------------------------- | ---- | ----------- |
+| E1  | **Bark / thought bubbles** | Mum + staff + visitors show 1-line bubbles on a timer (data pool, no LLM) | M    | **Shipped** |
+| E2  | **Phone rings**            | Rare event: answer for a flavour corporate brief teaser (or decline)      | M    | Deferred    |
+| E3  | **Noise complaint**        | Joke event if player idles in kitchen too long; Mum “clears throat”       | S    | Deferred    |
+| E4  | **Opening night**          | On venue unlock, one-shot visitor burst + banner toast                    | M    | Deferred    |
+| E5  | **Series wall plaque**     | Completing a palette series (spec 15) drops a permanent plaque prop       | M    | Deferred    |
+| E6  | **Tutorial ghosts**        | First-run translucent arrows to Mum / desk / Collect (dismissible, saved) | M    | Deferred    |
+| E7  | **Photo mode**             | Freeze NPCs, hide HUD, pan camera for postcard (ties D9)                  | S    | Deferred    |
 
 ### F. Quality-of-life tied to the floor — sub-spec **21f**
 
-| #   | Feature                      | Pitch                                                                          | Size | Status                                                |
-| --- | ---------------------------- | ------------------------------------------------------------------------------ | ---- | ----------------------------------------------------- |
-| F1  | **Pathfinding vs furniture** | Replace Mum waypoint slide with simple A\* / funnel around props (spec 19 gap) | M    | **Shipped** (BFS tile path)                           |
-| F2  | **Camera follow easing**     | Smoother pan in large museums; optional look-ahead                             | S    | Deferred (MAY in 21f)                                 |
-| F3  | **Minimap (mega-museum)**    | Tiny zone dots: atelier / gallery / foyer                                      | S    | Deferred                                              |
-| F4  | **Interact prompt polish**   | Contextual verb (“Talk to Mum”, “Open fridge”, “View show”) not bare “E”       | S    | **Shipped**                                           |
-| F5  | **Gamepad / Space**          | Map interact; hold-to-run optional                                             | S    | Deferred                                              |
-| F6  | **Reduced-motion profile**   | One flag dims particles, camera shake, confetti, NPC density                   | S    | **Shipped** — `reducedVfx` + camera/Mum consumers     |
-| F7  | **Performance budget**       | Cap ambient NPCs on low `deviceMemory` / coarse pointer heuristics             | S    | Deferred                                              |
+| #   | Feature                      | Pitch                                                                          | Size | Status                                            |
+| --- | ---------------------------- | ------------------------------------------------------------------------------ | ---- | ------------------------------------------------- |
+| F1  | **Pathfinding vs furniture** | Replace Mum waypoint slide with simple A\* / funnel around props (spec 19 gap) | M    | **Shipped** (BFS tile path)                       |
+| F2  | **Camera follow easing**     | Smoother pan in large museums; optional look-ahead                             | S    | Deferred (MAY in 21f)                             |
+| F3  | **Minimap (mega-museum)**    | Tiny zone dots: atelier / gallery / foyer                                      | S    | Deferred                                          |
+| F4  | **Interact prompt polish**   | Contextual verb (“Talk to Mum”, “Open fridge”, “View show”) not bare “E”       | S    | **Shipped**                                       |
+| F5  | **Gamepad / Space**          | Map interact; hold-to-run optional                                             | S    | Deferred                                          |
+| F6  | **Reduced-motion profile**   | One flag dims particles, camera shake, confetti, NPC density                   | S    | **Shipped** — `reducedVfx` + camera/Mum consumers |
+| F7  | **Performance budget**       | Cap ambient NPCs on low `deviceMemory` / coarse pointer heuristics             | S    | Deferred                                          |
 
 ---
 
