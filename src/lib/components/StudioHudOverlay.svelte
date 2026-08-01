@@ -3,7 +3,7 @@
 	import type { AuctionResult } from '$lib/game/auction';
 	import { reputationGain, type SkillGainPreview } from '$lib/game';
 	import type { MumRealCritique } from '$lib/game/mumCritiquePresentation';
-	import { DEFAULT_MEDIUM_TIER_ID } from '$lib/data/mediumTiers';
+	import { canUnlockMediumTier, MEDIUM_TIERS, DEFAULT_MEDIUM_TIER_ID } from '$lib/data/mediumTiers';
 	import { getStallStageLabel, stallMessagesForArtwork } from '$lib/data/stallMessages';
 	import type { Artwork, ClientBrief, Critique, GamePhase } from '$lib/types/contracts';
 	import AbstractBriefHint from './AbstractBriefHint.svelte';
@@ -24,8 +24,14 @@
 		idleMessage: string;
 		loadingMessages: string[];
 		critiqueMessages: string[];
-		/** Active art medium — drives critiquing stall copy (playtest P14). */
+		/** Active art medium — drives critiquing stall copy (playtest P14) and painting brush (P16). */
 		activeMediumTierId?: string;
+		/** Unlocked medium ids for painting picker gating (Spec 25a). */
+		unlockedMediumTierIds?: string[];
+		cash?: number;
+		reputation?: number;
+		/** Sync painting medium with Toolkit active tier when unlocked. */
+		onselectmedium?: (id: string) => void;
 		currentClient: ClientBrief | null;
 		currentArtwork: Artwork | null;
 		currentCritique: Critique | null;
@@ -70,6 +76,10 @@
 		loadingMessages,
 		critiqueMessages,
 		activeMediumTierId = DEFAULT_MEDIUM_TIER_ID,
+		unlockedMediumTierIds = [DEFAULT_MEDIUM_TIER_ID],
+		cash = 0,
+		reputation = 0,
+		onselectmedium,
 		currentClient,
 		currentArtwork,
 		currentCritique,
@@ -110,6 +120,26 @@
 			: critiqueMessages
 	);
 	const critiquingStageLabel = $derived(getStallStageLabel(activeMediumTierId));
+
+	function isMediumUnlocked(id: string): boolean {
+		return unlockedMediumTierIds.includes(id);
+	}
+
+	function mediumLockReason(tier: (typeof MEDIUM_TIERS)[number]): string | null {
+		if (isMediumUnlocked(tier.id)) {
+			return null;
+		}
+		if (cash < tier.unlockCost) {
+			return `Need $${tier.unlockCost - cash} more`;
+		}
+		if (reputation < tier.requiredReputation) {
+			return `Need ${tier.requiredReputation - reputation} more reputation`;
+		}
+		if (!canUnlockMediumTier(tier, { cash, reputation })) {
+			return 'Locked in Toolkit';
+		}
+		return `Unlock for $${tier.unlockCost}`;
+	}
 </script>
 
 <aside
@@ -159,7 +189,34 @@
 		{#if currentClient}
 			<ClientCard brief={currentClient} />
 		{/if}
-		<SketchCanvas bind:hasStrokes={sketchHasStrokes} onexportready={onsketchexportready} />
+		<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Painting medium">
+			<span class="text-sm font-medium text-stone-700">Medium</span>
+			{#each MEDIUM_TIERS as tier (tier.id)}
+				{@const unlocked = isMediumUnlocked(tier.id)}
+				{@const active = tier.id === activeMediumTierId}
+				{@const lockReason = mediumLockReason(tier)}
+				<button
+					type="button"
+					class="min-h-10 min-w-10 rounded-lg border px-2 text-lg {active
+						? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500'
+						: unlocked
+							? 'border-stone-300 bg-white hover:bg-stone-50'
+							: 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-60'}"
+					aria-label="{tier.name}{lockReason ? ` — ${lockReason}` : ''}"
+					aria-pressed={active}
+					disabled={!unlocked}
+					title={lockReason ?? tier.name}
+					onclick={() => onselectmedium?.(tier.id)}
+				>
+					<span aria-hidden="true">{tier.icon}</span>
+				</button>
+			{/each}
+		</div>
+		<SketchCanvas
+			bind:hasStrokes={sketchHasStrokes}
+			mediumTierId={activeMediumTierId}
+			onexportready={onsketchexportready}
+		/>
 		{#if pendingSubmitChoice && aiGeneratedImageUrl}
 			<ArtworkFrame
 				imageUrl={aiGeneratedImageUrl}

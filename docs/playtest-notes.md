@@ -38,7 +38,7 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] P6 — paint while generating + submit drawing vs AI before critique
 - [x] P4 follow-up — `LEVEL_1.startingCash` 25 / `targetCash` 50 (orchestrator, contracts)
 - [x] P8 / P9 — Spec 24 MVP (receptionist talk + commission board)
-- [ ] Playtest 2: P11–P15, P17–P18; P16 → Spec 25 outline
+- [ ] Playtest 2: P11–P15, P17–P18; ~~P16 → Spec 25 outline~~ **P16 fixed** (Spec 25 MVP)
 - [ ] Triaged into task specs / bugfix PRs
 
 ---
@@ -54,7 +54,7 @@ Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
 | P13 | Bug    | P6 loop: when prompt image finishes, **drawing disappears** — keep canvas; show **AI image below** drawing; player must finish painting                                     | **11** / **P6** (`7caf51e` `confirmSubmitChoice` / `StudioHudOverlay`)                   | **Fixed** — canvas stays visible/interactive; AI preview stacked below (2026-08-01)            |
 | P14 | Design | Replace “Waiting for the commissioner” with **medium-relevant stall** lines (“Ironing out the paper”, “Framing it up”, “Putting pencils away”, …) — art not handed over yet | **03** UI + **13** mediums — `StudioHudOverlay` critiquing `stageLabel` / message pools  | **Fixed** — `$lib/data/stallMessages` + `activeMediumTierId` on overlay (2026-08-01)           |
 | P15 | Bug    | Image / critique **titles often cut too short**                                                                                                                             | **03** `ResultsPanel` / artwork title display (+ maybe engine title length)              | **Fixed** — wrap + tooltip on results headings; mock titles use five prompt words (2026-08-01) |
-| P16 | Design | **New Spec 25** — brush types: draw in crayons/watercolours/etc.; choose medium in painting section                                                                         | **[25](./tasks/25-brush-media.md)** outline; builds on **11** + **13**                   | Catalog only for now                                                                           |
+| P16 | Design | **New Spec 25** — brush types: draw in crayons/watercolours/etc.; choose medium in painting section                                                                         | **[25](./tasks/25-brush-media.md)** 25a picker + 25b stroke profiles                     | **Fixed** — medium picker on `StudioHudOverlay`; brush profiles on `SketchCanvas` (2026-08-01) |
 | P17 | Design | When player can afford an unlock, show a **notification badge** on the relevant menu button                                                                                 | **13/14/16** shops + **03** `GameMenuBar` (affordability affordance)                     | Toolkit / Gallery / Staff badges                                                               |
 | P18 | Design | Player should be able to **decline / say no** to commissions                                                                                                                | **04** invite/brief flow (+ **24a** receptionist board when present)                     | **Fixed** — `declineClient()` + briefing **No thanks**; reception board footer (2026-08-01)    |
 
@@ -67,4 +67,4 @@ Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
 5. ~~**P15** — title truncation~~ **done**
 6. ~~**P18** — decline commission~~ **done**
 7. **P17** — affordability badges on menu
-8. **P16** → Spec **25** (after outline lock)
+8. ~~**P16** → Spec **25** (after outline lock)~~ **done**

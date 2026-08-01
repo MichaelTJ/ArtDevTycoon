@@ -174,10 +174,10 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 
 ### Studio ops / late game (24–25)
 
-| #   | Spec                                                 | Owns (new)                                                                                                     | Depends on           |
-| --- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------- |
-| 24  | [Artist team & major projects](./24-artist-team.md)  | Receptionist, artist roster/training, assign timer, major projects — **MVP shipped**                           | 16, 21a–21b          |
-| 25  | [Brush types & painting medium](./25-brush-media.md) | Outline: painting medium picker + crayon/pencil/ink/watercolour brush feel on `SketchCanvas` — **design only** | 11, 13; playtest P16 |
+| #   | Spec                                                 | Owns (new)                                                                                           | Depends on           |
+| --- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------- |
+| 24  | [Artist team & major projects](./24-artist-team.md)  | Receptionist, artist roster/training, assign timer, major projects — **MVP shipped**                 | 16, 21a–21b          |
+| 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP shipped:** painting medium picker + crayon/pencil/ink/watercolour brush feel on `SketchCanvas` | 11, 13; playtest P16 |
 
 ```
 Wave C  (after 16 is merged — presentation)

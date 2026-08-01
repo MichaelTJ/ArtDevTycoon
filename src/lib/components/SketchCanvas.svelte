@@ -1,11 +1,28 @@
 <script lang="ts">
+	import { getBrushProfile } from '$lib/data/brushProfiles';
+	import { DEFAULT_MEDIUM_TIER_ID } from '$lib/data/mediumTiers';
+	import {
+		applyBrushStrokeStyle,
+		grainSeed,
+		resetBrushContext,
+		stampCrayonGrain,
+		stampInkBleed
+	} from '$lib/game/brushStroke';
+
 	interface Props {
 		disabled?: boolean;
 		hasStrokes?: boolean;
+		/** Spec 13 medium tier — drives brush feel (Spec 25b). */
+		mediumTierId?: string;
 		onexportready?: (getBlob: () => Promise<Blob | null>) => void;
 	}
 
-	let { disabled = false, hasStrokes = $bindable(false), onexportready }: Props = $props();
+	let {
+		disabled = false,
+		hasStrokes = $bindable(false),
+		mediumTierId = DEFAULT_MEDIUM_TIER_ID,
+		onexportready
+	}: Props = $props();
 
 	const CANVAS_CSS = 384;
 	const PALETTE = [
@@ -26,6 +43,10 @@
 	let brushSize = $state(8);
 	let color = $state('#1c1917');
 	let drawing = $state(false);
+	let lastX = $state(0);
+	let lastY = $state(0);
+
+	const brushProfile = $derived(getBrushProfile(mediumTierId));
 
 	const undoStack: ImageData[] = [];
 	const MAX_UNDO = 20;
@@ -93,6 +114,25 @@
 		return { x, y };
 	}
 
+	function configureEraser(ctx: CanvasRenderingContext2D): void {
+		resetBrushContext(ctx);
+		ctx.lineCap = 'round';
+		ctx.lineJoin = 'round';
+		ctx.lineWidth = brushSize;
+		ctx.globalCompositeOperation = 'destination-out';
+		ctx.strokeStyle = 'rgba(0,0,0,1)';
+	}
+
+	function strokeBrushSegment(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+		applyBrushStrokeStyle(ctx, brushProfile, color, brushSize);
+		ctx.lineTo(x, y);
+		ctx.stroke();
+		if (brushProfile.grain) {
+			stampCrayonGrain(ctx, x, y, brushSize, color, grainSeed(x, y));
+		}
+		resetBrushContext(ctx);
+	}
+
 	function onPointerDown(event: PointerEvent): void {
 		if (disabled) {
 			return;
@@ -106,20 +146,21 @@
 		drawing = true;
 		hasStrokes = true;
 		const { x, y } = pointerPos(event);
-		ctx.lineCap = 'round';
-		ctx.lineJoin = 'round';
-		ctx.lineWidth = brushSize;
-		if (tool === 'eraser') {
-			ctx.globalCompositeOperation = 'destination-out';
-			ctx.strokeStyle = 'rgba(0,0,0,1)';
-		} else {
-			ctx.globalCompositeOperation = 'source-over';
-			ctx.strokeStyle = color;
-		}
+		lastX = x;
+		lastY = y;
 		ctx.beginPath();
 		ctx.moveTo(x, y);
+		if (tool === 'eraser') {
+			configureEraser(ctx);
+		} else {
+			applyBrushStrokeStyle(ctx, brushProfile, color, brushSize);
+		}
 		ctx.lineTo(x + 0.01, y + 0.01);
 		ctx.stroke();
+		if (tool === 'brush' && brushProfile.grain) {
+			stampCrayonGrain(ctx, x, y, brushSize, color, grainSeed(x, y));
+		}
+		resetBrushContext(ctx);
 	}
 
 	function onPointerMove(event: PointerEvent): void {
@@ -131,8 +172,16 @@
 			return;
 		}
 		const { x, y } = pointerPos(event);
-		ctx.lineTo(x, y);
-		ctx.stroke();
+		if (tool === 'eraser') {
+			configureEraser(ctx);
+			ctx.lineTo(x, y);
+			ctx.stroke();
+			resetBrushContext(ctx);
+		} else {
+			strokeBrushSegment(ctx, x, y);
+		}
+		lastX = x;
+		lastY = y;
 	}
 
 	function onPointerUp(event: PointerEvent): void {
@@ -142,9 +191,13 @@
 		drawing = false;
 		canvasEl?.releasePointerCapture(event.pointerId);
 		const ctx = ctx2d();
-		if (ctx) {
-			ctx.globalCompositeOperation = 'source-over';
+		if (!ctx) {
+			return;
 		}
+		if (tool === 'brush' && brushProfile.bleedOnLift) {
+			stampInkBleed(ctx, lastX, lastY, brushProfile, color, brushSize);
+		}
+		resetBrushContext(ctx);
 	}
 
 	function clearCanvas(): void {
@@ -153,7 +206,7 @@
 			return;
 		}
 		pushUndo();
-		ctx.globalCompositeOperation = 'source-over';
+		resetBrushContext(ctx);
 		ctx.fillStyle = '#ffffff';
 		ctx.fillRect(0, 0, CANVAS_CSS, CANVAS_CSS);
 		hasStrokes = false;
@@ -172,13 +225,14 @@
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		const sample = ctx.getImageData(0, 0, canvas.width, canvas.height);
 		hasStrokes = !sample.data.every((v, i) => i % 4 === 3 || v >= 250);
+		resetBrushContext(ctx);
 	}
 </script>
 
 <div class="rounded-xl border border-stone-300 bg-white p-4 shadow-sm" aria-label="Sketch pad">
 	<p class="mb-2 text-base font-medium text-stone-800">Optional sketch</p>
 	<p class="mb-3 text-sm text-stone-600">
-		Optional sketch — rough shapes help My PC refine. Brush, eraser, size, and colour.
+		Optional sketch — rough shapes help My PC refine. Brush feel follows your painting medium.
 	</p>
 
 	<div class="mb-3 flex flex-wrap items-center gap-2">

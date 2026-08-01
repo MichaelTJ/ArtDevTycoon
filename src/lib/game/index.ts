@@ -21,6 +21,16 @@ export {
 export type { ClusterMatch } from './abstractCritique';
 export { isLevelComplete, levelProgress } from './levelRules';
 export { isSketchBlank } from './sketchBlank';
+export {
+	applyBrushStrokeStyle,
+	effectiveBrushSize,
+	getBrushProfile,
+	grainSeed,
+	resetBrushContext,
+	stampCrayonGrain,
+	stampInkBleed,
+	type BrushProfile
+} from './brushStroke';
 export { artworkForSubmitChoice, blobToDataUrl, type SubmitChoice } from './submitChoice';
 export { normalize, stem, STOPWORDS } from './text';
 export {
