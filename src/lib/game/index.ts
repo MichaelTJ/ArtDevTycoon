@@ -45,6 +45,28 @@ export {
 	clearSave,
 	type SaveData
 } from './save';
+export {
+	SLOTS_STORAGE_KEY,
+	ACTIVE_SLOT_KEY,
+	SLOT_IDS,
+	MAX_SAVE_SLOTS,
+	saveSlotMetaSchema,
+	createEmptySlotsFile,
+	ensureSaveSlotsMigrated,
+	getActiveSlotId,
+	setActiveSlotId,
+	listSaveSlots,
+	peekSlot,
+	activateSlot,
+	newGameInSlot,
+	deleteSlot,
+	renameSlot,
+	copySlot,
+	type SaveSlotId,
+	type SaveSlotsFile,
+	type SaveSlotListItem,
+	type SaveSlotMeta
+} from './saveSlots';
 export { ensureDurableImageUrl } from './durableImage';
 export { MAX_IDLE_MS, BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from './idleIncome';
 export {

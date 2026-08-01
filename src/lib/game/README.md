@@ -17,6 +17,7 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `levelRules.ts`       | `isLevelComplete`, `levelProgress`                                                                                                    |
 | `operations.ts`       | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types |
 | `save.ts`             | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` |
+| `saveSlots.ts`        | `SLOTS_STORAGE_KEY`, `ACTIVE_SLOT_KEY`, `SLOT_IDS`, migration + slot CRUD (`listSaveSlots`, `activateSlot`, `newGameInSlot`, …)       |
 | `idleIncome.ts`       | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                     |
 | `auction.ts`          | `resolveAuction`, `AuctionResult`                                                                                                     |
 | `paletteSeries.ts`    | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
@@ -41,13 +42,15 @@ Import from `$lib/game` via the barrel in `index.ts`.
 - Operational helpers read only shapes from `$lib/types/contracts.ts` and preserve
   newest-first gallery ordering.
 
-## Persistence (`save.ts`)
+## Persistence (`save.ts` / `saveSlots.ts`)
 
 Banked meta-progression (`cash`, `reputation`, lifetime commissions, `galleryHistory`,
-unlock fields for specs 13–16, and Spec 20 craft XP) persists under `adt.save.v1`. The
-in-flight commission does not. Load/persist never throw — corrupt or unavailable storage
-falls back to `createDefaultSave`. Specs 13–16/20 extend `GameStore`'s `#persist()` rather
-than adding parallel writers.
+unlock fields for specs 13–16, and Spec 20 craft XP) lives in up to three named slots
+under `adt.save.slots.v1`, with the active pointer in `adt.save.activeSlot`.
+`loadSave` / `persistSave` always target the active slot. Legacy `adt.save.v1` migrates
+into slot 0 on first boot. The in-flight commission does not persist. Load/persist never
+throw — corrupt or unavailable storage falls back to `createDefaultSave`. Specs 13–16/20
+extend `GameStore`'s `#persist()` rather than adding parallel writers.
 
 ## Craft skills (`skills.ts`)
 

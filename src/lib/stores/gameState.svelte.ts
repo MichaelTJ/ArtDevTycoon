@@ -20,18 +20,25 @@ import { EngineError } from '$lib/engines/errors';
 import type { EngineManager } from '$lib/engines/manager';
 import { buildPrompt } from '$lib/game/promptPipeline';
 import {
+	activateSlot,
 	applySkillGains,
 	buildProgressMeters,
 	calculatePayout,
 	clearSave as defaultClearSave,
+	copySlot,
 	createDefaultSave,
 	createEmptySkillXp,
+	deleteSlot,
 	ensureDurableImageUrl,
+	getActiveSlotId,
 	isLevelComplete,
 	levelProgress,
+	listSaveSlots,
 	loadSave as defaultLoadSave,
+	newGameInSlot as newGameInSlotSave,
 	persistSave as defaultPersistSave,
 	previewSkillGains,
+	renameSlot,
 	reputationGain,
 	scorePrompt,
 	skillPayoutMultiplier,
@@ -40,6 +47,8 @@ import {
 	toGalleryScore,
 	type NextUnlock,
 	type SaveData,
+	type SaveSlotId,
+	type SaveSlotListItem,
 	type SkillGainPreview,
 	type SkillProgress,
 	type SkillXpMap
@@ -204,6 +213,20 @@ export class GameStore {
 	/** Convenience alias for HUD reputation meter. */
 	reputationMeter = $derived.by((): NextUnlock => this.progressMeters.reputation);
 
+	/** Bumped after any slot mutation so list/active deriveds re-read localStorage. */
+	#slotsEpoch = $state(0);
+
+	/** For UI binding — re-reads slot index when `#slotsEpoch` changes. */
+	saveSlotsList = $derived.by((): ReadonlyArray<SaveSlotListItem> => {
+		void this.#slotsEpoch;
+		return listSaveSlots();
+	});
+
+	activeSaveSlotId = $derived.by((): SaveSlotId => {
+		void this.#slotsEpoch;
+		return getActiveSlotId();
+	});
+
 	readonly #engine: Pick<EngineManager, 'generate' | 'critique'>;
 	readonly #setSwitchingLocked: (locked: boolean) => void;
 	readonly #random: () => number;
@@ -233,26 +256,45 @@ export class GameStore {
 		this.#autoInviteAction = deps?.autoInviteAction ?? (() => this.inviteClient());
 
 		const save = this.#loadSave(LEVEL_1.startingCash, this.#now);
-		this.cash = save.cash;
-		this.reputation = save.reputation;
-		this.commissionsCompleted = save.lifetimeCommissions;
-		this.galleryHistory = [...save.galleryHistory];
-		this.seriesOnBrandFlags = { ...save.seriesOnBrandFlags };
-		this.unlockedMediumTierIds = [...save.unlockedMediumTierIds];
-		this.activeMediumTierId = save.activeMediumTierId;
-		this.unlockedVenueId = save.unlockedVenueId;
-		this.unlockedLayoutIds = [...save.unlockedLayoutIds];
-		this.activeLayoutId = save.activeLayoutId;
-		this.ownedAtmosphereIds = [...save.ownedAtmosphereIds];
-		this.hiredStaffIds = [...save.hiredStaffIds];
-		this.skillXp = {
-			prompting: save.skillXpPrompting,
-			imagination: save.skillXpImagination,
-			hustle: save.skillXpHustle
-		};
-		this.lastIncomeTickAt = save.lastIncomeTickAt ?? this.#now();
+		this.#hydrateFromSave(save);
+		this.#slotsEpoch += 1;
 
 		this.#scheduleAutoInvite();
+	}
+
+	/** Abort in-flight commission, hydrate from slot, persist pointer. */
+	switchToSlot(id: SaveSlotId): void {
+		if (id === getActiveSlotId()) return;
+		this.#persist();
+		const save = activateSlot(id, LEVEL_1.startingCash, this.#now);
+		this.#applySlotSave(save);
+	}
+
+	newGameInSlot(id: SaveSlotId, name?: string): void {
+		this.#persist();
+		const save = newGameInSlotSave(id, LEVEL_1.startingCash, name, this.#now);
+		this.#applySlotSave(save);
+	}
+
+	deleteSaveSlot(id: SaveSlotId): void {
+		const wasActive = id === getActiveSlotId();
+		deleteSlot(id, LEVEL_1.startingCash, this.#now);
+		if (!wasActive) {
+			this.#slotsEpoch += 1;
+			return;
+		}
+		const save = this.#loadSave(LEVEL_1.startingCash, this.#now);
+		this.#applySlotSave(save);
+	}
+
+	renameSaveSlot(id: SaveSlotId, name: string): void {
+		renameSlot(id, name);
+		this.#slotsEpoch += 1;
+	}
+
+	copySaveSlot(from: SaveSlotId, to: SaveSlotId): void {
+		copySlot(from, to, this.#now);
+		this.#slotsEpoch += 1;
 	}
 
 	/** Spec 17: override Marketing Director arrival. Default remains `inviteClient`. */
@@ -663,6 +705,51 @@ export class GameStore {
 		this.skillXp = createEmptySkillXp();
 		this.pendingSkillGains = null;
 		this.lastCollectedGains = null;
+		this.#slotsEpoch += 1;
+	}
+
+	/** Apply a slot blob and return to idle (aborts any in-flight commission). */
+	#applySlotSave(save: SaveData): void {
+		this.#clearAutoInvite();
+		this.#hydrateFromSave(save);
+		this.phase = 'idle';
+		this.currentClient = null;
+		this.currentArtwork = null;
+		this.currentCritique = null;
+		this.currentAuctionResult = null;
+		this.errorMessage = null;
+		this.draftPrompt = '';
+		this.draftSketchBlob = null;
+		this.generationProgress = null;
+		this.workStartedAt = null;
+		this.pendingSkillGains = null;
+		this.lastCollectedGains = null;
+		this.idleEarningsToShow = null;
+		this.#collectingCash = false;
+		this.#setSwitchingLocked(false);
+		this.#slotsEpoch += 1;
+		this.#scheduleAutoInvite();
+	}
+
+	#hydrateFromSave(save: SaveData): void {
+		this.cash = save.cash;
+		this.reputation = save.reputation;
+		this.commissionsCompleted = save.lifetimeCommissions;
+		this.galleryHistory = [...save.galleryHistory];
+		this.seriesOnBrandFlags = { ...save.seriesOnBrandFlags };
+		this.unlockedMediumTierIds = [...save.unlockedMediumTierIds];
+		this.activeMediumTierId = save.activeMediumTierId;
+		this.unlockedVenueId = save.unlockedVenueId;
+		this.unlockedLayoutIds = [...save.unlockedLayoutIds];
+		this.activeLayoutId = save.activeLayoutId;
+		this.ownedAtmosphereIds = [...save.ownedAtmosphereIds];
+		this.hiredStaffIds = [...save.hiredStaffIds];
+		this.skillXp = {
+			prompting: save.skillXpPrompting,
+			imagination: save.skillXpImagination,
+			hustle: save.skillXpHustle
+		};
+		this.lastIncomeTickAt = save.lastIncomeTickAt ?? this.#now();
 	}
 
 	/**

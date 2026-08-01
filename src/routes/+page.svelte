@@ -300,6 +300,11 @@
 				game.phase === 'generating' ||
 				game.phase === 'critiquing'}
 			onopenenginemenu={openEngineMenu}
+			onafterslotchange={() => {
+				clientSummoned = false;
+				studioBridge.send({ type: 'dismiss-client' });
+				syncStudio();
+			}}
 		>
 			{#snippet notice()}
 				{#if !engines.realAiSupported && !engines.noticeDismissed}

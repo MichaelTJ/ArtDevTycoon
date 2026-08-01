@@ -8,6 +8,14 @@ import {
 	persistSave,
 	type SaveData
 } from './save';
+import {
+	SLOTS_STORAGE_KEY,
+	activateSlot,
+	getActiveSlotId,
+	listSaveSlots,
+	newGameInSlot,
+	peekSlot
+} from './saveSlots';
 
 function createMemoryStorage(throwsOnGet = false, throwsOnSet = false) {
 	const map = new Map<string, string>();
@@ -48,6 +56,7 @@ describe('save', () => {
 		expect(loaded.hiredStaffIds).toEqual([]);
 		expect(loaded.lastIncomeTickAt).toBe(1_700_000_000_000);
 		expect(loaded.savedAt).toBe(1_700_000_000_000);
+		expect(getActiveSlotId()).toBe('0');
 	});
 
 	it('initialises null lastIncomeTickAt to now on load', () => {
@@ -108,6 +117,7 @@ describe('save', () => {
 	it('fills Zod defaults for missing optional progression fields', () => {
 		const storage = createMemoryStorage();
 		vi.stubGlobal('localStorage', storage);
+		// Legacy single-key shape still migrates into slot 0 with Zod defaults.
 		storage.setItem(
 			SAVE_STORAGE_KEY,
 			JSON.stringify({
@@ -136,9 +146,11 @@ describe('save', () => {
 		expect(loaded.skillXpPrompting).toBe(0);
 		expect(loaded.skillXpImagination).toBe(0);
 		expect(loaded.skillXpHustle).toBe(0);
+		expect(getActiveSlotId()).toBe('0');
+		expect(storage.getItem(SLOTS_STORAGE_KEY)).not.toBeNull();
 	});
 
-	it('round-trips skill XP fields', () => {
+	it('round-trips skill XP fields through the active slot', () => {
 		const data = createDefaultSave(100, () => 1);
 		data.skillXpPrompting = 15;
 		data.skillXpImagination = 8;
@@ -149,6 +161,7 @@ describe('save', () => {
 		expect(loaded.skillXpPrompting).toBe(15);
 		expect(loaded.skillXpImagination).toBe(8);
 		expect(loaded.skillXpHustle).toBe(4);
+		expect(peekSlot('0', 100)?.skillXpPrompting).toBe(15);
 	});
 
 	it('falls back to default when localStorage.getItem throws', () => {
@@ -160,10 +173,10 @@ describe('save', () => {
 		expect(loadSave(100, () => 42).lastIncomeTickAt).toBe(42);
 	});
 
-	it('falls back to default on malformed JSON', () => {
+	it('falls back to default on malformed slots JSON', () => {
 		const storage = createMemoryStorage();
 		vi.stubGlobal('localStorage', storage);
-		storage.setItem(SAVE_STORAGE_KEY, '{not-json');
+		storage.setItem(SLOTS_STORAGE_KEY, '{not-json');
 
 		expect(() => loadSave(100, () => 7)).not.toThrow();
 		const loaded = loadSave(100, () => 7);
@@ -172,7 +185,7 @@ describe('save', () => {
 		expect(loaded.lastIncomeTickAt).toBe(7);
 	});
 
-	it('round-trips persistSave then loadSave', () => {
+	it('round-trips persistSave then loadSave through the active slot', () => {
 		const data = createDefaultSave(150, () => 55);
 		data.cash = 275;
 		data.reputation = 4;
@@ -181,6 +194,21 @@ describe('save', () => {
 		persistSave(data);
 
 		expect(loadSave(100, () => 0)).toEqual(data);
+		expect(listSaveSlots()[0].empty).toBe(false);
+		expect(listSaveSlots()[0].summary?.cash).toBe(275);
+	});
+
+	it('persistSave only mutates the active slot', () => {
+		newGameInSlot('0', 100, 'A', () => 1);
+		newGameInSlot('1', 100, 'B', () => 2);
+		activateSlot('1', 100, () => 2);
+
+		const data = createDefaultSave(100, () => 3);
+		data.cash = 888;
+		persistSave(data);
+
+		expect(peekSlot('0', 100)?.cash).toBe(100);
+		expect(peekSlot('1', 100)?.cash).toBe(888);
 	});
 
 	it('does not throw when persistSave setItem throws', () => {
@@ -190,7 +218,7 @@ describe('save', () => {
 		expect(() => persistSave(data)).not.toThrow();
 	});
 
-	it('clearSave removes the stored blob', () => {
+	it('clearSave removes slots so loadSave returns a fresh default', () => {
 		persistSave(createDefaultSave(100, () => 1));
 		clearSave();
 

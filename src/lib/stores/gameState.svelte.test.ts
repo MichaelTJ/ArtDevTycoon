@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMediumTier } from '$lib/data/mediumTiers';
 import { EngineError } from '$lib/engines/errors';
 import {
 	calculatePayout,
 	createDefaultSave,
+	getActiveSlotId,
+	listSaveSlots,
+	peekSlot,
 	previewSkillGains,
 	scorePrompt,
 	skillPayoutMultiplier,
@@ -13,6 +16,22 @@ import {
 import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
 import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
 import { GameStore } from './gameState.svelte';
+
+function createMemoryStorage() {
+	const map = new Map<string, string>();
+	return {
+		getItem: (key: string) => map.get(key) ?? null,
+		setItem: (key: string, value: string) => {
+			map.set(key, value);
+		},
+		removeItem: (key: string) => {
+			map.delete(key);
+		},
+		clear: () => {
+			map.clear();
+		}
+	};
+}
 
 const fakeArtwork: Artwork = {
 	id: 'art-test',
@@ -1203,6 +1222,81 @@ describe('GameStore', () => {
 		);
 		expect(skillPayoutMultiplier(skilled.skillXp)).toBe(1.09);
 		expect(skilled.presentationMultiplier).toBeCloseTo(1.09, 5);
+	});
+});
+
+describe('GameStore save slots', () => {
+	beforeEach(() => {
+		vi.stubGlobal('localStorage', createMemoryStorage());
+	});
+
+	function createSlotStore(now = () => 1_000) {
+		return new GameStore({
+			engine: { generate: vi.fn(), critique: vi.fn() },
+			random: () => 0,
+			now,
+			setSwitchingLocked: vi.fn()
+		});
+	}
+
+	it('switchToSlot mid-commission lands idle with the other slot cash and unlocks', () => {
+		const store = createSlotStore();
+		store.cash = 250;
+		store.unlockedMediumTierIds = ['crayon', 'pencil'];
+		store.activeMediumTierId = 'pencil';
+		store.newGameInSlot('1', 'Kitchen');
+		expect(store.activeSaveSlotId).toBe('1');
+		expect(store.cash).toBe(LEVEL_1.startingCash);
+
+		store.cash = 500;
+		store.reputation = 3;
+		store.inviteClient();
+		expect(store.phase).toBe('briefing');
+
+		store.switchToSlot('0');
+		expect(store.phase).toBe('idle');
+		expect(store.currentClient).toBeNull();
+		expect(store.activeSaveSlotId).toBe('0');
+		expect(store.cash).toBe(250);
+		expect(store.unlockedMediumTierIds).toEqual(['crayon', 'pencil']);
+		expect(store.activeMediumTierId).toBe('pencil');
+	});
+
+	it('newGameInSlot / rename / copy / delete cover slot helpers', () => {
+		const store = createSlotStore(() => 42);
+		store.cash = 333;
+		store.skillXp = { prompting: 15, imagination: 0, hustle: 0 };
+		store.newGameInSlot('1', 'Kitchen');
+		expect(getActiveSlotId()).toBe('1');
+		expect(listSaveSlots()[1].name).toBe('Kitchen');
+		expect(peekSlot('0', LEVEL_1.startingCash)?.cash).toBe(333);
+		expect(peekSlot('0', LEVEL_1.startingCash)?.skillXpPrompting).toBe(15);
+
+		store.renameSaveSlot('1', 'Museum');
+		expect(store.saveSlotsList[1].name).toBe('Museum');
+
+		store.cash = 200;
+		store.skillXp = { prompting: 5, imagination: 0, hustle: 0 };
+		store.switchToSlot('0');
+		store.switchToSlot('1');
+		store.copySaveSlot('1', '2');
+		expect(peekSlot('2', LEVEL_1.startingCash)?.cash).toBe(200);
+		expect(peekSlot('2', LEVEL_1.startingCash)?.skillXpPrompting).toBe(5);
+		expect(listSaveSlots()[2].name).toBe('Slot 3');
+
+		store.deleteSaveSlot('1');
+		expect(listSaveSlots()[1].empty).toBe(true);
+		expect(store.activeSaveSlotId).toBe('0');
+		expect(store.cash).toBe(333);
+	});
+
+	it('preserves Spec 20 skill XP fields across slot switch', () => {
+		const store = createSlotStore();
+		store.skillXp = { prompting: 15, imagination: 8, hustle: 4 };
+		store.newGameInSlot('1', 'Fresh');
+		expect(store.skillXp).toEqual({ prompting: 0, imagination: 0, hustle: 0 });
+		store.switchToSlot('0');
+		expect(store.skillXp).toEqual({ prompting: 15, imagination: 8, hustle: 4 });
 	});
 });
 
