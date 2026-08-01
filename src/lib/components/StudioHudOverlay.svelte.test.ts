@@ -1,4 +1,5 @@
 import { LEVEL_1_BRIEFS } from '$lib/data/briefs';
+import { pickMumPraiseLine, praiseSeedFromArtworkId } from '$lib/game/mumCritiquePresentation';
 import type { Artwork, Critique } from '$lib/types/contracts';
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
@@ -108,4 +109,26 @@ test('results shows pending skill gains before collect', async () => {
 	});
 	await expect.element(screen.getByText(/On collect/)).toBeVisible();
 	await expect.element(screen.getByText(/\+8\/\+3\/\+2 XP/)).toBeVisible();
+});
+
+test('Mum results pass through praise mode to ResultsPanel', async () => {
+	const praise = pickMumPraiseLine(praiseSeedFromArtworkId(artwork.id));
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'results',
+		currentClient: LEVEL_1_BRIEFS[0],
+		currentArtwork: artwork,
+		currentCritique: { ...critique, accuracyScore: 10, creativityScore: 10 },
+		mumRealCritique: {
+			title: 'Cat Study',
+			accuracyScore: 2,
+			creativityScore: 3,
+			criticReview: 'Harsh truth.'
+		},
+		floorInteract: false
+	});
+	await expect.element(screen.getByText(praise)).toBeVisible();
+	await expect
+		.element(screen.getByRole('button', { name: 'Ask for real critique from the art critic' }))
+		.toBeVisible();
 });

@@ -418,6 +418,7 @@
 					currentArtwork={game.currentArtwork}
 					currentCritique={game.currentCritique}
 					currentAuctionResult={game.currentAuctionResult}
+					mumRealCritique={game.mumRealCritique}
 					errorMessage={game.errorMessage}
 					generationProgress={game.generationProgress}
 					bind:draftPrompt={game.draftPrompt}
@@ -454,6 +455,7 @@
 						currentArtwork={game.currentArtwork}
 						currentCritique={game.currentCritique}
 						currentAuctionResult={game.currentAuctionResult}
+						mumRealCritique={game.mumRealCritique}
 						errorMessage={game.errorMessage}
 						generationProgress={game.generationProgress}
 						bind:draftPrompt={game.draftPrompt}

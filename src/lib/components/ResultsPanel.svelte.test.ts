@@ -1,4 +1,6 @@
 import type { Artwork, Critique } from '$lib/types/contracts';
+import type { MumRealCritique } from '$lib/game/mumCritiquePresentation';
+import { pickMumPraiseLine, praiseSeedFromArtworkId } from '$lib/game/mumCritiquePresentation';
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import ResultsPanel from './ResultsPanel.svelte';
@@ -21,6 +23,13 @@ const critique: Critique = {
 	finalPayout: 85
 };
 
+const mumRealCritique: MumRealCritique = {
+	title: 'Wobbly Whisker Study',
+	accuracyScore: 2,
+	creativityScore: 4,
+	criticReview: 'The paws are facing the wrong way.'
+};
+
 test('renders title, review, scores and payout', async () => {
 	const screen = render(ResultsPanel, {
 		artwork,
@@ -35,6 +44,27 @@ test('renders title, review, scores and payout', async () => {
 	await expect.element(screen.getByText('8 / 10')).toBeVisible();
 	await expect.element(screen.getByText('6 / 10')).toBeVisible();
 	await expect.element(screen.getByText('+$85')).toBeVisible();
+});
+
+test('Mum commission shows praise and 10/10 until real critique is requested', async () => {
+	const praise = pickMumPraiseLine(praiseSeedFromArtworkId(artwork.id));
+	const screen = render(ResultsPanel, {
+		artwork,
+		critique: { ...critique, accuracyScore: 10, creativityScore: 10 },
+		clientName: 'Mum',
+		mumRealCritique,
+		oncollect: vi.fn()
+	});
+	await expect.element(screen.getByText('Accuracy')).toBeVisible();
+	await expect.element(screen.getByText('Creativity')).toBeVisible();
+	await expect.element(screen.getByText(praise)).toBeVisible();
+	await expect
+		.element(screen.getByText('The paws are facing the wrong way.'))
+		.not.toBeInTheDocument();
+	await screen.getByRole('button', { name: 'Ask for real critique from the art critic' }).click();
+	await expect.element(screen.getByText('The paws are facing the wrong way.')).toBeVisible();
+	await expect.element(screen.getByText('2 / 10')).toBeVisible();
+	await expect.element(screen.getByText('4 / 10')).toBeVisible();
 });
 
 test('clicking Collect Cash calls oncollect once', async () => {

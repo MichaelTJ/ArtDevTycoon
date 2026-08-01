@@ -17,6 +17,7 @@ validated at module load.
 | `staffRoles.ts`        | `STAFF_ROLES`, `StaffRole`, `getStaffRole`, `canHireStaff`, `totalIncomePerSecond`                                  |
 | `clientTiers.ts`       | `CLIENT_TIER_INFO`, `ClientTierInfo`, `getClientTierInfo`, `unlockedClientTiers`                                    |
 | `barks.ts`             | `BARK_POOL`, `BarkLine`, `BarkSpeakerId`, `linesForSpeaker`, `barkSpeakerLabel` (ambient comedy; no LLM)            |
+| `mumPraise.ts`         | `MUM_PRAISE_POOL`, `MumPraiseLine`, `pickMumPraise` — toddler praise for Mum results (playtest P7)                  |
 
 Import briefs directly from `$lib/data/briefs` or re-export through a future data barrel
 if one is added.

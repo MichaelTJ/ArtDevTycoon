@@ -295,6 +295,34 @@ describe('GameStore', () => {
 		expect(store.currentCritique).not.toBeNull();
 	});
 
+	it('Mum commissions store real critique but payout uses 10/10', async () => {
+		const harshDraft: CritiqueDraft = {
+			title: 'Wobbly Cup',
+			accuracyScore: 2,
+			criticReview: 'The handle is on the wrong side.'
+		};
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique: vi.fn(async () => harshDraft)
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+
+		await store.createArt();
+
+		expect(store.mumRealCritique).toEqual({
+			title: 'Wobbly Cup',
+			accuracyScore: 2,
+			creativityScore: expect.any(Number),
+			criticReview: 'The handle is on the wrong side.'
+		});
+		expect(store.currentCritique?.accuracyScore).toBe(10);
+		expect(store.currentCritique?.creativityScore).toBe(10);
+		expect(store.currentCritique?.finalPayout).toBe(
+			calculatePayout(store.currentClient!, 10, 10, store.presentationMultiplier)
+		);
+	});
+
 	it('passes built prompt to the engine while keeping playerPrompt clean', async () => {
 		const generate = vi.fn(
 			async ({ playerPrompt, prompt: builtPrompt }: { playerPrompt: string; prompt: string }) => {
@@ -1015,9 +1043,8 @@ describe('GameStore', () => {
 
 		await store.createArt();
 
-		// accuracy 10, creativity from scorePrompt on that prompt is 2 → quality 0.76
-		// 100 * 0.76 * 1.05 = 79.8 → 80
-		expect(store.currentCritique?.finalPayout).toBe(80);
+		// Mum override uses 10/10 for payout: 100 * 1.0 * 1.05 = 105
+		expect(store.currentCritique?.finalPayout).toBe(105);
 	});
 
 	it('hireStaff deducts cash, raises incomePerSecond, and persists', () => {
