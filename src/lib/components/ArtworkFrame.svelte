@@ -9,7 +9,7 @@
 	let { imageUrl, title, alt, size = 'full' }: Props = $props();
 </script>
 
-<figure class="inline-block">
+<figure class="block w-full min-w-0">
 	<div
 		class="border-8 border-stone-700 bg-stone-100 p-1 {size === 'thumb'
 			? 'h-24 w-24'
@@ -22,6 +22,11 @@
 		/>
 	</div>
 	{#if size === 'full'}
-		<figcaption class="mt-2 text-center text-sm font-medium text-stone-800">{title}</figcaption>
+		<figcaption
+			class="mt-2 w-full text-center text-sm leading-snug font-medium break-words text-stone-800"
+			{title}
+		>
+			{title}
+		</figcaption>
 	{/if}
 </figure>

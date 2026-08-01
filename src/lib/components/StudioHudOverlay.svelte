@@ -204,7 +204,12 @@
 					alt={currentCritique.title}
 					size="full"
 				/>
-				<h2 class="text-xl font-bold text-stone-800">{currentCritique.title}</h2>
+				<h2
+					class="text-xl leading-snug font-bold break-words text-stone-800"
+					title={currentCritique.title}
+				>
+					{currentCritique.title}
+				</h2>
 				<div class="flex flex-wrap gap-2">
 					<ScoreBadge label="Accuracy" score={currentCritique.accuracyScore} />
 					<ScoreBadge label="Creativity" score={currentCritique.creativityScore} />

@@ -10,7 +10,7 @@ import {
 	type EngineAvailability,
 	type LoadProgress
 } from '$lib/types/contracts';
-import { buildTitle } from '../critiqueProtocol';
+import { buildMockTitle } from './buildMockTitle';
 import { EngineError } from '../errors';
 import { hashString, mulberry32, pick } from '../random';
 import { paintProceduralArt } from './proceduralArt';
@@ -115,7 +115,7 @@ export class MockEngine implements ArtEngine {
 
 		const breakdown = scorePrompt(input.brief, input.playerPrompt);
 		const seed = hashString(`${input.brief.id}:${input.playerPrompt}`);
-		const title = buildTitle(input.playerPrompt, seed);
+		const title = buildMockTitle(input.playerPrompt, seed);
 		const review = buildMockReview(
 			input.brief,
 			input.playerPrompt,

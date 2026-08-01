@@ -29,3 +29,15 @@ test('caption shows in full size and is absent in thumb', async () => {
 	});
 	expect(thumb.container.textContent).not.toContain('Sunset Sail');
 });
+
+test('long caption text remains fully visible in the document', async () => {
+	const longTitle = 'Meditation on Regal Whisker Crown Garden Sunlight Afternoon Studio Session';
+	const screen = render(ArtworkFrame, {
+		imageUrl: '/test.png',
+		title: longTitle,
+		alt: longTitle,
+		size: 'full'
+	});
+	await expect.element(screen.getByText(longTitle)).toBeVisible();
+	expect(screen.container.textContent).toContain(longTitle);
+});

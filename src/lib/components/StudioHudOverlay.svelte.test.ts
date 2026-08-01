@@ -169,3 +169,22 @@ test('Mum results pass through praise mode to ResultsPanel', async () => {
 		.element(screen.getByRole('button', { name: 'Ask for real critique from the art critic' }))
 		.toBeVisible();
 });
+
+test('auction results show long critique title in full', async () => {
+	const longTitle = 'Portrait of Regal Whisker Crown Garden Sunlight Afternoon Studio Session';
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'results',
+		currentClient: LEVEL_1_BRIEFS[0],
+		currentArtwork: artwork,
+		currentCritique: { ...critique, title: longTitle },
+		currentAuctionResult: {
+			bidderCount: 2,
+			bids: [30, 25],
+			winningBid: 30
+		},
+		floorInteract: false
+	});
+	await expect.element(screen.getByRole('heading', { name: longTitle })).toBeVisible();
+	expect(screen.container.textContent).toContain(longTitle);
+});
