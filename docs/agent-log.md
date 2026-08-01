@@ -1299,3 +1299,33 @@ Commands: `npm run check`; `npm run lint`; scoped
 
 - None material for Spec 23 DoD.
 - Production players without query/latch never see Dev tools (by design).
+
+## 2026-08-01 — Spec 10 gap review (ADT Cloud STUB)
+
+**Zone:** `docs/tasks/10-adt-cloud.md`, `docs/agent-log.md`, MyPcSetup Coming soon
+copy / tests / READMEs (read-only audit; no product code)
+
+**Built:** Gap audit only. Spec 10 remains an intentional stub — no backend, no
+`+server.ts`, no `adt-cloud` engine id, no fake cloud auth. Confirmed UI/docs already
+match deferred status; no copy fixes required.
+
+**Public surface:** None (no new exports).
+
+**Tests:** None run (no code changes). Existing MyPcSetup Coming soon list includes
+“Art Dev Tycoon Cloud”; Spec 09 tests keep OpenRouter/OpenAI out of that list.
+
+**Decisions:**
+
+- Did not invent a Spec 10 implementation — hosted credits need a real server and break
+  `adapter-static` / best-practices §5.3; orchestrator must own contracts + backend first.
+- Left MyPcSetup / component README / remote README unchanged — they already treat ADT
+  Cloud as Coming soon / out of scope, distinct from BYO OpenRouter/OpenAI keys.
+
+**Requests:** None until product wants a full Spec 10 (auth, billing, inference proxy,
+`contracts.ts` session/credits).
+
+**Known gaps:**
+
+- Full Spec 10 DoD (accounts, credits, paid generate+critique path) deliberately
+  unfinished; no code path to build yet.
+- ComfyUI remains Coming soon alongside ADT Cloud (unrelated stub).
