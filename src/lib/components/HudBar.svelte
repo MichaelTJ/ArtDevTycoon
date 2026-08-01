@@ -48,46 +48,49 @@
 </script>
 
 {#if variant === 'compact'}
-	<div class="flex flex-col gap-2">
-		<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-			<h1 class="text-base font-bold text-stone-800 sm:text-lg">{levelName}</h1>
-			<p class="text-lg font-semibold text-emerald-700 sm:text-xl" aria-label="Current cash">
+	<div class="flex min-w-0 flex-col gap-2">
+		<div class="flex min-w-0 items-baseline justify-between gap-3">
+			<h1 class="min-w-0 truncate text-base font-bold text-stone-800 sm:text-lg" title={levelName}>
+				{levelName}
+			</h1>
+			<p
+				class="shrink-0 text-lg font-semibold text-emerald-700 sm:text-xl"
+				aria-label="Current cash"
+			>
 				${Math.round(displayCash.current)}
 			</p>
-			<p class="text-sm text-stone-500" aria-label="Current reputation">
-				Rep {reputation}
-			</p>
 		</div>
-		<div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+		<div class="grid grid-cols-1 gap-2 min-[520px]:grid-cols-3">
 			<ProgressMeter
 				label="Commissions"
 				value={commissionsCompleted}
 				max={targetCommissions}
-				hint="{commissionsCompleted} / {targetCommissions}"
+				hint="{commissionsCompleted}/{targetCommissions}"
 				variant={meterVariant}
 			/>
 			<ProgressMeter
 				label="Cash goal"
 				value={cash}
 				max={targetCash}
-				hint="${cash} / ${targetCash}"
+				hint="${cash}/${targetCash}"
 				variant={meterVariant}
 			/>
 			<ProgressMeter
-				label="Reputation"
+				label={reputationMeter.label}
 				value={reputationMeter.current}
 				max={reputationMeter.target}
-				hint="{reputationMeter.label} · {reputationMeter.remainingLabel}"
+				hint={reputationMeter.remainingLabel}
 				variant={meterVariant}
 			/>
 		</div>
 		{#if skillSummaries && skillSummaries.length > 0}
-			<div class="grid grid-cols-3 gap-2" aria-label="Craft skills">
+			<div class="grid grid-cols-1 gap-2 min-[520px]:grid-cols-3" aria-label="Craft skills">
 				{#each skillSummaries as skill (skill.id)}
 					<ProgressMeter
-						label="{skill.label} Lv {skill.level}"
+						label={skill.label}
 						value={Math.round(skill.fill * 100)}
 						max={100}
+						hint="Lv {skill.level}"
 						delta={skill.delta ?? 0}
 						emphasize={skillsEmphasize || (skill.delta ?? 0) > 0}
 						variant="compact"
@@ -125,20 +128,21 @@
 				hint="${cash} / ${targetCash} toward goal"
 			/>
 			<ProgressMeter
-				label="Reputation"
+				label={reputationMeter.label}
 				value={reputationMeter.current}
 				max={reputationMeter.target}
-				hint="{reputationMeter.label} · {reputationMeter.remainingLabel}"
+				hint={reputationMeter.remainingLabel}
 			/>
 		</div>
 
 		{#if skillSummaries && skillSummaries.length > 0}
-			<div class="mt-3 grid grid-cols-3 gap-2" aria-label="Craft skills">
+			<div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3" aria-label="Craft skills">
 				{#each skillSummaries as skill (skill.id)}
 					<ProgressMeter
-						label="{skill.label} Lv {skill.level}"
+						label={skill.label}
 						value={Math.round(skill.fill * 100)}
 						max={100}
+						hint="Lv {skill.level}"
 						delta={skill.delta ?? 0}
 						emphasize={skillsEmphasize || (skill.delta ?? 0) > 0}
 						variant="compact"

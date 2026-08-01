@@ -128,7 +128,7 @@
 </script>
 
 <header class="rounded-xl border border-stone-300 bg-white p-4 shadow-sm">
-	<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+	<div class="flex flex-col gap-3">
 		<div class="flex flex-wrap gap-2">
 			<button
 				type="button"
@@ -214,7 +214,7 @@
 				</button>
 			{/if}
 		</div>
-		<div class="min-w-0 flex-1">
+		<div class="min-w-0 border-t border-stone-200 pt-3">
 			<HudBar
 				{cash}
 				{levelName}
