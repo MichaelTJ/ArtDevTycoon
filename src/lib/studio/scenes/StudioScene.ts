@@ -19,6 +19,7 @@ import {
 } from '../barkPresenter';
 import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../bridge';
 import { clientLookForTier } from '../clientLooks';
+import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
 import {
 	CLIENT_SPEED,
 	INTERACT_KEYS,
@@ -137,6 +138,8 @@ export class StudioScene extends Phaser.Scene {
 	#workBarBg!: Phaser.GameObjects.Rectangle;
 	#workBarFill!: Phaser.GameObjects.Rectangle;
 	#touchPadBuilt = false;
+	/** True while a DOM text control has focus — keyboard walk/interact disabled. */
+	#domEditableFocused = false;
 	/** Spec 21d — desk pencil-dust emitter (continuous while working). */
 	#workEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 	/** Spec 21d — one-shot cash confetti emitter. */
@@ -195,6 +198,8 @@ export class StudioScene extends Phaser.Scene {
 
 	update(_time: number, delta: number): void {
 		if (!this.#player?.body) return;
+
+		this.#syncDomInputFocus();
 
 		const phase = this.#snapshot?.phase ?? 'idle';
 		this.#working = phase === 'generating' || phase === 'critiquing';
@@ -804,6 +809,18 @@ export class StudioScene extends Phaser.Scene {
 		this.#interactKey = this.input.keyboard.addKey(INTERACT_KEYS[0]);
 	}
 
+	#syncDomInputFocus(): void {
+		const focused = this.game.registry.get(STUDIO_DOM_EDITABLE_FOCUSED_KEY) === true;
+		if (focused === this.#domEditableFocused) return;
+		this.#domEditableFocused = focused;
+		if (this.input.keyboard) {
+			this.input.keyboard.enabled = !focused;
+		}
+		if (focused) {
+			this.#player.setVelocity(0, 0);
+		}
+	}
+
 	#setupTouchPad(): void {
 		if (this.#touchPadBuilt) return;
 		const coarse =
@@ -866,10 +883,12 @@ export class StudioScene extends Phaser.Scene {
 	#drivePlayer(): void {
 		let vx = 0;
 		let vy = 0;
-		if (this.#cursors?.left.isDown || this.#wasd?.A.isDown) vx -= 1;
-		if (this.#cursors?.right.isDown || this.#wasd?.D.isDown) vx += 1;
-		if (this.#cursors?.up.isDown || this.#wasd?.W.isDown) vy -= 1;
-		if (this.#cursors?.down.isDown || this.#wasd?.S.isDown) vy += 1;
+		if (!this.#domEditableFocused) {
+			if (this.#cursors?.left.isDown || this.#wasd?.A.isDown) vx -= 1;
+			if (this.#cursors?.right.isDown || this.#wasd?.D.isDown) vx += 1;
+			if (this.#cursors?.up.isDown || this.#wasd?.W.isDown) vy -= 1;
+			if (this.#cursors?.down.isDown || this.#wasd?.S.isDown) vy += 1;
+		}
 		vx += this.#touchVector.x;
 		vy += this.#touchVector.y;
 
@@ -1291,7 +1310,10 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#consumeInteract(): boolean {
-		const just = this.#interactKey ? Phaser.Input.Keyboard.JustDown(this.#interactKey) : false;
+		const just =
+			!this.#domEditableFocused && this.#interactKey
+				? Phaser.Input.Keyboard.JustDown(this.#interactKey)
+				: false;
 		const touch = this.#touchInteract;
 		this.#touchInteract = false;
 		return just || touch;

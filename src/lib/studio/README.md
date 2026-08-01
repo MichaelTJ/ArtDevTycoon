@@ -5,24 +5,25 @@ saves stay in `$lib/game` / `$lib/stores`.
 
 ## Public surface
 
-| Export                                         | Role                                            |
-| ---------------------------------------------- | ----------------------------------------------- |
-| `STUDIO_FLOOR_ENABLED`                         | Feature flag; `false` restores `KitchenScene`   |
-| `StudioBridge`                                 | Typed events/commands between Svelte and Phaser |
-| `createPhaserGame(parent, bridge, options?)`   | Boots Phaser; `initialVenueId` picks the plan   |
-| `getRoomForVenue` / `roomIdForVenue`           | Progressive gallery venue → authored floor      |
-| `getRoomForEnvironment` / `ROOMS`              | Tile grids + markers (Level env stubs too)      |
-| `slotsForVenue`                                | Venue → easel/magnet anchors                    |
-| `nextWanderTarget` / `stepToward` / `withPath` | Pure Mum patrol + path-queue helpers            |
-| `findPath` / `findPathInRoom`                  | 4-neighbour BFS on room collision (spec 21f)    |
-| `interactPromptLabel` / `prefersReducedMotion` | Contextual E verbs + motion helper (21f)        |
-| `floorStaffFromHired` / `staffAnchorForRole`   | Hired staff → floor NPCs (presentation only)    |
-| `clientLookForTier`                            | Door-visitor tint/frame by client tier          |
-| `nearestInteractable` / `interactPromptText`   | Pure prop interact helpers (spec 21b)           |
-| `FRIDGE` / `TOOLKIT_SHELF`                     | Data-driven interactable registry               |
-| `shouldEmitWorkParticles` / VFX caps           | Pure desk/cash particle helpers (spec 21d)      |
-| `pickBark` / `eligibleBarkSpeakers` / schedule | Ambient bark picker + phase gate (spec 21e)     |
-| `shouldShowBark` / bark lifetime helpers       | Bubble gating (prompt + phase)                  |
+| Export                                          | Role                                            |
+| ----------------------------------------------- | ----------------------------------------------- |
+| `STUDIO_FLOOR_ENABLED`                          | Feature flag; `false` restores `KitchenScene`   |
+| `StudioBridge`                                  | Typed events/commands between Svelte and Phaser |
+| `createPhaserGame(parent, bridge, options?)`    | Boots Phaser; `initialVenueId` picks the plan   |
+| `getRoomForVenue` / `roomIdForVenue`            | Progressive gallery venue → authored floor      |
+| `getRoomForEnvironment` / `ROOMS`               | Tile grids + markers (Level env stubs too)      |
+| `slotsForVenue`                                 | Venue → easel/magnet anchors                    |
+| `nextWanderTarget` / `stepToward` / `withPath`  | Pure Mum patrol + path-queue helpers            |
+| `findPath` / `findPathInRoom`                   | 4-neighbour BFS on room collision (spec 21f)    |
+| `interactPromptLabel` / `prefersReducedMotion`  | Contextual E verbs + motion helper (21f)        |
+| `floorStaffFromHired` / `staffAnchorForRole`    | Hired staff → floor NPCs (presentation only)    |
+| `clientLookForTier`                             | Door-visitor tint/frame by client tier          |
+| `nearestInteractable` / `interactPromptText`    | Pure prop interact helpers (spec 21b)           |
+| `FRIDGE` / `TOOLKIT_SHELF`                      | Data-driven interactable registry               |
+| `shouldEmitWorkParticles` / VFX caps            | Pure desk/cash particle helpers (spec 21d)      |
+| `pickBark` / `eligibleBarkSpeakers` / schedule  | Ambient bark picker + phase gate (spec 21e)     |
+| `shouldShowBark` / bark lifetime helpers        | Bubble gating (prompt + phase)                  |
+| `isDomEditableElement` / `isDomEditableFocused` | DOM focus gate for keyboard walk/interact (P5)  |
 
 ## Venue floor plans
 
@@ -45,6 +46,8 @@ venue id changes.
 - Gallery thumbnails on easels pass `isSafeStudioImageUrl` before `load.image`; textures
   keyed `art-<entryId>` are unloaded when the entry leaves the displayed list.
 - `StudioFloor` shows a loading status until the bridge `ready` event (error after timeout).
+- While any DOM text control (`input`, `textarea`, `select`, `[contenteditable]`) has focus,
+  Phaser keyboard walk/interact is disabled; touch on-screen pads still move/interact.
 
 ## Easel kinds (spec 17 §6.5)
 
