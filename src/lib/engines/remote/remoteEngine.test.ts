@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KITCHEN_BRIEFS } from '$lib/data/kitchenBriefs';
 import type { ClientBrief, DeviceCapability } from '$lib/types/contracts';
+import { EngineError } from '../errors';
 import type { RemoteProviderClient } from './providers';
 import { RemoteEngine } from './remoteEngine';
 import type { RemoteEngineConfig } from './remoteConfig';
@@ -215,6 +216,11 @@ describe('RemoteEngine', () => {
 			}),
 			undefined
 		);
+		const editBody = (client.edit as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as Record<
+			string,
+			unknown
+		>;
+		expect(editBody).not.toHaveProperty('playerPrompt');
 		expect(client.generate).not.toHaveBeenCalled();
 		await engine.unload();
 	});
@@ -232,6 +238,31 @@ describe('RemoteEngine', () => {
 		});
 		expect(client.generate).toHaveBeenCalledOnce();
 		expect(client.edit).not.toHaveBeenCalled();
+		await engine.unload();
+	});
+
+	it('maps BAGEL / 501 edit failures to player-safe EngineError', async () => {
+		const client = fakeClient({
+			edit: vi.fn().mockRejectedValue(new Error('BAGEL not installed. Set BAGEL_MODEL_DIR'))
+		});
+		const engine = new RemoteEngine({
+			getClient: () => client,
+			loadConfig: () => config
+		});
+		await engine.load();
+		const sketch = new Blob([Uint8Array.from([1, 2, 3])], { type: 'image/png' });
+		await expect(
+			engine.generate({
+				playerPrompt: 'a cat',
+				prompt: 'a cat, crayon texture',
+				sketchImage: sketch
+			})
+		).rejects.toMatchObject({
+			name: 'EngineError',
+			code: 'generation_failed',
+			message:
+				'Sketch refine needs BAGEL on your PC (ADTLocalServe edit). Falling back is handled by the engine manager.'
+		} satisfies Partial<EngineError>);
 		await engine.unload();
 	});
 

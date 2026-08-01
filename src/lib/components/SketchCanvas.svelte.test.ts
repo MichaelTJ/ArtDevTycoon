@@ -23,3 +23,44 @@ test('help copy mentions paint tools', async () => {
 	const screen = render(SketchCanvas, {});
 	await expect.element(screen.getByText(/Brush, eraser, size, and colour/i)).toBeVisible();
 });
+
+test('colour and size controls have accessible names', async () => {
+	const screen = render(SketchCanvas, {});
+	await expect.element(screen.getByLabelText('Brush size')).toBeVisible();
+	await expect.element(screen.getByLabelText('Custom colour')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #1c1917')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #ffffff')).toBeVisible();
+	await expect.element(screen.getByRole('group', { name: 'Tool' })).toBeVisible();
+});
+
+test('clear resets hasStrokes after a stroke', async () => {
+	let hasStrokes = false;
+	const screen = render(SketchCanvas, {
+		get hasStrokes() {
+			return hasStrokes;
+		},
+		set hasStrokes(value: boolean) {
+			hasStrokes = value;
+		}
+	});
+	const canvas = screen.getByLabelText('Sketch canvas');
+	const el = canvas.element() as HTMLCanvasElement;
+	el.dispatchEvent(
+		new PointerEvent('pointerdown', { clientX: 40, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	el.dispatchEvent(
+		new PointerEvent('pointerup', { clientX: 50, clientY: 50, bubbles: true, pointerId: 1 })
+	);
+	expect(hasStrokes).toBe(true);
+
+	await screen.getByRole('button', { name: 'Clear' }).click();
+	expect(hasStrokes).toBe(false);
+});
+
+test('prefers-reduced-motion: no obligatory animation', async () => {
+	const screen = render(SketchCanvas, {});
+	const root = screen.getByLabelText('Sketch pad').element();
+	const style = getComputedStyle(root);
+	expect(style.animationName === 'none' || style.animationName === '').toBe(true);
+	expect(style.transitionDuration === '0s' || style.transitionDuration === '').toBe(true);
+});

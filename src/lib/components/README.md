@@ -44,7 +44,15 @@ Import everything from `$lib/components` (barrel `index.ts`):
 | `FridgeGallery`        | `entries` (order preserved), `label?`, `emptyMessage?`, `layoutClassName?`                                                                                                                                                                                   | `onselect(entry)`                                                                             |
 | `ArtworkFullView`      | `entry: GalleryEntry`                                                                                                                                                                                                                                        | `onclose()`                                                                                   |
 | `StudioFloor`          | `bridge: StudioBridge`, `initialVenueId?`, `class?`; loading/error until bridge `ready`                                                                                                                                                                      | — (Phaser emits via bridge)                                                                   |
-| `StudioHudOverlay`     | phase, client/artwork/critique, `draftPrompt` (bindable), `clientSummoned`, `floorInteract?`, `pendingSkillGains?`, `studioDebug?`                                                                                                                           | `oninvite` / `ontalk` / `ondeliver` / `onsubmit` / `oncollect` / `onretry` / `ondismisserror` |
+| `SketchCanvas`         | `disabled?`, `hasStrokes` (bindable), paint tools (brush/eraser, size 2–40, colour palette + custom)                                                                                                                                                         | `onexportready?(getBlob)` — PNG blob or `null` when blank                                     |
+| `StudioHudOverlay`     | phase, client/artwork/critique, `draftPrompt` (bindable), `clientSummoned`, `floorInteract?`, `pendingSkillGains?`, `onsketchexportready?`, `studioDebug?`                                                                                                   | `oninvite` / `ontalk` / `ondeliver` / `onsubmit` / `oncollect` / `onretry` / `ondismisserror` |
+
+### Sketch pad (spec 11)
+
+`SketchCanvas` is a presentational 384×384 paint surface shown during briefing above
+`PromptComposer`. Parent (`+page` via `StudioHudOverlay.onsketchexportready`) registers
+the PNG exporter and calls `game.setDraftSketch` before `createArt`. No store imports
+inside the canvas. Undo stack depth is 20; clear wipes to white and clears `hasStrokes`.
 
 ### Studio floor (spec 17)
 

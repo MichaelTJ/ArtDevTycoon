@@ -23,6 +23,7 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `paletteSeries.ts`    | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
 | `skills.ts`           | `SKILL_IDS`, `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, skill types                            |
 | `nextUnlock.ts`       | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                   |
+| `sketchBlank.ts`      | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                     |
 
 ## Invariants
 

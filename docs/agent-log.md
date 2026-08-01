@@ -1189,3 +1189,31 @@ tests. Commands: `npm run check` (0 errors); `npm run lint` green; scoped
 
 - No export/import JSON (Spec 23).
 - No cloud sync / more than 3 slots (explicitly out of scope).
+
+## 2026-08-01 — Spec 11 gap review (BAGEL sketch)
+
+**Zone:** `SketchCanvas`, `sketchBlank`, `StudioHudOverlay`, `gameState` draft sketch, mock + JanusLink `/edit`, engines/game/component READMEs, `docs/agent-log.md`, `docs/tasks/11-bagel-sketch.md`
+
+**Built:** Closed Spec 11 quality gaps against the existing sketch/edit path (no redesign; Spec 09 cloud providers untouched).
+
+- Split `SketchCanvas` mount vs exporter effects so parent callback identity cannot wipe strokes.
+- `RemoteEngine` maps BAGEL / 501 / not-installed edit failures to the spec's player-safe `EngineError`.
+- `collectCash` / `dismissError` clear `draftSketchBlob` (`inviteClient` already did).
+- Added missing unit/component coverage for sketch into `createArt`, clear/hasStrokes, BAGEL error copy, accessible paint controls.
+- Documented sketch/edit in component, engine, and game READMEs; marked Spec 11 DoD checkboxes done.
+
+**Public surface:** Unchanged APIs — `SketchCanvas`, `isSketchBlank`, `setDraftSketch`, `generate({ sketchImage? })`, `JanusLinkClient.edit` / `RemoteProviderClient.edit?`.
+
+**Tests:** `npm run check` (0 errors); scoped `npm run test:unit -- --run` on sketchBlank, SketchCanvas, StudioHudOverlay, mockEngine, janusLinkClient, remoteEngine, gameState → 7 files / 109 tests passed. Owned-file prettier/eslint clean after fixes.
+
+**Decisions:**
+
+- Keep paint tools presentational; exporter registration must not re-init the canvas.
+- Retry still keeps `draftSketchBlob` so a failed refine can be re-attempted without re-drawing; dismiss clears it.
+
+**Requests:** None (architecture.md BAGEL one-liner and `contracts.sketchImage` already present).
+
+**Known gaps:**
+
+- Real BAGEL MoT inference still lives in ADTLocalServe (endpoint + 501 stub); not this game repo.
+- `+page.svelte` sketch wiring is outside this zone (already landed).

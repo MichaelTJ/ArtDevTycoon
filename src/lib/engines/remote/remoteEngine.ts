@@ -162,6 +162,18 @@ export class RemoteEngine implements ArtEngine {
 				engineId: 'remote'
 			});
 		} catch (error) {
+			const message = error instanceof Error ? error.message : '';
+			if (
+				input.sketchImage &&
+				this.client?.edit &&
+				/not (installed|available)|501|BAGEL/i.test(message)
+			) {
+				throw new EngineError(
+					'generation_failed',
+					'Sketch refine needs BAGEL on your PC (ADTLocalServe edit). Falling back is handled by the engine manager.',
+					error
+				);
+			}
 			throw toEngineError(error, 'generation_failed');
 		}
 	}

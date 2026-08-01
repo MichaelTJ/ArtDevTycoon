@@ -525,6 +525,7 @@ export class GameStore {
 			this.currentCritique = null;
 			this.currentClient = null;
 			this.currentAuctionResult = null;
+			this.draftSketchBlob = null;
 
 			this.phase = isLevelComplete({
 				cash: this.cash,
@@ -672,6 +673,7 @@ export class GameStore {
 			return;
 		}
 		this.errorMessage = null;
+		this.draftSketchBlob = null;
 		this.phase = 'briefing';
 	}
 

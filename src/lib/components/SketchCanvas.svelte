@@ -30,6 +30,7 @@
 	const undoStack: ImageData[] = [];
 	const MAX_UNDO = 20;
 
+	/** Size + white fill once when the canvas element mounts — never tied to callback identity. */
 	$effect(() => {
 		const canvas = canvasEl;
 		if (!canvas) {
@@ -47,7 +48,15 @@
 		ctx.fillRect(0, 0, CANVAS_CSS, CANVAS_CSS);
 		hasStrokes = false;
 		undoStack.length = 0;
+	});
 
+	/** Re-register exporter when the parent callback changes without wiping strokes. */
+	$effect(() => {
+		const canvas = canvasEl;
+		const register = onexportready;
+		if (!canvas || !register) {
+			return;
+		}
 		const getBlob = async (): Promise<Blob | null> => {
 			if (!hasStrokes) {
 				return null;
@@ -56,7 +65,7 @@
 				canvas.toBlob((blob) => resolve(blob), 'image/png');
 			});
 		};
-		onexportready?.(getBlob);
+		register(getBlob);
 	});
 
 	function ctx2d(): CanvasRenderingContext2D | null {

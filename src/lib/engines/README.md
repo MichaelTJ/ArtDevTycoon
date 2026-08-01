@@ -29,6 +29,18 @@ directly.
 | `remote`         | 1    | none     | no     | no           | **Complete** — My PC (07–09): JanusLink, Ollama, LM Studio, A1111, OpenRouter, OpenAI |
 | `sdturbo-webgpu` | 2    | ~1536 MB | yes    | yes          | **Complete** — SD-Turbo + Janus critique (spec 06)                                    |
 
+### Sketch refine (spec 11)
+
+`ArtEngine.generate` accepts optional `sketchImage?: Blob`. Engines that cannot edit
+**ignore** it. Behaviour:
+
+- **Mock** — returns the sketch as a data-URL artwork (prompt-only SVG when absent).
+- **Remote / JanusLink** — when `sketchImage` is set and the provider implements `edit`,
+  calls `POST /api/janus/edit` with the built Level 1 `prompt` (never a separate
+  `playerPrompt` field). BAGEL-missing / 501 errors become a player-safe
+  `EngineError('generation_failed', …)`; `EngineManager` falls back to mock.
+- **Other My PC providers (08/09)** — no `edit`; sketch is ignored, generate as today.
+
 ## Invariants
 
 - **`mock` is production tier.** A real share of players never load a model; the game

@@ -232,14 +232,14 @@ Document in ADTLocalServe `docs/SPEC.md` §2.x. **ComfyUI is explicitly out.**
 
 ## 9. Definition of done
 
-- [ ] SketchCanvas with brush, eraser, size, colour, clear, undo
-- [ ] Optional sketch flows into `createArt` → `generate({ sketchImage })`
-- [ ] Mock returns sketch-based artwork
-- [ ] JanusLink client + RemoteEngine call `/api/janus/edit` when sketch present
-- [ ] `playerPrompt` verbatim; built `prompt` used for edit instruction
-- [ ] No ComfyUI; no real network in unit tests
-- [ ] `npm run check` + owned unit tests green
-- [ ] READMEs + agent-log handoff
+- [x] SketchCanvas with brush, eraser, size, colour, clear, undo
+- [x] Optional sketch flows into `createArt` → `generate({ sketchImage })`
+- [x] Mock returns sketch-based artwork
+- [x] JanusLink client + RemoteEngine call `/api/janus/edit` when sketch present
+- [x] `playerPrompt` verbatim; built `prompt` used for edit instruction
+- [x] No ComfyUI; no real network in unit tests
+- [x] `npm run check` + owned unit tests green
+- [x] READMEs + agent-log handoff
 
 ---
 

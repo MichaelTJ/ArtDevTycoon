@@ -179,6 +179,75 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('briefing');
 	});
 
+	it('createArt passes sketchImage when draftSketchBlob is set', async () => {
+		const generate = vi.fn(
+			async (input: { playerPrompt: string; prompt: string; sketchImage?: Blob }) => {
+				void input;
+				return fakeArtwork;
+			}
+		);
+		const store = createStore({
+			generate,
+			critique: vi.fn(async () => fakeDraft)
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cat';
+		const sketch = new Blob([Uint8Array.from([9, 9, 9])], { type: 'image/png' });
+		store.setDraftSketch(sketch);
+
+		await store.createArt();
+
+		expect(generate).toHaveBeenCalledWith(
+			expect.objectContaining({
+				playerPrompt: 'a cat',
+				sketchImage: sketch
+			})
+		);
+		const call = generate.mock.calls[0]?.[0];
+		expect(call?.prompt).toBeDefined();
+		expect(call?.prompt).not.toBe('a cat');
+	});
+
+	it('inviteClient clears draft sketch', () => {
+		const store = createStore({
+			generate: vi.fn(),
+			critique: vi.fn()
+		});
+		store.setDraftSketch(new Blob([Uint8Array.from([1])], { type: 'image/png' }));
+		store.inviteClient();
+		expect(store.draftSketchBlob).toBeNull();
+	});
+
+	it('collectCash clears draft sketch', async () => {
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique: vi.fn(async () => fakeDraft)
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+		store.setDraftSketch(new Blob([Uint8Array.from([1])], { type: 'image/png' }));
+		await store.createArt();
+		await store.collectCash();
+		expect(store.draftSketchBlob).toBeNull();
+	});
+
+	it('dismissError clears draft sketch and returns to briefing', async () => {
+		const store = createStore({
+			generate: vi.fn(async () => {
+				throw new EngineError('generation_failed', 'fail');
+			}),
+			critique: vi.fn()
+		});
+		store.inviteClient();
+		store.draftPrompt = 'keep me';
+		store.setDraftSketch(new Blob([Uint8Array.from([1])], { type: 'image/png' }));
+		await store.createArt();
+		store.dismissError();
+		expect(store.phase).toBe('briefing');
+		expect(store.draftSketchBlob).toBeNull();
+		expect(store.draftPrompt).toBe('keep me');
+	});
+
 	it('shows the artwork before critique finishes', async () => {
 		let resolveCritique: ((draft: CritiqueDraft) => void) | undefined;
 		const critique = vi.fn(
