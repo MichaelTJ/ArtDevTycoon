@@ -2,6 +2,7 @@
 	import BarkLiveRegion from '$lib/components/BarkLiveRegion.svelte';
 	import type { BarkAnnounceHandler } from '$lib/studio/barkPresenter';
 	import type { StudioBridge } from '$lib/studio/bridge';
+	import { isDomEditableFocused, STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '$lib/studio/domInputFocus';
 	import { onDestroy, onMount } from 'svelte';
 
 	interface Props {
@@ -42,6 +43,16 @@
 		let settled = false;
 		let timeoutId: ReturnType<typeof setTimeout> | undefined;
 		let pollId: ReturnType<typeof setInterval> | undefined;
+
+		const syncDomEditableFocus = () => {
+			queueMicrotask(() => {
+				if (!game) return;
+				game.registry.set(STUDIO_DOM_EDITABLE_FOCUSED_KEY, isDomEditableFocused());
+			});
+		};
+
+		window.addEventListener('focusin', syncDomEditableFocus, true);
+		window.addEventListener('focusout', syncDomEditableFocus, true);
 
 		const clearTimers = () => {
 			if (timeoutId !== undefined) clearTimeout(timeoutId);
@@ -85,6 +96,7 @@
 				}
 				game = created;
 				game.registry.set('onBark', onBark);
+				syncDomEditableFocus();
 				pollId = setInterval(() => {
 					if (game?.registry.get('studioBootFailed') === true) {
 						markError('Studio assets failed to load.');
@@ -99,6 +111,8 @@
 			cancelled = true;
 			clearTimers();
 			unsub();
+			window.removeEventListener('focusin', syncDomEditableFocus, true);
+			window.removeEventListener('focusout', syncDomEditableFocus, true);
 		};
 	});
 

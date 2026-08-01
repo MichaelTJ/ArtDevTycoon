@@ -1,4 +1,5 @@
 import { StudioBridge } from '$lib/studio/bridge';
+import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '$lib/studio/domInputFocus';
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import StudioFloor from './StudioFloor.svelte';
@@ -49,4 +50,31 @@ test('destroys Phaser game on unmount', async () => {
 	});
 	screen.unmount();
 	expect(destroy).toHaveBeenCalledWith(true);
+});
+
+test('syncs DOM editable focus to Phaser registry', async () => {
+	registrySet.mockClear();
+	createPhaserGame.mockClear();
+	const bridge = new StudioBridge();
+	render(StudioFloor, { bridge });
+	await vi.waitFor(() => {
+		expect(createPhaserGame).toHaveBeenCalled();
+	});
+
+	const input = document.createElement('input');
+	document.body.appendChild(input);
+	input.focus();
+	await vi.waitFor(() => {
+		expect(registrySet).toHaveBeenCalledWith(STUDIO_DOM_EDITABLE_FOCUSED_KEY, true);
+	});
+
+	const button = document.createElement('button');
+	document.body.appendChild(button);
+	button.focus();
+	await vi.waitFor(() => {
+		expect(registrySet).toHaveBeenCalledWith(STUDIO_DOM_EDITABLE_FOCUSED_KEY, false);
+	});
+
+	document.body.removeChild(input);
+	document.body.removeChild(button);
 });

@@ -1584,3 +1584,38 @@ src/lib/components/CapabilityNotice.svelte.test.ts` → 20 passed.
 
 - Manual playtest not run in this session (headless tests only).
 - Switching back to mock after dismiss does not re-show the banner (intentional).
+
+## 2026-08-01 — Playtest fix P5 (DOM input focus gate)
+
+**Zone:** `src/lib/studio/**`, `StudioFloor.svelte`, `StudioFloor.svelte.test.ts`,
+`src/lib/studio/README.md`, `docs/agent-log.md`, `docs/playtest-notes.md`
+
+**Built:** Playtest bug P5 — Phaser no longer consumes WASD/arrow/E while a DOM text
+control has focus. Pure helpers detect editable `activeElement`; `StudioFloor` syncs
+`focusin`/`focusout` to registry `domEditableFocused`; `StudioScene` disables Phaser
+keyboard, stops walk velocity, and skips keyboard interact until focus returns. Touch
+on-screen pads still move/interact.
+
+**Public surface:**
+
+- `STUDIO_DOM_EDITABLE_FOCUSED_KEY` — Phaser registry boolean
+- `isDomEditableElement(el)` / `isDomEditableFocused(doc?)` (`domInputFocus.ts`)
+
+**Tests:** `domInputFocus.test.ts` (editable selectors + activeElement);
+`StudioFloor.svelte.test.ts` (registry sync on input focus/blur). Commands:
+`npm run check`; `npm run lint`; `npm run test:unit -- --run src/lib/studio
+src/lib/components/StudioFloor.svelte.test.ts`.
+
+**Decisions:**
+
+- Registry mirror (same pattern as `onBark`) — no bridge/`+page` changes.
+- `queueMicrotask` after focus events so `activeElement` is settled on blur.
+- Keyboard disabled + explicit `#drivePlayer` / `#consumeInteract` guards so stale
+  `isDown` cannot move the player after re-enable.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual Phaser walkthrough with live prompt field not run headless.
+- Shadow-DOM-only focus edge cases rely on `document.activeElement` (unlikely in HUD).
