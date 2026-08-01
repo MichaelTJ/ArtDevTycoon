@@ -5,6 +5,7 @@
 	import { GALLERY_LAYOUTS } from '$lib/data/galleryLayouts';
 	import { GALLERY_VENUES } from '$lib/data/galleryVenues';
 	import { MEDIUM_TIERS } from '$lib/data/mediumTiers';
+	import { getArtistCatalogEntry } from '$lib/data/artists';
 	import { STAFF_ROLES } from '$lib/data/staffRoles';
 	import { buildLevel1Prompt } from '$lib/game';
 	import { clearDevLatch, persistDevLatch, type DevModeReason } from '$lib/dev/devMode';
@@ -16,6 +17,8 @@
 	import ProgressPanel from './ProgressPanel.svelte';
 	import SaveSlotsPanel from './SaveSlotsPanel.svelte';
 	import StaffOffice from './StaffOffice.svelte';
+	import TeamRoster from './TeamRoster.svelte';
+	import MajorProjectPanel from './MajorProjectPanel.svelte';
 	import ToolkitShop from './ToolkitShop.svelte';
 	import WorkGainToast from './WorkGainToast.svelte';
 
@@ -62,6 +65,8 @@
 	let showToolkit = $state(false);
 	let showGalleryUpgrades = $state(false);
 	let showStaffOffice = $state(false);
+	let showTeamRoster = $state(false);
+	let showMajorProjects = $state(false);
 	let showProgress = $state(false);
 	let showSaves = $state(false);
 	let showAudio = $state(false);
@@ -97,6 +102,27 @@
 	}
 
 	const savesBusy = $derived(game.phase !== 'idle');
+
+	const majorProjectActive = $derived(
+		game.majorProjectProgress && game.activeMajorProjectDef
+			? {
+					projectId: game.majorProjectProgress.projectId,
+					beatsCompleted: game.majorProjectProgress.beatsCompleted,
+					crewByBeat: game.majorProjectProgress.crewByBeat,
+					activeBeatIndex: game.majorProjectProgress.activeBeatIndex,
+					beatFill: game.majorProjectBeatFill,
+					beatStartedAt: game.majorProjectProgress.beatStartedAt,
+					beatDurationMs: game.majorProjectProgress.beatDurationMs
+				}
+			: null
+	);
+
+	const majorProjectCrewOptions = $derived(
+		game.hiredArtists.map((row) => ({
+			catalogId: row.catalogId,
+			name: getArtistCatalogEntry(row.catalogId)?.name ?? row.catalogId
+		}))
+	);
 
 	const toolkitButtonLabel = $derived(
 		`Medium · ${game.activeMediumTier.icon} ${game.activeMediumTier.name}`
@@ -159,6 +185,26 @@
 				}}
 			>
 				🏛️ Gallery Upgrades
+			</button>
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="Artist team"
+				onclick={() => {
+					showTeamRoster = true;
+				}}
+			>
+				🎨 Artist team
+			</button>
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="Major projects"
+				onclick={() => {
+					showMajorProjects = true;
+				}}
+			>
+				📚 Major projects
 			</button>
 			<button
 				type="button"
@@ -303,6 +349,51 @@
 		}}
 		onclose={() => {
 			showStaffOffice = false;
+		}}
+		onopenteam={() => {
+			showStaffOffice = false;
+			showTeamRoster = true;
+		}}
+	/>
+{/if}
+
+{#if showTeamRoster}
+	<TeamRoster
+		hired={game.hiredArtists}
+		{cash}
+		reputation={game.reputation}
+		onhire={(id) => {
+			game.hireArtist(id);
+		}}
+		onfire={(id) => {
+			game.fireArtist(id);
+		}}
+		onclose={() => {
+			showTeamRoster = false;
+		}}
+	/>
+{/if}
+
+{#if showMajorProjects}
+	<MajorProjectPanel
+		reputation={game.reputation}
+		active={majorProjectActive}
+		activeProject={game.activeMajorProjectDef}
+		crewOptions={majorProjectCrewOptions}
+		onaccept={(id) => {
+			game.acceptMajorProject(id);
+		}}
+		onassigncrew={(beatIndex, catalogId) => {
+			game.assignCrewToBeat(beatIndex, catalogId);
+		}}
+		onstartbeat={(beatIndex) => {
+			game.startMajorProjectBeat(beatIndex);
+		}}
+		oncollect={() => {
+			game.collectMajorProjectPayout();
+		}}
+		onclose={() => {
+			showMajorProjects = false;
 		}}
 	/>
 {/if}

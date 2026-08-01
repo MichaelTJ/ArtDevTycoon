@@ -11,8 +11,8 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 | P5  | Bug     | After painting, focusing “your prompt” still lets Phaser eat keys — typing/WASD moves the character instead of inserting letters                                                                                              | **17** Phaser input capture + **04** integration (prompt field focus)                               | **Fixed** — `domInputFocus` gate via `StudioFloor` registry sync (2026-08-01)                        |
 | P6  | Design  | New loop: player prompts → while waiting, paint on canvas → on reveal, choose submit **own drawing** or **prompted image**                                                                                                    | **11** BAGEL sketch (+ refine)                                                                      | **Fixed** — paint during `generating`, choose-before-critique via `confirmSubmitChoice` (2026-08-01) |
 | P7  | Design  | Mum comments = toddler praise (“Wow! I love it so much!”, “Did you do this all by yourself?!”). Auto **10/10** Accuracy + Creativity. Real Janus critique hidden behind **“Ask for real critique”** (harsh = comedy contrast) | **18** abstract prompts / critique presentation + **03** results UI                                 | **Fixed** — praise pool + ResultsPanel reveal; payout uses 10/10 (2026-08-01)                        |
-| P8  | Design  | Want to **interact with NPCs** (talk / menus), not just see verbs / barks                                                                                                                                                     | **24** (24a talk handlers) — builds on **21a/21b/21f** floor targets                                | Today “Talk to …” is mostly label-only                                                               |
-| P9  | Design  | One NPC is a **receptionist** who offers **choices of commissions**                                                                                                                                                           | **24** (24a receptionist + commission board)                                                        | Grown-up desk loop vs Mum kitchen invite                                                             |
+| P8  | Design  | Want to **interact with NPCs** (talk / menus), not just see verbs / barks                                                                                                                                                     | **24** (24a talk handlers) — builds on **21a/21b/21f** floor targets                                | **Fixed** — receptionist `open-reception` + Mum talk/deliver preserved (2026-08-01)                  |
+| P9  | Design  | One NPC is a **receptionist** who offers **choices of commissions**                                                                                                                                                           | **24** (24a receptionist + commission board)                                                        | **Fixed** — `ReceptionDesk` board 2–4 offers; unlocks garage+ (2026-08-01)                           |
 | P10 | Bug     | ~~**Crayon Mode** notice stays up after selecting **Janus**~~ **Fixed** — notice gates on active mock engine, not device capability                                                                                           | **04** Integration — `CapabilityNotice` / `EngineStore` (`showCrayonNotice`)                        | Merged 2026-08-01                                                                                    |
 
 ## Suggested fix order (when we start)
@@ -24,7 +24,7 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 5. ~~**P4** — early economy numbers~~ **done**
 6. ~~**P7** — Mum praise vs real critique~~ **done**
 7. ~~**P6** — paint-while-waiting loop (larger design)~~ **done**
-8. **P8 / P9** → Spec **24a** (after bugs above; see [24-artist-team.md](./tasks/24-artist-team.md))
+8. ~~**P8 / P9** → Spec **24a** (after bugs above; see [24-artist-team.md](./tasks/24-artist-team.md))~~ **done**
 
 ## Status
 
@@ -37,5 +37,5 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] P7 — Mum toddler praise + hidden real critique reveal
 - [x] P6 — paint while generating + submit drawing vs AI before critique
 - [x] P4 follow-up — `LEVEL_1.startingCash` 25 / `targetCash` 50 (orchestrator, contracts)
-- [ ] P8 / P9 — Spec 24a (not started)
+- [x] P8 / P9 — Spec 24 MVP (receptionist talk + commission board)
 - [ ] Triaged into task specs / bugfix PRs

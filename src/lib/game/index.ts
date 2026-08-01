@@ -40,11 +40,17 @@ export {
 	SAVE_STORAGE_KEY,
 	CURRENT_SAVE_VERSION,
 	saveDataSchema,
+	hiredArtistSchema,
+	artistAssignmentSchema,
+	majorProjectProgressSchema,
 	createDefaultSave,
 	loadSave,
 	persistSave,
 	clearSave,
-	type SaveData
+	type SaveData,
+	type HiredArtistSave,
+	type ArtistAssignmentSave,
+	type MajorProjectProgressSave
 } from './save';
 export {
 	SLOTS_STORAGE_KEY,
@@ -85,3 +91,37 @@ export {
 export type { SkillId, SkillDef, SkillXpMap, SkillProgress, SkillGainPreview } from './skills';
 export { buildProgressMeters, lockedReputationGates } from './nextUnlock';
 export type { UnlockTrack, NextUnlock, ProgressionSnapshot } from './nextUnlock';
+export {
+	artistLevel,
+	artistLevelFill,
+	xpToNextLevel as artistXpToNextLevel,
+	grantArtistXp,
+	mockArtistScores,
+	ASSIGNMENT_XP_REWARD,
+	XP_PER_LEVEL_STEP,
+	ARTIST_LEVEL_CAP
+} from './artistTraining';
+export {
+	BASE_ASSIGNMENT_MS,
+	workDurationMs,
+	assignmentProgress,
+	assignmentComplete,
+	pickBoardOffers,
+	mockArtistImageUrl,
+	findHiredArtist,
+	type HiredArtistState,
+	type ArtistAssignment
+} from './assignCommission';
+export {
+	BASE_BEAT_MS,
+	createMajorProjectProgress,
+	resolveMajorProject,
+	isMajorProjectComplete,
+	beatWorkDurationMs,
+	beatProgress,
+	beatTimerComplete,
+	payoutReady,
+	majorProjectPayout,
+	majorProjectRep,
+	type MajorProjectProgress
+} from './majorProjectProgress';

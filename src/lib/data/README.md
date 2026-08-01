@@ -15,6 +15,8 @@ validated at module load.
 | `galleryLayouts.ts`    | `GALLERY_LAYOUTS`, `GalleryLayout`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout`                             |
 | `galleryAtmosphere.ts` | `ATMOSPHERE_ITEMS`, `AtmosphereItem`, `getAtmosphereItem`, `totalAtmosphereBonus`                                   |
 | `staffRoles.ts`        | `STAFF_ROLES`, `StaffRole`, `getStaffRole`, `canHireStaff`, `totalIncomePerSecond`                                  |
+| `artists.ts`           | Spec 24 — `ARTIST_CATALOG`, `receptionistUnlocked`, `canHireArtist` (parallel to staff roles)                       |
+| `majorProjects.ts`     | Spec 24 — comic/series defs, `canAcceptMajorProject`, payout/rep helpers                                            |
 | `clientTiers.ts`       | `CLIENT_TIER_INFO`, `ClientTierInfo`, `getClientTierInfo`, `unlockedClientTiers`                                    |
 | `barks.ts`             | `BARK_POOL`, `BarkLine`, `BarkSpeakerId`, `linesForSpeaker`, `barkSpeakerLabel` (ambient comedy; no LLM)            |
 | `mumPraise.ts`         | `MUM_PRAISE_POOL`, `MumPraiseLine`, `pickMumPraise` — toddler praise for Mum results (playtest P7)                  |

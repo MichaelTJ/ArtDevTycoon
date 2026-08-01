@@ -14,6 +14,8 @@ export type StudioOutboundEvent =
 	| { type: 'inspect-zone'; zoneId: RoomZoneId }
 	/** Spec 21b — Svelte opens the matching shop modal. */
 	| { type: 'open-shop'; shop: StudioShopId }
+	/** Spec 24 — receptionist opens the commission board in Svelte. */
+	| { type: 'open-reception' }
 	/**
 	 * Spec 21b — short flavour line (fridge, later props).
 	 * +page MAY show a toast; MAY no-op if Phaser already drew a bark.
@@ -67,6 +69,8 @@ export interface StudioSnapshot {
 	 * prefers-reduced-motion.
 	 */
 	reducedVfx: boolean;
+	/** Spec 24 — show receptionist NPC and talk target when venue ≥ garage. */
+	receptionistVisible: boolean;
 }
 
 export type StudioListener = (event: StudioOutboundEvent) => void;

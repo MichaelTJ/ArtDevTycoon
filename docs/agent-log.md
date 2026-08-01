@@ -1814,3 +1814,44 @@ extUnlock, HudBar/GameMenuBar/ProgressPanel/LevelCompleteOverlay tests.
 **Requests:** None.
 
 **Known gaps:** Gallery layout/atmosphere mid-tier prices may still dwarf kitchen cash — playtest if needed.
+
+## 2026-08-01 — Spec 24 MVP (artist team & major projects)
+
+**Zone:** `docs/tasks/24-artist-team.md`, `docs/tasks/README.md`, `docs/playtest-notes.md`,
+`docs/agent-log.md`, `src/lib/data/artists*`, `majorProjects*`, `src/lib/game/artistTraining*`,
+`assignCommission*`, `majorProjectProgress*`, `save*`, `gameState*`, `ReceptionDesk*`,
+`TeamRoster*`, `AssignArtistModal*`, `MajorProjectPanel*`, `StaffOffice*`, `GameMenuBar*`,
+`components/index.ts`, `studio/bridge*`, `scenes/StudioScene.ts`, `staffPresence*`,
+`interactPrompt*`, `+page.svelte`, directory READMEs under owned zones.
+
+**Built:** Spec 24 MVP A1–A3 + B1–B3 + C1–C3 + D1–D4. Receptionist NPC (garage+) opens
+`ReceptionDesk` with 2–4 board offers; parallel `hiredArtists[]` roster with hire/fire/training;
+assign brief → simulated timer → mock artwork results; comic (4 beats, $120) and animated
+series (6 beats, $180) major projects with crew assignment and collect payout. Playtest P8/P9
+marked fixed. Spec 16 idle income and Mum kitchen loop unchanged.
+
+**Public surface:**
+
+- `receptionistUnlocked`, `ARTIST_CATALOG`, `MAJOR_PROJECTS`, training/timer helpers
+- `GameStore.pickCommissionBoardOffers`, `acceptBoardBrief`, `hireArtist`, `fireArtist`,
+  `assignBriefToArtist`, major-project APIs
+- `StudioBridge` event `open-reception`; snapshot `receptionistVisible`
+- Components: `ReceptionDesk`, `TeamRoster`, `AssignArtistModal`, `MajorProjectPanel`
+
+**Tests:** Scoped suite 142+ tests. Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run` (paths in spec §Verification).
+
+**Decisions:**
+
+- Receptionist unlock = venue ≥ garage (not marketing hire).
+- Artists parallel to spec 16 staff; save v1 Zod defaults for new fields.
+- Assignment timer crayon L1 = 6800ms; artist completion uses mock SVG + level-scaled scores.
+- Major project beats use separate timer track from commission assignment.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (headless/component tests only).
+- B4 artist floor desks, C4 parallel jobs, D5 continuity deferred.
+- Full major-project beat loop to payout requires playing through all beats in UI (no dev skip).

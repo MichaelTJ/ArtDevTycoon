@@ -11,7 +11,8 @@ const snapshot: StudioSnapshot = {
 	workStartedAt: null,
 	residentClientArmed: false,
 	hiredRoleIds: [],
-	reducedVfx: false
+	reducedVfx: false,
+	receptionistVisible: false
 };
 
 describe('StudioBridge', () => {
@@ -54,6 +55,7 @@ describe('StudioBridge', () => {
 
 		bridge.emit({ type: 'open-shop', shop: 'toolkit' });
 		bridge.emit({ type: 'prop-bark', propId: 'fridge', text: 'Leftover casserole.' });
+		bridge.emit({ type: 'open-reception' });
 
 		expect(listener).toHaveBeenNthCalledWith(1, { type: 'open-shop', shop: 'toolkit' });
 		expect(listener).toHaveBeenNthCalledWith(2, {
@@ -61,5 +63,6 @@ describe('StudioBridge', () => {
 			propId: 'fridge',
 			text: 'Leftover casserole.'
 		});
+		expect(listener).toHaveBeenNthCalledWith(3, { type: 'open-reception' });
 	});
 });

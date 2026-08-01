@@ -18,15 +18,15 @@ Import from:
 
 ## State machine
 
-| Phase           | UI                                           | Entry                  |
-| --------------- | -------------------------------------------- | ---------------------- |
-| `idle`          | {@link IdlePanel}                            | start / after collect  |
-| `briefing`      | {@link ClientCard} + {@link PromptComposer}  | `inviteClient()`       |
+| Phase           | UI                                                                                                                                                      | Entry                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `idle`          | {@link IdlePanel}                                                                                                                                       | start / after collect           |
+| `briefing`      | {@link ClientCard} + {@link PromptComposer}                                                                                                             | `inviteClient()`                |
 | `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting) + {@link GeneratingPanel}; after generate, submit-choice UI until `confirmSubmitChoice` | `createArt()` then player picks |
-| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel} | after submit choice              |
-| `results`       | {@link ResultsPanel}                         | after critique         |
-| `failed`        | {@link ErrorPanel} + composer                | engine error           |
-| `levelComplete` | {@link LevelCompleteOverlay}                 | 5 commissions and $500 |
+| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                     | after submit choice             |
+| `results`       | {@link ResultsPanel}                                                                                                                                    | after critique                  |
+| `failed`        | {@link ErrorPanel} + composer                                                                                                                           | engine error                    |
+| `levelComplete` | {@link LevelCompleteOverlay}                                                                                                                            | 5 commissions and $500          |
 
 Every store method guards on the current phase. `collectCash()` is async and idempotent —
 calling it twice does not pay twice. Blob image URLs are converted to durable `data:` URLs
@@ -35,6 +35,8 @@ before the gallery entry is persisted.
 ## Invariants
 
 - `GameStore` defaults to `engines.manager`, never a second `EngineManager`.
+- Spec 24 adds `hiredArtists`, `artistAssignment`, `majorProjectProgress` (parallel to spec 16
+  `hiredStaffIds` — idle income unchanged).
 - `createArt()` calls `engines.setSwitchingLocked(true)` until `confirmSubmitChoice` finishes (or generation fails).
 - Playtest P6: `createArt()` runs prompt-only generate, then `pendingSubmitChoice` until the player calls `confirmSubmitChoice('drawing' | 'ai', sketchBlob?)`; critique uses the chosen `imageUrl` (no new `GamePhase` — still `generating` during the choice step).
 - Hidden Level 1 prompt modifiers are applied only inside `createArt()` via

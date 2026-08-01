@@ -1,11 +1,21 @@
 import { CLIENT_TIER_INFO, unlockedClientTiers } from '$lib/data/clientTiers';
 import { CORPORATE_BRIEFS } from '$lib/data/corporateBriefs';
 import {
+	canHireArtist,
+	getArtistCatalogEntry,
+	receptionistUnlocked as venueHasReceptionist
+} from '$lib/data/artists';
+import {
 	canUnlockMediumTier,
 	DEFAULT_MEDIUM_TIER_ID,
 	getMediumTier,
 	MEDIUM_TIERS
 } from '$lib/data/mediumTiers';
+import {
+	canAcceptMajorProject,
+	getMajorProject,
+	type MajorProjectDef
+} from '$lib/data/majorProjects';
 import { pickBrief } from '$lib/data/briefs';
 import { getAtmosphereItem, totalAtmosphereBonus } from '$lib/data/galleryAtmosphere';
 import {
@@ -33,30 +43,50 @@ import { buildPrompt } from '$lib/game/promptPipeline';
 import {
 	activateSlot,
 	applySkillGains,
+	ASSIGNMENT_XP_REWARD,
+	artistLevel,
+	assignmentComplete,
+	assignmentProgress,
+	beatTimerComplete,
+	beatWorkDurationMs,
 	buildProgressMeters,
 	calculatePayout,
 	clearSave as defaultClearSave,
 	copySlot,
 	createDefaultSave,
 	createEmptySkillXp,
+	createMajorProjectProgress,
 	deleteSlot,
 	ensureDurableImageUrl,
+	findHiredArtist,
 	getActiveSlotId,
+	grantArtistXp,
 	isLevelComplete,
 	levelProgress,
 	listSaveSlots,
 	loadSave as defaultLoadSave,
+	majorProjectPayout,
+	majorProjectRep,
+	mockArtistImageUrl,
+	mockArtistScores,
 	newGameInSlot as newGameInSlotSave,
+	payoutReady,
 	persistSave as defaultPersistSave,
+	pickBoardOffers,
 	previewSkillGains,
 	renameSlot,
 	reputationGain,
+	resolveMajorProject,
 	saveDataSchema,
 	scorePrompt,
 	skillPayoutMultiplier,
 	skillProgress,
 	SKILL_IDS,
 	toGalleryScore,
+	workDurationMs,
+	type ArtistAssignment,
+	type HiredArtistState,
+	type MajorProjectProgress,
 	type NextUnlock,
 	type SaveData,
 	type SaveSlotId,
@@ -171,6 +201,12 @@ export class GameStore {
 
 	hiredStaffIds = $state<string[]>([]);
 	lastIncomeTickAt = $state<number>(0);
+	/** Spec 24 — named artists (parallel to spec 16 staff roles). */
+	hiredArtists = $state<HiredArtistState[]>([]);
+	/** Simulated hand-off timer for the active commission; null when painting personally. */
+	artistAssignment = $state<ArtistAssignment | null>(null);
+	/** Active comic / animated-series arc. */
+	majorProjectProgress = $state<MajorProjectProgress | null>(null);
 	/** Set once on catch-up from `startIncomeTicker`; null means the modal stays hidden. */
 	idleEarningsToShow = $state<number | null>(null);
 
@@ -190,6 +226,26 @@ export class GameStore {
 	venue = $derived(getVenue(this.unlockedVenueId));
 
 	incomePerSecond = $derived(totalIncomePerSecond(this.hiredStaffIds));
+
+	receptionistAvailable = $derived(venueHasReceptionist(this.unlockedVenueId));
+
+	artistAssignmentFill = $derived.by(() => {
+		if (!this.artistAssignment) return null;
+		return assignmentProgress(this.artistAssignment, this.#now());
+	});
+
+	activeMajorProjectDef = $derived.by((): MajorProjectDef | null => {
+		if (!this.majorProjectProgress) return null;
+		return resolveMajorProject(this.majorProjectProgress) ?? null;
+	});
+
+	majorProjectBeatFill = $derived.by(() => {
+		const progress = this.majorProjectProgress;
+		if (!progress || progress.activeBeatIndex == null) return null;
+		if (progress.beatStartedAt == null || progress.beatDurationMs == null) return 0;
+		const elapsed = this.#now() - progress.beatStartedAt;
+		return Math.min(1, Math.max(0, elapsed / progress.beatDurationMs));
+	});
 
 	/**
 	 * Best owned layout when a Curator is hired; otherwise the player's manual selection.
@@ -437,13 +493,168 @@ export class GameStore {
 		this.phase = 'briefing';
 	}
 
+	/** Spec 24 — 2–4 commission choices for the reception desk. */
+	pickCommissionBoardOffers(count = 3): ClientBrief[] {
+		return pickBoardOffers({
+			excludeIds: this.galleryHistory.map((entry) => entry.briefId),
+			unlockedTiers: unlockedClientTiers(this.reputation),
+			completedSeriesIds: fullyCompletedSeriesIds(
+				this.galleryHistory.map((entry) => entry.briefId),
+				CORPORATE_BRIEFS
+			),
+			commissionsCompleted: this.commissionsCompleted,
+			random: this.#random,
+			count
+		});
+	}
+
+	/** Accept a board brief — same path as invite, but player-chosen. */
+	acceptBoardBrief(brief: ClientBrief): void {
+		if (this.phase !== 'idle') return;
+		this.#clearAutoInvite();
+		this.currentClient = brief;
+		this.currentArtwork = null;
+		this.currentCritique = null;
+		this.mumRealCritique = null;
+		this.currentAuctionResult = null;
+		this.errorMessage = null;
+		this.draftPrompt = '';
+		this.draftSketchBlob = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
+		this.artistAssignment = null;
+		this.phase = 'briefing';
+	}
+
+	/** Spec 24 — hire a named artist from the catalog. */
+	hireArtist(catalogId: string): boolean {
+		const entry = getArtistCatalogEntry(catalogId);
+		if (!entry) return false;
+		if (
+			!canHireArtist(entry, {
+				cash: this.cash,
+				reputation: this.reputation,
+				hiredCatalogIds: this.hiredArtists.map((a) => a.catalogId)
+			})
+		) {
+			return false;
+		}
+		this.cash -= entry.hireCost;
+		this.hiredArtists = [...this.hiredArtists, { catalogId, xp: 0 }];
+		this.#persist();
+		return true;
+	}
+
+	/** Fire an artist unless they are mid-assignment. */
+	fireArtist(catalogId: string): boolean {
+		if (this.artistAssignment?.artistCatalogId === catalogId) return false;
+		if (!this.hiredArtists.some((a) => a.catalogId === catalogId)) return false;
+		this.hiredArtists = this.hiredArtists.filter((a) => a.catalogId !== catalogId);
+		if (this.majorProjectProgress) {
+			this.majorProjectProgress = {
+				...this.majorProjectProgress,
+				crewByBeat: this.majorProjectProgress.crewByBeat.map((id) => (id === catalogId ? '' : id))
+			};
+		}
+		this.#persist();
+		return true;
+	}
+
+	/** Hand the active brief to an artist — simulated timer; blocks personal paint until done. */
+	assignBriefToArtist(catalogId: string): boolean {
+		if (this.phase !== 'briefing' || !this.currentClient || this.artistAssignment) return false;
+		const artist = findHiredArtist(this.hiredArtists, catalogId);
+		if (!artist) return false;
+		this.artistAssignment = {
+			artistCatalogId: catalogId,
+			briefId: this.currentClient.id,
+			startedAt: this.#now(),
+			durationMs: workDurationMs(artist.xp, this.activeMediumTierId),
+			mediumTierId: this.activeMediumTierId
+		};
+		this.#persist();
+		return true;
+	}
+
+	acceptMajorProject(projectId: string): boolean {
+		const project = getMajorProject(projectId);
+		if (!project) return false;
+		if (
+			!canAcceptMajorProject(project, {
+				reputation: this.reputation,
+				activeProjectId: this.majorProjectProgress?.projectId ?? null
+			})
+		) {
+			return false;
+		}
+		this.majorProjectProgress = createMajorProjectProgress(project.id, project.beatCount);
+		this.#persist();
+		return true;
+	}
+
+	assignCrewToBeat(beatIndex: number, catalogId: string): boolean {
+		const progress = this.majorProjectProgress;
+		const project = progress ? resolveMajorProject(progress) : undefined;
+		if (!progress || !project) return false;
+		if (beatIndex < 0 || beatIndex >= project.beatCount) return false;
+		if (catalogId && !findHiredArtist(this.hiredArtists, catalogId)) return false;
+		const crew = [...progress.crewByBeat];
+		crew[beatIndex] = catalogId;
+		this.majorProjectProgress = { ...progress, crewByBeat: crew };
+		this.#persist();
+		return true;
+	}
+
+	startMajorProjectBeat(beatIndex: number): boolean {
+		const progress = this.majorProjectProgress;
+		const project = progress ? resolveMajorProject(progress) : undefined;
+		if (!progress || !project) return false;
+		if (progress.activeBeatIndex != null) return false;
+		if (beatIndex !== progress.beatsCompleted) return false;
+		const crewId = progress.crewByBeat[beatIndex]?.trim();
+		if (!crewId) return false;
+		const artist = findHiredArtist(this.hiredArtists, crewId);
+		if (!artist) return false;
+		this.majorProjectProgress = {
+			...progress,
+			activeBeatIndex: beatIndex,
+			beatStartedAt: this.#now(),
+			beatDurationMs: beatWorkDurationMs(crewId, artist.xp, project)
+		};
+		this.#persist();
+		return true;
+	}
+
+	collectMajorProjectPayout(): boolean {
+		const progress = this.majorProjectProgress;
+		const project = progress ? resolveMajorProject(progress) : undefined;
+		if (!progress || !project || !payoutReady(progress, project)) return false;
+		const payout = majorProjectPayout(project);
+		const rep = majorProjectRep(project);
+		this.cash += payout;
+		this.reputation += rep;
+		this.lastCollectedGains = {
+			skills: { prompting: 0, imagination: 0, hustle: 0 },
+			reputation: rep,
+			cash: payout
+		};
+		this.majorProjectProgress = null;
+		this.#persist();
+		return true;
+	}
+
 	/** Store optional sketch PNG captured at submit-choice time. */
 	setDraftSketch(blob: Blob | null): void {
 		this.draftSketchBlob = blob;
 	}
 
 	async createArt(): Promise<void> {
-		if (this.phase !== 'briefing' || !this.currentClient || this.draftPrompt.trim().length === 0) {
+		if (
+			this.phase !== 'briefing' ||
+			!this.currentClient ||
+			this.draftPrompt.trim().length === 0 ||
+			this.artistAssignment
+		) {
 			return;
 		}
 
@@ -763,6 +974,8 @@ export class GameStore {
 			this.lastIncomeTickAt = this.#now();
 		}
 
+		this.#catchUpSimulatedWork();
+
 		this.#incomeTicker = setInterval(() => {
 			const { earned } = computeIdleEarnings(
 				this.lastIncomeTickAt,
@@ -774,6 +987,7 @@ export class GameStore {
 				this.cash += earned;
 				this.#persist();
 			}
+			this.#tickSimulatedWork();
 		}, this.#tickIntervalMs);
 
 		return () => {
@@ -936,6 +1150,11 @@ export class GameStore {
 		this.activeLayoutId = save.activeLayoutId;
 		this.ownedAtmosphereIds = [...save.ownedAtmosphereIds];
 		this.hiredStaffIds = [...save.hiredStaffIds];
+		this.hiredArtists = save.hiredArtists.map((a) => ({ ...a }));
+		this.artistAssignment = save.artistAssignment ? { ...save.artistAssignment } : null;
+		this.majorProjectProgress = save.majorProjectProgress
+			? { ...save.majorProjectProgress, crewByBeat: [...save.majorProjectProgress.crewByBeat] }
+			: null;
 		this.skillXp = {
 			prompting: save.skillXpPrompting,
 			imagination: save.skillXpImagination,
@@ -967,6 +1186,14 @@ export class GameStore {
 		data.activeLayoutId = this.activeLayoutId;
 		data.ownedAtmosphereIds = [...this.ownedAtmosphereIds];
 		data.hiredStaffIds = [...this.hiredStaffIds];
+		data.hiredArtists = this.hiredArtists.map((a) => ({ ...a }));
+		data.artistAssignment = this.artistAssignment ? { ...this.artistAssignment } : null;
+		data.majorProjectProgress = this.majorProjectProgress
+			? {
+					...this.majorProjectProgress,
+					crewByBeat: [...this.majorProjectProgress.crewByBeat]
+				}
+			: null;
 		data.lastIncomeTickAt = this.lastIncomeTickAt;
 		data.skillXpPrompting = this.skillXp.prompting;
 		data.skillXpImagination = this.skillXp.imagination;
@@ -979,6 +1206,110 @@ export class GameStore {
 			clearTimeout(this.#autoInviteTimer);
 			this.#autoInviteTimer = null;
 		}
+	}
+
+	#catchUpSimulatedWork(): void {
+		this.#tickSimulatedWork();
+	}
+
+	#tickSimulatedWork(): void {
+		const now = this.#now();
+		if (this.artistAssignment && assignmentComplete(this.artistAssignment, now)) {
+			this.#completeArtistAssignment();
+		}
+		const progress = this.majorProjectProgress;
+		if (progress && progress.activeBeatIndex != null && beatTimerComplete(progress, now)) {
+			this.#completeMajorProjectBeat();
+		}
+	}
+
+	#completeArtistAssignment(): void {
+		const assignment = this.artistAssignment;
+		const client = this.currentClient;
+		if (!assignment || !client || client.id !== assignment.briefId) {
+			this.artistAssignment = null;
+			return;
+		}
+
+		const artist = findHiredArtist(this.hiredArtists, assignment.artistCatalogId);
+		const catalog = getArtistCatalogEntry(assignment.artistCatalogId);
+		const xp = artist?.xp ?? 0;
+		const scores = mockArtistScores(artistLevel(xp));
+		const playerPrompt = `[${catalog?.name ?? 'Artist'}] ${client.requestText}`;
+
+		if (artist) {
+			this.hiredArtists = this.hiredArtists.map((a) =>
+				a.catalogId === artist.catalogId
+					? { ...a, xp: grantArtistXp(a.xp, ASSIGNMENT_XP_REWARD) }
+					: a
+			);
+		}
+
+		const artwork: Artwork = {
+			id: `artist-${assignment.artistCatalogId}-${client.id}-${this.#now()}`,
+			imageUrl: mockArtistImageUrl(catalog?.name ?? 'Studio piece'),
+			playerPrompt,
+			width: 256,
+			height: 256,
+			generationMs: assignment.durationMs,
+			engineId: 'mock'
+		};
+
+		const isMum = isMumCommission(client.clientName);
+		const finalPayout = calculatePayout(
+			client,
+			scores.accuracy,
+			scores.creativity,
+			this.presentationMultiplier
+		);
+
+		const critique = critiqueSchema.parse({
+			title: `${catalog?.name ?? 'Artist'} — ${client.clientName}`,
+			accuracyScore: isMum ? MUM_DISPLAY_SCORE : scores.accuracy,
+			criticReview: `${catalog?.name ?? 'Your artist'} delivered on brief while you produced.`,
+			creativityScore: isMum ? MUM_DISPLAY_SCORE : scores.creativity,
+			finalPayout
+		});
+
+		if (isMum) {
+			this.mumRealCritique = null;
+		}
+
+		this.currentArtwork = artwork;
+		this.currentCritique = critique;
+		this.currentAuctionResult = null;
+		this.pendingSkillGains = previewSkillGains({
+			accuracyScore: critique.accuracyScore,
+			creativityScore: critique.creativityScore,
+			finalPayout: critique.finalPayout
+		});
+		this.artistAssignment = null;
+		this.lastWorkDurationMs = assignment.durationMs;
+		this.phase = 'results';
+		this.#persist();
+	}
+
+	#completeMajorProjectBeat(): void {
+		const progress = this.majorProjectProgress;
+		const project = progress ? resolveMajorProject(progress) : undefined;
+		if (!progress || !project || progress.activeBeatIndex == null) return;
+
+		const crewId = progress.crewByBeat[progress.activeBeatIndex]?.trim();
+		if (crewId) {
+			this.hiredArtists = this.hiredArtists.map((a) =>
+				a.catalogId === crewId ? { ...a, xp: grantArtistXp(a.xp, ASSIGNMENT_XP_REWARD) } : a
+			);
+		}
+
+		const beatsCompleted = progress.beatsCompleted + 1;
+		this.majorProjectProgress = {
+			...progress,
+			beatsCompleted,
+			activeBeatIndex: null,
+			beatStartedAt: null,
+			beatDurationMs: null
+		};
+		this.#persist();
 	}
 
 	#clearIncomeTicker(): void {
