@@ -37,12 +37,19 @@ Multi-provider paths use **two model fields** where needed: **generation model**
 | 08  | [Local providers](./08-local-providers.md) | `remote/providers/**` (ollama, lmstudio, a1111), config union, MyPcSetup | 07         |
 | 09  | [BYO API](./09-byo-api.md)                 | openrouter + openai clients, cloud config arms, MyPcSetup tabs           | 08         |
 
+### Sketch / refine (11 — ready)
+
+| #   | Spec                                 | Owns                                                                 | Depends on |
+| --- | ------------------------------------ | -------------------------------------------------------------------- | ---------- |
+| 11  | [BAGEL sketch](./11-bagel-sketch.md) | `SketchCanvas`, optional `sketchImage` on generate, JanusLink `/edit` | 07–09      |
+
+Companion: ADTLocalServe `POST /api/janus/edit` (not ComfyUI).
+
 ### Future specs (stubs — not ready to implement)
 
-| #   | Stub                                 | Topic                                                |
-| --- | ------------------------------------ | ---------------------------------------------------- |
-| 10  | [ADT Cloud](./10-adt-cloud.md)       | Hosted service, accounts, credits                    |
-| 11  | [BAGEL sketch](./11-bagel-sketch.md) | Draw sketch → BAGEL refine + separate critique model |
+| #   | Stub                           | Topic                             |
+| --- | ------------------------------ | --------------------------------- |
+| 10  | [ADT Cloud](./10-adt-cloud.md) | Hosted service, accounts, credits |
 
 ## Execution order
 
