@@ -1145,3 +1145,47 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 
 - A4–A8 (pedestrians, rival, critic ghost, pet, museum crowd) remain out of scope.
 - Mum/staff sheets are the same Kenney strip as clients for now — distinct art can replace them later without code changes.
+
+## 2026-08-01 — Spec 22 gap review (multiple saves)
+
+**Zone:** Spec 22 ownership (`saveSlots*`, `SaveSlotsPanel*`, `save.ts`/`save.test.ts`,
+GameStore slot seams, `GameMenuBar`, `+page` slot dismiss wire, docs)
+
+**Built:** Spec 22 was entirely missing in this worktree. Implemented three named save
+slots end-to-end:
+
+- `saveSlots.ts` — Zod-validated `adt.save.slots.v1`, active pointer, legacy
+  `adt.save.v1` → slot 0 migration, list/peek/activate/new/delete/rename/copy.
+- `save.ts` — `loadSave` / `persistSave` / `clearSave` route through the active slot
+  (Spec 20 skill XP fields unchanged on the `SaveData` schema).
+- `GameStore` — `switchToSlot` / `newGameInSlot` / `deleteSaveSlot` / `renameSaveSlot` /
+  `copySaveSlot`, plus `saveSlotsList` / `activeSaveSlotId`; mid-commission switch
+  aborts to `idle` and rehydrates meta-progress.
+- `SaveSlotsPanel` + GameMenuBar **Saves** entry; `+page` `onafterslotchange` dismisses
+  the studio client after slot mutations.
+
+**Public surface:**
+
+- `$lib/game`: `SLOTS_STORAGE_KEY`, `ACTIVE_SLOT_KEY`, `SLOT_IDS`, `MAX_SAVE_SLOTS`,
+  `ensureSaveSlotsMigrated`, `listSaveSlots`, `activateSlot`, `newGameInSlot`,
+  `deleteSlot`, `renameSlot`, `copySlot`, `getActiveSlotId` / `setActiveSlotId`, types.
+- `GameStore` slot methods above; `SaveSlotsPanel` props/callbacks per Spec 22 §6.
+
+**Tests:** Migration + activate/new/delete/copy tables; active-slot round-trip + skill XP
+preservation; GameStore mid-commission switch; SaveSlotsPanel + GameMenuBar component
+tests. Commands: `npm run check` (0 errors); `npm run lint` green; scoped
+`npm run test:unit -- --run` on owned files → 5 files / 95 passed.
+
+**Decisions:**
+
+- Slot file Zod schema is built lazily to avoid circular init with `saveDataSchema`.
+- Deleting a non-active slot refreshes the list only; deleting the active slot
+  rehydrates from the newly chosen active (or `newGameInSlot('0')` when all empty).
+- Panel owns confirm dialogs; page owns studio dismiss via `onafterslotchange`.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- No export/import JSON (Spec 23).
+- No cloud sync / more than 3 slots (explicitly out of scope).

@@ -9,6 +9,7 @@
 	import GalleryUpgradeShop from './GalleryUpgradeShop.svelte';
 	import HudBar from './HudBar.svelte';
 	import ProgressPanel from './ProgressPanel.svelte';
+	import SaveSlotsPanel from './SaveSlotsPanel.svelte';
 	import StaffOffice from './StaffOffice.svelte';
 	import ToolkitShop from './ToolkitShop.svelte';
 	import WorkGainToast from './WorkGainToast.svelte';
@@ -23,6 +24,8 @@
 		engineMenuTitle: string;
 		engineMenuDisabled: boolean;
 		onopenenginemenu: () => void;
+		/** Fired after a slot switch/new/delete so the page can dismiss studio clients. */
+		onafterslotchange?: () => void;
 		notice?: Snippet;
 	}
 
@@ -36,6 +39,7 @@
 		engineMenuTitle,
 		engineMenuDisabled,
 		onopenenginemenu,
+		onafterslotchange,
 		notice
 	}: Props = $props();
 
@@ -43,6 +47,9 @@
 	let showGalleryUpgrades = $state(false);
 	let showStaffOffice = $state(false);
 	let showProgress = $state(false);
+	let showSaves = $state(false);
+
+	const savesBusy = $derived(game.phase !== 'idle');
 
 	const toolkitButtonLabel = $derived(
 		`Medium · ${game.activeMediumTier.icon} ${game.activeMediumTier.name}`
@@ -125,6 +132,16 @@
 				}}
 			>
 				📈 Progress
+			</button>
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="Saves"
+				onclick={() => {
+					showSaves = true;
+				}}
+			>
+				💾 Saves
 			</button>
 		</div>
 		<div class="min-w-0 flex-1">
@@ -230,6 +247,35 @@
 		skills={game.skillProgressList}
 		onclose={() => {
 			showProgress = false;
+		}}
+	/>
+{/if}
+
+{#if showSaves}
+	<SaveSlotsPanel
+		slots={game.saveSlotsList}
+		activeId={game.activeSaveSlotId}
+		busy={savesBusy}
+		onswitch={(id) => {
+			game.switchToSlot(id);
+			onafterslotchange?.();
+		}}
+		onnew={(id) => {
+			game.newGameInSlot(id);
+			onafterslotchange?.();
+		}}
+		ondelete={(id) => {
+			game.deleteSaveSlot(id);
+			onafterslotchange?.();
+		}}
+		onrename={(id, name) => {
+			game.renameSaveSlot(id, name);
+		}}
+		oncopy={(from, to) => {
+			game.copySaveSlot(from, to);
+		}}
+		onclose={() => {
+			showSaves = false;
 		}}
 	/>
 {/if}

@@ -336,14 +336,14 @@ Add under the Spec 12 persistence note in `docs/architecture.md`:
 
 ## 9. Definition of done
 
-- [ ] Migration table cases green.
-- [ ] `loadSave` / `persistSave` round-trip through the active slot.
-- [ ] Switch / new / delete / rename / copy covered by unit tests with literal expectations.
-- [ ] `SaveSlotsPanel` + GameMenuBar entry with component tests.
-- [ ] Switching mid-commission lands `idle` with the other slot’s cash/unlocks.
-- [ ] Corrupt storage never bricks boot.
-- [ ] `npm run check`, `npm run lint`, scoped `test:unit` green for owned files.
-- [ ] Architecture blurb + agent-log handoff + tasks README row.
+- [x] Migration table cases green.
+- [x] `loadSave` / `persistSave` round-trip through the active slot.
+- [x] Switch / new / delete / rename / copy covered by unit tests with literal expectations.
+- [x] `SaveSlotsPanel` + GameMenuBar entry with component tests.
+- [x] Switching mid-commission lands `idle` with the other slot’s cash/unlocks.
+- [x] Corrupt storage never bricks boot.
+- [x] `npm run check`, `npm run lint`, scoped `test:unit` green for owned files.
+- [x] Architecture blurb + agent-log handoff + tasks README row.
 
 ---
 

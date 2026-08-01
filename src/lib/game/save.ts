@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import { galleryEntrySchema } from '$lib/types/contracts';
+import {
+	clearAllSlots,
+	ensureSaveSlotsMigrated,
+	loadActiveSlotData,
+	persistActiveSlot
+} from './saveSlots';
 
 export const SAVE_STORAGE_KEY = 'adt.save.v1';
 export const CURRENT_SAVE_VERSION = 1;
@@ -64,11 +70,6 @@ export function createDefaultSave(startingCash: number, now: () => number = Date
 }
 
 /**
- * Reads and validates the save blob. Returns `createDefaultSave(startingCash)` for a
- * missing key, malformed JSON, a schema mismatch, or a `localStorage` throw (Safari
- * private mode, quota errors) — a corrupt save must never block the game from loading.
- */
-/**
  * Spec 16: a null tick time must never reach `computeIdleEarnings` as a timestamp.
  * Old saves and brand-new defaults still parse as null; we stamp `now()` here.
  */
@@ -77,33 +78,35 @@ function withIncomeTickInitialised(data: SaveData, now: () => number): SaveData 
 	return { ...data, lastIncomeTickAt: now() };
 }
 
+/**
+ * Reads and validates the ACTIVE slot's SaveData. Migrates legacy `adt.save.v1` on
+ * first boot. Returns `createDefaultSave(startingCash)` for an empty active slot,
+ * malformed storage, or a `localStorage` throw — a corrupt save must never block boot.
+ */
 export function loadSave(startingCash: number, now: () => number = Date.now): SaveData {
 	try {
-		const raw = localStorage.getItem(SAVE_STORAGE_KEY);
-		if (!raw) return withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
-		const parsed = saveDataSchema.safeParse(JSON.parse(raw));
-		return parsed.success
-			? withIncomeTickInitialised(parsed.data, now)
-			: withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
+		ensureSaveSlotsMigrated(startingCash, now);
+		const slotData = loadActiveSlotData(startingCash, now);
+		if (!slotData) {
+			return withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
+		}
+		return withIncomeTickInitialised(slotData, now);
 	} catch {
 		return withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
 	}
 }
 
-/** Best-effort write. Swallows quota/private-mode errors — a failed save must never throw. */
+/** Writes into the ACTIVE slot; updates meta.savedAt / empty=false. Never throws. */
 export function persistSave(data: SaveData): void {
 	try {
-		localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(data));
+		ensureSaveSlotsMigrated(data.cash, () => data.savedAt);
+		persistActiveSlot(data);
 	} catch {
 		// Storage full or unavailable. Losing one write is better than crashing the game.
 	}
 }
 
-/** Clears the save. Exposed for a future "reset progress" button; not wired to any UI yet. */
+/** Clears all slots and the legacy key. Used by GameStore.reset. */
 export function clearSave(): void {
-	try {
-		localStorage.removeItem(SAVE_STORAGE_KEY);
-	} catch {
-		// ignore
-	}
+	clearAllSlots();
 }

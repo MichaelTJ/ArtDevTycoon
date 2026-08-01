@@ -123,6 +123,10 @@ commission is collected. Skill levels grant a small payout multiplier
 (`skillPayoutMultiplier`, capped +15%). Pending gains preview on the results panel so
 collecting cash feels like banking progress, not only dollars.
 
+Spec 22 stores up to three named `SaveData` slots in `adt.save.slots.v1` with an active
+pointer. Legacy `adt.save.v1` migrates into slot 0. Switching slots reloads meta-progress
+and returns to `idle`; engine choice and audio prefs remain browser-global.
+
 ### Why Janus does both jobs
 
 Janus-Pro-1B is a _unified_ multimodal model — the same weights handle text-to-image

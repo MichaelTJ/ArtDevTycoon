@@ -61,6 +61,14 @@ test('progress button opens the Progress dialog', async () => {
 	await expect.element(screen.getByText('Craft skills')).toBeVisible();
 });
 
+test('saves button opens the Save slots dialog', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, defaultProps);
+	await screen.getByRole('button', { name: 'Saves' }).click();
+	await expect.element(screen.getByRole('dialog', { name: 'Save slots' })).toBeVisible();
+	await expect.element(screen.getByText('Slot 1')).toBeVisible();
+});
+
 test('shows banked gains toast after collect pulse', async () => {
 	game.reset();
 	game.lastCollectedGains = {
