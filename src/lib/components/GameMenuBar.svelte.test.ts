@@ -118,3 +118,33 @@ test('shows banked gains toast after collect pulse', async () => {
 	await expect.element(screen.getByText(/\+\$85/)).toBeVisible();
 	game.clearLastCollectedGains();
 });
+
+test('shows toolkit affordability badge when a medium tier is unlockable', async () => {
+	game.reset();
+	game.devSetReputation(3);
+	const screen = render(GameMenuBar, { ...defaultProps, cash: 15 });
+	const button = screen.getByRole('button', { name: /Medium ·/ });
+	await expect.element(button.getByText('Upgrades available')).toBeVisible();
+});
+
+test('shows gallery affordability badge when the next venue is unlockable', async () => {
+	game.reset();
+	game.devSetReputation(4);
+	const screen = render(GameMenuBar, { ...defaultProps, cash: 30 });
+	const button = screen.getByRole('button', { name: 'Gallery Upgrades' });
+	await expect.element(button.getByText('Upgrades available')).toBeVisible();
+});
+
+test('shows team affordability badge when an artist can be hired', async () => {
+	game.reset();
+	game.devSetReputation(4);
+	const screen = render(GameMenuBar, { ...defaultProps, cash: 45 });
+	const button = screen.getByRole('button', { name: 'Artist team' });
+	await expect.element(button.getByText('Upgrades available')).toBeVisible();
+});
+
+test('hides affordability badges when nothing is unlockable', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, { ...defaultProps, cash: 0 });
+	await expect.element(screen.getByText('Upgrades available')).not.toBeInTheDocument();
+});

@@ -92,6 +92,18 @@ export type { SkillId, SkillDef, SkillXpMap, SkillProgress, SkillGainPreview } f
 export { buildProgressMeters, lockedReputationGates } from './nextUnlock';
 export type { UnlockTrack, NextUnlock, ProgressionSnapshot } from './nextUnlock';
 export {
+	computeAffordabilityBadges,
+	hasAffordableGalleryUnlock,
+	hasAffordableStaffHire,
+	hasAffordableTeamHire,
+	hasAffordableToolkitUnlock
+} from './affordabilityBadges';
+export type {
+	AffordabilityBadgeInput,
+	AffordabilityBadges,
+	AffordabilityMenu
+} from './affordabilityBadges';
+export {
 	artistLevel,
 	artistLevelFill,
 	xpToNextLevel as artistXpToNextLevel,

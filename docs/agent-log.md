@@ -2067,3 +2067,44 @@ Commands: `npm run check`; `npm run lint`;
 
 - Manual playthrough not run (component + unit tests only).
 - Generating-phase loading copy still uses environment `loadingMessages`, not medium stall pools.
+
+## 2026-08-01 — Playtest 2 fix P17 (affordability badges)
+
+**Zone:** `src/lib/game/affordabilityBadges*`, `src/lib/game/index.ts`, `src/lib/game/README.md`,
+`src/lib/components/GameMenuBar*`, `src/lib/components/README.md`, `docs/playtest-notes.md`,
+`docs/agent-log.md`
+
+**Built:** Playtest P17 — when the player can afford at least one shop unlock, `GameMenuBar`
+shows a small amber notification dot on the relevant menu button (Toolkit, Gallery Upgrades,
+Staff Office, Artist team). Pure helpers in `$lib/game/affordabilityBadges` mirror shop
+eligibility (`canUnlockMediumTier`, next venue only, layouts/atmosphere, staff hire, artist
+hire). Badges clear when nothing is affordable. Accessible “Upgrades available” text inside
+each badged button.
+
+**Public surface:**
+
+- `computeAffordabilityBadges(input): AffordabilityBadges`
+- `hasAffordableToolkitUnlock`, `hasAffordableGalleryUnlock`, `hasAffordableStaffHire`,
+  `hasAffordableTeamHire`
+- `AffordabilityBadgeInput`, `AffordabilityBadges`, `AffordabilityMenu`
+
+**Tests:** `affordabilityBadges.test.ts` (literal cash/rep fixtures); `GameMenuBar.svelte.test.ts`
+(badge visible/hidden). Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run src/lib/game/affordabilityBadges.test.ts
+src/lib/components/GameMenuBar.svelte.test.ts`.
+
+**Decisions:**
+
+- Badge state computed inside `GameMenuBar` from existing `cash` prop + `game` unlock fields —
+  no `+page` edits.
+- Team badge included (playtest note said “if appropriate”; artist hires use the same gates as
+  shops).
+- Visual dot is `aria-hidden`; screen readers get sr-only “Upgrades available” in the button
+  name.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (component + unit tests only).
+- Major projects panel has no affordability badge (no cash unlocks in that shop).

@@ -7,7 +7,7 @@
 	import { MEDIUM_TIERS } from '$lib/data/mediumTiers';
 	import { getArtistCatalogEntry } from '$lib/data/artists';
 	import { STAFF_ROLES } from '$lib/data/staffRoles';
-	import { buildLevel1Prompt } from '$lib/game';
+	import { buildLevel1Prompt, computeAffordabilityBadges } from '$lib/game';
 	import { clearDevLatch, persistDevLatch, type DevModeReason } from '$lib/dev/devMode';
 	import { game } from '$lib/stores/gameState.svelte';
 	import AudioSettingsPanel from './AudioSettingsPanel.svelte';
@@ -128,6 +128,19 @@
 		`Medium · ${game.activeMediumTier.icon} ${game.activeMediumTier.name}`
 	);
 
+	const affordabilityBadges = $derived(
+		computeAffordabilityBadges({
+			cash,
+			reputation: game.reputation,
+			unlockedMediumTierIds: game.unlockedMediumTierIds,
+			unlockedVenueId: game.unlockedVenueId,
+			unlockedLayoutIds: game.unlockedLayoutIds,
+			ownedAtmosphereIds: game.ownedAtmosphereIds,
+			hiredStaffIds: game.hiredStaffIds,
+			hiredArtistCatalogIds: game.hiredArtists.map((artist) => artist.catalogId)
+		})
+	);
+
 	const skillsEmphasize = $derived(game.phase === 'generating' || game.phase === 'critiquing');
 
 	const skillSummaries = $derived(
@@ -168,33 +181,54 @@
 			</button>
 			<button
 				type="button"
-				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				class="relative min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 				aria-label={toolkitButtonLabel}
 				onclick={() => {
 					showToolkit = true;
 				}}
 			>
 				{toolkitButtonLabel}
+				{#if affordabilityBadges.toolkit}
+					<span
+						class="pointer-events-none absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-600 ring-2 ring-white"
+						aria-hidden="true"
+					></span>
+					<span class="sr-only">Upgrades available</span>
+				{/if}
 			</button>
 			<button
 				type="button"
-				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				class="relative min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 				aria-label="Gallery Upgrades"
 				onclick={() => {
 					showGalleryUpgrades = true;
 				}}
 			>
 				🏛️ Gallery Upgrades
+				{#if affordabilityBadges.gallery}
+					<span
+						class="pointer-events-none absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-600 ring-2 ring-white"
+						aria-hidden="true"
+					></span>
+					<span class="sr-only">Upgrades available</span>
+				{/if}
 			</button>
 			<button
 				type="button"
-				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				class="relative min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 				aria-label="Artist team"
 				onclick={() => {
 					showTeamRoster = true;
 				}}
 			>
 				🎨 Artist team
+				{#if affordabilityBadges.team}
+					<span
+						class="pointer-events-none absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-600 ring-2 ring-white"
+						aria-hidden="true"
+					></span>
+					<span class="sr-only">Upgrades available</span>
+				{/if}
 			</button>
 			<button
 				type="button"
@@ -208,13 +242,20 @@
 			</button>
 			<button
 				type="button"
-				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				class="relative min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 				aria-label="Staff Office"
 				onclick={() => {
 					showStaffOffice = true;
 				}}
 			>
 				🧑‍💼 Staff Office
+				{#if affordabilityBadges.staff}
+					<span
+						class="pointer-events-none absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-600 ring-2 ring-white"
+						aria-hidden="true"
+					></span>
+					<span class="sr-only">Upgrades available</span>
+				{/if}
 			</button>
 			<button
 				type="button"
@@ -496,3 +537,17 @@
 		}}
 	/>
 {/if}
+
+<style>
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+</style>
