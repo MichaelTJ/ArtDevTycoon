@@ -1958,3 +1958,37 @@ src/lib/components/StudioFloor.svelte.test.ts`.
 
 - Manual Phaser walkthrough (kitchen vs garage vs museum camera) not run headless.
 - Touch-pad positions still fixed at first build on resize (pre-existing).
+
+## 2026-08-01 — Playtest 2 fix P15 (artwork / critique titles)
+
+**Zone:** `ResultsPanel*`, `ArtworkFrame*`, `StudioHudOverlay*` (title display only),
+`src/lib/engines/mock/**`, component README, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P15 fix — results headings and artwork captions now use `break-words`
+with full-width layout and native `title` tooltips instead of single-line clipping.
+Mock engine uses new `buildMockTitle` (five meaningful prompt words, still capped at 120
+chars) so crayon-mode titles read less abruptly than the shared protocol's two-word
+default. P7 Mum praise/reveal and P13 stacked submit-choice layout unchanged.
+
+**Public surface:** `buildMockTitle(playerPrompt, seed)` in `$lib/engines/mock/buildMockTitle.ts`
+(used by `MockEngine.critique` only).
+
+**Tests:** `buildMockTitle.test.ts`; long-title cases in `ArtworkFrame`, `ResultsPanel`,
+`StudioHudOverlay` component tests. Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run src/lib/components/ResultsPanel.svelte.test.ts
+src/lib/components/ArtworkFrame.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts
+src/lib/engines/mock/buildMockTitle.test.ts`.
+
+**Decisions:**
+
+- UI-first: no `truncate` / `line-clamp` on results titles — wrap fully within the HUD column.
+- Mock-only title length bump; Janus/remote still call shared `buildTitle` (two words) —
+  orchestrator may align protocol later if needed.
+
+**Requests:** Consider raising `buildTitle` word limit in `critiqueProtocol.ts` for
+non-mock engines so installed-model critiques match mock title richness.
+
+**Known gaps:**
+
+- Manual playthrough not run (component + unit tests only).
+- Portfolio/fridge gallery thumbs still use single-line `truncate` (out of zone).

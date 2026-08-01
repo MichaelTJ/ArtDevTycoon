@@ -95,7 +95,13 @@
 >
 	<ArtworkFrame imageUrl={artwork.imageUrl} title={displayTitle} alt={displayTitle} size="full" />
 
-	<h2 id={titleId} class="mt-4 text-xl font-bold text-stone-800">{displayTitle}</h2>
+	<h2
+		id={titleId}
+		class="mt-4 text-xl leading-snug font-bold break-words text-stone-800"
+		title={displayTitle}
+	>
+		{displayTitle}
+	</h2>
 
 	<div class="mt-3 flex flex-wrap gap-2">
 		<ScoreBadge label="Accuracy" score={displayAccuracy} />

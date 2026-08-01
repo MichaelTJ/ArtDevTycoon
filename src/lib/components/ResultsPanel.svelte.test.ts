@@ -112,3 +112,15 @@ test('shows pending skill and reputation gains before collect', async () => {
 	await expect.element(screen.getByText(/\+2 rep/)).toBeVisible();
 	await expect.element(screen.getByText(/\+8\/\+6\/\+3 XP/)).toBeVisible();
 });
+
+test('long critique title remains fully visible in heading and caption', async () => {
+	const longTitle = 'Portrait of Regal Whisker Crown Garden Sunlight Afternoon Studio Session';
+	const screen = render(ResultsPanel, {
+		artwork,
+		critique: { ...critique, title: longTitle },
+		clientName: 'Cat Enthusiast',
+		oncollect: vi.fn()
+	});
+	await expect.element(screen.getByRole('heading', { name: longTitle })).toBeVisible();
+	expect(screen.container.textContent?.match(new RegExp(longTitle, 'g'))?.length).toBe(2);
+});
