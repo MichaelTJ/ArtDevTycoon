@@ -19,6 +19,7 @@
 	import { STUDIO_FLOOR_ENABLED } from '$lib/studio/config';
 	import { StudioBridge } from '$lib/studio/bridge';
 	import { getRoomForVenue } from '$lib/studio/venueRooms';
+	import { loadDevLatch, resolveDevMode } from '$lib/dev/devMode';
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
 	import { LEVEL_1, type EngineId, type GalleryEntry } from '$lib/types/contracts';
@@ -33,6 +34,8 @@
 	let sketchExporter: (() => Promise<Blob | null>) | null = $state(null);
 	/** Bumped when Phaser emits open-shop / toolkit (spec 21b). */
 	let openToolkitNonce = $state(0);
+	/** Bumped after Dev latch write/clear so resolveDevMode re-reads localStorage. */
+	let latchTick = $state(0);
 
 	async function submitCommission(): Promise<void> {
 		const blob = sketchExporter ? await sketchExporter() : null;
@@ -41,7 +44,17 @@
 	}
 
 	const studioBridge = new StudioBridge();
-	const studioDebug = $derived(page.url.searchParams.get('studioDebug') === '1');
+	const viteDev = import.meta.env.DEV;
+	const dev = $derived.by(() => {
+		void latchTick;
+		return resolveDevMode({
+			searchParams: page.url.searchParams,
+			viteDev,
+			latch: loadDevLatch()
+		});
+	});
+	/** Floor Talk/Deliver — same gate as Dev mode (`?studioDebug=1` still aliases). */
+	const studioDebug = $derived(dev.enabled);
 
 	const environment = $derived(getEnvironmentForLevel(LEVEL_1.id));
 	const galleryLayoutClassName = $derived(getLayout(game.effectiveLayoutId).gridClassName);
@@ -321,6 +334,11 @@
 				studioBridge.send({ type: 'dismiss-client' });
 				syncStudio();
 			}}
+			devEnabled={dev.enabled}
+			devReason={dev.reason}
+			onlatchchange={() => {
+				latchTick += 1;
+			}}
 		>
 			{#snippet notice()}
 				{#if !engines.realAiSupported && !engines.noticeDismissed}
@@ -394,7 +412,7 @@
 						generationProgress={game.generationProgress}
 						bind:draftPrompt={game.draftPrompt}
 						clientSummoned={false}
-						studioDebug={false}
+						{studioDebug}
 						floorInteract={false}
 						pendingSkillGains={game.pendingSkillGains}
 						onsketchexportready={(fn) => {

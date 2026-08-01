@@ -1,6 +1,11 @@
-import { unlockedClientTiers } from '$lib/data/clientTiers';
+import { CLIENT_TIER_INFO, unlockedClientTiers } from '$lib/data/clientTiers';
 import { CORPORATE_BRIEFS } from '$lib/data/corporateBriefs';
-import { canUnlockMediumTier, DEFAULT_MEDIUM_TIER_ID, getMediumTier } from '$lib/data/mediumTiers';
+import {
+	canUnlockMediumTier,
+	DEFAULT_MEDIUM_TIER_ID,
+	getMediumTier,
+	MEDIUM_TIERS
+} from '$lib/data/mediumTiers';
 import { pickBrief } from '$lib/data/briefs';
 import { getAtmosphereItem, totalAtmosphereBonus } from '$lib/data/galleryAtmosphere';
 import {
@@ -15,7 +20,13 @@ import {
 	canUnlockVenue,
 	getVenue
 } from '$lib/data/galleryVenues';
-import { canHireStaff, getStaffRole, totalIncomePerSecond } from '$lib/data/staffRoles';
+import {
+	canHireStaff,
+	getStaffRole,
+	STAFF_ROLES,
+	totalIncomePerSecond
+} from '$lib/data/staffRoles';
+import { clampCheatCash, clampCheatRep } from '$lib/dev/cheats';
 import { EngineError } from '$lib/engines/errors';
 import type { EngineManager } from '$lib/engines/manager';
 import { buildPrompt } from '$lib/game/promptPipeline';
@@ -40,6 +51,7 @@ import {
 	previewSkillGains,
 	renameSlot,
 	reputationGain,
+	saveDataSchema,
 	scorePrompt,
 	skillPayoutMultiplier,
 	skillProgress,
@@ -297,6 +309,78 @@ export class GameStore {
 		this.#slotsEpoch += 1;
 	}
 
+	/** Spec 23 — Dev mode only; safe if called when off (just mutates local save). */
+	devSetCash(n: number): void {
+		this.cash = clampCheatCash(n);
+		this.#persist();
+	}
+
+	devSetReputation(n: number): void {
+		this.reputation = clampCheatRep(n);
+		this.#persist();
+	}
+
+	devSetLifetimeCommissions(n: number): void {
+		this.commissionsCompleted = clampCheatCash(n);
+		this.#persist();
+	}
+
+	devUnlockAllProgression(): void {
+		const maxTierRep = CLIENT_TIER_INFO.reduce(
+			(max, tier) => Math.max(max, tier.requiredReputation),
+			0
+		);
+		this.reputation = Math.max(this.reputation, maxTierRep);
+		this.unlockedMediumTierIds = MEDIUM_TIERS.map((tier) => tier.id);
+		this.activeMediumTierId = MEDIUM_TIERS[MEDIUM_TIERS.length - 1]?.id ?? DEFAULT_MEDIUM_TIER_ID;
+		this.unlockedVenueId = GALLERY_VENUES[GALLERY_VENUES.length - 1]?.id ?? DEFAULT_VENUE_ID;
+		this.unlockedLayoutIds = GALLERY_LAYOUTS.map((layout) => layout.id);
+		this.activeLayoutId =
+			this.unlockedLayoutIds[this.unlockedLayoutIds.length - 1] ?? DEFAULT_LAYOUT_ID;
+		this.hiredStaffIds = STAFF_ROLES.map((role) => role.id);
+		this.#persist();
+	}
+
+	devForceIdle(): void {
+		this.#clearAutoInvite();
+		this.phase = 'idle';
+		this.currentClient = null;
+		this.currentArtwork = null;
+		this.currentCritique = null;
+		this.currentAuctionResult = null;
+		this.errorMessage = null;
+		this.draftPrompt = '';
+		this.draftSketchBlob = null;
+		this.generationProgress = null;
+		this.workStartedAt = null;
+		this.pendingSkillGains = null;
+		this.lastCollectedGains = null;
+		this.#collectingCash = false;
+		this.#setSwitchingLocked(false);
+		this.#scheduleAutoInvite();
+	}
+
+	devExportSave(): string {
+		const data = this.#snapshotSave();
+		return JSON.stringify(data, null, 2);
+	}
+
+	devImportSave(raw: string): { ok: true } | { ok: false; error: string } {
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(raw);
+		} catch {
+			return { ok: false, error: 'Invalid save JSON' };
+		}
+		const result = saveDataSchema.safeParse(parsed);
+		if (!result.success) {
+			return { ok: false, error: 'Save failed validation' };
+		}
+		this.#persistSave(result.data);
+		this.#applySlotSave(result.data);
+		return { ok: true };
+	}
+
 	/** Spec 17: override Marketing Director arrival. Default remains `inviteClient`. */
 	setAutoInviteAction(fn: () => void): void {
 		this.#autoInviteAction = fn;
@@ -353,22 +437,29 @@ export class GameStore {
 		await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 		try {
+			// Spec 23 force-idle (or slot switch) may abort while we were yielding / awaiting.
+			if (this.phase !== 'generating') return;
+
 			const artwork = await this.#engine.generate({
 				playerPrompt,
 				prompt: builtPrompt,
 				...(sketchImage ? { sketchImage } : {})
 			});
+			if (this.phase !== 'generating') return;
+
 			this.currentArtwork = artwork;
 			this.phase = 'critiquing';
 
 			// Let the player see the finished piece before the (often slow) critique begins.
 			await new Promise<void>((resolve) => setTimeout(resolve, 0));
+			if (this.phase !== 'critiquing') return;
 
 			const draft = await this.#engine.critique({
 				brief: client,
 				playerPrompt,
 				artwork
 			});
+			if (this.phase !== 'critiquing') return;
 
 			const { creativityScore } = scorePrompt(client, playerPrompt);
 			const tier = briefTier(client);
@@ -760,6 +851,10 @@ export class GameStore {
 	 * commission.
 	 */
 	#persist(): void {
+		this.#persistSave(this.#snapshotSave());
+	}
+
+	#snapshotSave(): SaveData {
 		const data = createDefaultSave(this.cash, this.#now);
 		data.cash = this.cash;
 		data.reputation = this.reputation;
@@ -777,7 +872,7 @@ export class GameStore {
 		data.skillXpPrompting = this.skillXp.prompting;
 		data.skillXpImagination = this.skillXp.imagination;
 		data.skillXpHustle = this.skillXp.hustle;
-		this.#persistSave(data);
+		return data;
 	}
 
 	#clearAutoInvite(): void {

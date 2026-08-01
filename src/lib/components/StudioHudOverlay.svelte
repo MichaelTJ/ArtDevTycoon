@@ -29,7 +29,10 @@
 		draftPrompt: string;
 		/** True while a client sprite is waiting and phase is still idle. */
 		clientSummoned: boolean;
-		/** `?studioDebug=1` — exposes Talk / Deliver buttons for e2e. */
+		/**
+		 * Dev mode / e2e floor controls (Talk / Deliver). Prefer `?dev=1`;
+		 * `?studioDebug=1` remains a resolveDevMode alias.
+		 */
 		studioDebug?: boolean;
 		/**
 		 * When true (studio floor), hide invite/collect buttons — timer + E interact.

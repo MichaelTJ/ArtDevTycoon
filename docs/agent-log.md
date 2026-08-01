@@ -1257,3 +1257,45 @@ GameMenuBar nonce opens toolkit. Commands: `npm run check`; `npm run lint`;
 
 - B3–B12 catalog extras remain follow-up / out of scope (radio needs 21c, etc.).
 - Full verb polish for talk/deliver/desk is 21f F4 — props only get `E — …` text labels.
+
+## 2026-08-01 — Spec 23 gap review (Dev mode)
+
+**Zone:** `src/lib/dev/**`, `DevPanel*`, `GameMenuBar*`, `StudioHudOverlay*`,
+`gameState` `dev*` methods, `+page` resolve wiring, `e2e/game-loop.e2e.ts`,
+`docs/tasks/23-dev-mode.md`, architecture blurb, agent-log
+
+**Built:** Spec 23 was entirely missing. Implemented gated Dev mode end-to-end:
+
+- `devMode.ts` — `resolveDevMode` (`?dev=1`/`true`, `?dev=0` hard-off, latch,
+  Vite DEV, `?studioDebug=1` alias), latch load/persist/clear (never throws).
+- `cheats.ts` — cash/rep clamps + `peekLevel1ModifierSuffix` (crayon medium source).
+- `GameStore` — `devSetCash` / `devSetReputation` / `devSetLifetimeCommissions` /
+  `devUnlockAllProgression` / `devForceIdle` / `devExportSave` / `devImportSave`;
+  `createArt` aborts cleanly if force-idle mid-flight.
+- `DevPanel` + GameMenuBar **Dev** entry; “Open saves” links Spec 22 panel.
+- `+page` wires `resolveDevMode` → menu + `studioDebug`; e2e uses `?dev=1`.
+
+**Public surface:**
+
+- `$lib/dev`: `resolveDevMode`, latch helpers, `clampCheatCash` / `clampCheatRep`,
+  `peekLevel1ModifierSuffix`, `DevCheatPort`
+- `GameStore.dev*`; `DevPanel` props per Spec 23 §4 (+ optional `onopensaves`)
+
+**Tests:** resolveDevMode table + latch swallow; clamps/peek; import validation;
+DevPanel hide/show + peek; GameMenuBar Dev gate; GameStore cheats/force-idle.
+Commands: `npm run check`; `npm run lint`; scoped
+`npm run test:unit -- --run` on owned files.
+
+**Decisions:**
+
+- Client-tier unlock via max `CLIENT_TIER_INFO` reputation (runtime gate), not the
+  unused save `unlockedClientTiers` field.
+- Modifier peek only inside DevPanel; `buildLevel1Prompt` for full modified text.
+- Did not touch contracts, engines, Phaser internals, or sibling worktrees.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- None material for Spec 23 DoD.
+- Production players without query/latch never see Dev tools (by design).

@@ -5,7 +5,10 @@
 	import { GALLERY_VENUES } from '$lib/data/galleryVenues';
 	import { MEDIUM_TIERS } from '$lib/data/mediumTiers';
 	import { STAFF_ROLES } from '$lib/data/staffRoles';
+	import { buildLevel1Prompt } from '$lib/game';
+	import { clearDevLatch, persistDevLatch, type DevModeReason } from '$lib/dev/devMode';
 	import { game } from '$lib/stores/gameState.svelte';
+	import DevPanel from './DevPanel.svelte';
 	import GalleryUpgradeShop from './GalleryUpgradeShop.svelte';
 	import HudBar from './HudBar.svelte';
 	import ProgressPanel from './ProgressPanel.svelte';
@@ -28,6 +31,11 @@
 		openToolkitNonce?: number;
 		/** Fired after a slot switch/new/delete so the page can dismiss studio clients. */
 		onafterslotchange?: () => void;
+		/** Spec 23 — show Dev menu entry when resolveDevMode is on. */
+		devEnabled?: boolean;
+		devReason?: DevModeReason;
+		/** Parent re-resolves Dev mode after latch write/clear. */
+		onlatchchange?: () => void;
 		notice?: Snippet;
 	}
 
@@ -43,6 +51,9 @@
 		onopenenginemenu,
 		openToolkitNonce = 0,
 		onafterslotchange,
+		devEnabled = false,
+		devReason = 'off',
+		onlatchchange,
 		notice
 	}: Props = $props();
 
@@ -51,6 +62,7 @@
 	let showStaffOffice = $state(false);
 	let showProgress = $state(false);
 	let showSaves = $state(false);
+	let showDev = $state(false);
 	let lastToolkitNonce = 0;
 
 	$effect(() => {
@@ -60,6 +72,26 @@
 			showToolkit = true;
 		}
 	});
+
+	const modifiedPrompt = $derived.by(() => {
+		const draft = game.draftPrompt.trim();
+		if (!draft) return '';
+		try {
+			return buildLevel1Prompt(draft);
+		} catch {
+			return '';
+		}
+	});
+
+	function exportSaveJson(): string {
+		const json = game.devExportSave();
+		try {
+			void navigator.clipboard?.writeText(json);
+		} catch {
+			// Textarea fallback in DevPanel still holds the JSON.
+		}
+		return json;
+	}
 
 	const savesBusy = $derived(game.phase !== 'idle');
 
@@ -155,6 +187,18 @@
 			>
 				💾 Saves
 			</button>
+			{#if devEnabled}
+				<button
+					type="button"
+					class="min-h-11 self-start rounded-lg border border-dashed border-stone-400 bg-stone-50 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+					aria-label="Dev"
+					onclick={() => {
+						showDev = true;
+					}}
+				>
+					Dev
+				</button>
+			{/if}
 		</div>
 		<div class="min-w-0 flex-1">
 			<HudBar
@@ -288,6 +332,49 @@
 		}}
 		onclose={() => {
 			showSaves = false;
+		}}
+	/>
+{/if}
+
+{#if showDev && devEnabled}
+	<DevPanel
+		enabled={true}
+		reason={devReason}
+		{cash}
+		reputation={game.reputation}
+		lifetimeCommissions={commissionsCompleted}
+		draftPrompt={game.draftPrompt}
+		{modifiedPrompt}
+		onclose={() => {
+			showDev = false;
+		}}
+		onsetcash={(n) => game.devSetCash(n)}
+		onsetreputation={(n) => game.devSetReputation(n)}
+		onsetcommissions={(n) => game.devSetLifetimeCommissions(n)}
+		onunlockall={() => game.devUnlockAllProgression()}
+		onforceidle={() => {
+			game.devForceIdle();
+			onafterslotchange?.();
+		}}
+		onexport={exportSaveJson}
+		onimport={(raw) => {
+			const result = game.devImportSave(raw);
+			if (result.ok) {
+				onafterslotchange?.();
+			}
+		}}
+		onlatch={() => {
+			persistDevLatch({ version: 1, latched: true });
+			onlatchchange?.();
+		}}
+		onclearlatch={() => {
+			clearDevLatch();
+			onlatchchange?.();
+			showDev = false;
+		}}
+		onopensaves={() => {
+			showDev = false;
+			showSaves = true;
 		}}
 	/>
 {/if}
