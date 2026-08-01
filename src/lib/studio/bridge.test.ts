@@ -10,7 +10,8 @@ const snapshot: StudioSnapshot = {
 	estimatedWorkMs: 12_000,
 	workStartedAt: null,
 	residentClientArmed: false,
-	hiredRoleIds: []
+	hiredRoleIds: [],
+	reducedVfx: false
 };
 
 describe('StudioBridge', () => {

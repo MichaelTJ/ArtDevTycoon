@@ -18,6 +18,7 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `clientLookForTier`                          | Door-visitor tint/frame by client tier          |
 | `nearestInteractable` / `interactPromptText` | Pure prop interact helpers (spec 21b)           |
 | `FRIDGE` / `TOOLKIT_SHELF`                   | Data-driven interactable registry               |
+| `shouldEmitWorkParticles` / VFX caps         | Pure desk/cash particle helpers (spec 21d)      |
 
 ## Venue floor plans
 
@@ -111,6 +112,20 @@ anims so Phaser does not swap her back onto the clients sheet.
 - Door visitors use `clientLookForTier` (`clientLooks.ts`): `walk-in` untinted;
   `corporate` `0x7a9cc4`; `billionaire` `0xb48cff`; `auction-house` `0xc47878`.
   Unknown tiers map to walk-in. Mum never uses this helper.
+
+## VFX (spec 21d)
+
+Presentation-only Phaser particles — no economy side effects:
+
+| Effect                 | When                                                           | Caps                                    |
+| ---------------------- | -------------------------------------------------------------- | --------------------------------------- |
+| Desk work dust / paper | `generating` / `critiquing`                                    | max **12** alive, frequency **≥ 90 ms** |
+| Cash confetti          | Collect Cash phase edge (`results` → `idle` / `levelComplete`) | burst **≤ 18**, lifespan **≤ 700 ms**   |
+
+Both are gated by snapshot `reducedVfx` (default `false`). Svelte sets it from
+`matchMedia('(prefers-reduced-motion: reduce)')` on every `syncStudio()`. When true,
+emitters stay stopped; HudBar cash number tween (spec 20) is unchanged. Particle
+textures are generated in-scene (`textures.generate`) — no new PNGs.
 
 ## Assets
 

@@ -1299,3 +1299,48 @@ Commands: `npm run check`; `npm run lint`; scoped
 
 - None material for Spec 23 DoD.
 - Production players without query/latch never see Dev tools (by design).
+
+## 2026-08-01 — Spec 21d gap review (Studio VFX)
+
+**Zone:** `src/lib/studio/vfx.ts`, `vfx.test.ts`, `bridge.ts` (+ test, `reducedVfx` only),
+`scenes/StudioScene.ts` (emitter helpers only), `src/routes/+page.svelte` (matchMedia → sync),
+`src/lib/studio/README.md`, `docs/tasks/21d-studio-vfx.md` (DoD ticks), `docs/agent-log.md`
+
+**Built:** Gap audit found Spec 21d unimplemented on this branch (prior impl lived only on
+`agent/studio-vfx` @ `18268b2`; HEAD already had 21a/21b). Ported D3/D4 without touching
+NPC/interact/audio: pure `vfx.ts` caps + helpers; additive `StudioSnapshot.reducedVfx`;
+`+page` `matchMedia('(prefers-reduced-motion: reduce)')` → every `syncStudio()`; Phaser
+desk dust during `generating`/`critiquing` and one-shot cash confetti on Collect Cash
+phase edges (`results` → `idle`/`levelComplete`). In-scene `textures.generate('vfx-dot')`
+— no new PNGs / CREDITS lines. HudBar cash tween untouched.
+
+**Public surface:**
+
+- Caps: `WORK_PARTICLE_MAX` (12), `WORK_PARTICLE_FREQUENCY_MS` (90), `CASH_BURST_COUNT` (18),
+  `CASH_BURST_LIFESPAN_MS` (700)
+- `shouldEmitWorkParticles` / `shouldBurstCashConfetti` / `shouldTriggerCashBurst` /
+  `queryPrefersReducedMotion` / `clampWorkParticleCount` / `clampCashBurstCount`
+- Snapshot field `reducedVfx: boolean` (default `false`)
+
+**Tests:** `vfx.test.ts` covers the §6.1 table. Bridge fixture includes `reducedVfx: false`.
+Commands: `npm run check` (0 errors); `npm run lint` green;
+`npm run test:unit -- --run` → 101 files / 648 passed.
+
+**Decisions:**
+
+- Cash burst origin = player sprite (desk fallback) so floor-deliver feels local.
+- Continuous emitters: one desk work emitter only; cash is `explode` one-shot.
+- Destroy emitters on `#teardownFloor` + scene `SHUTDOWN`; recreate after venue rebuild.
+- Kept 21a spawn / Mum / staff and 21b interact methods untouched; scene edits limited to
+  emitter fields + create/sync/destroy hooks.
+- Did not edit `package.json`, contracts, audio, interact registry, or HudBar.
+
+**Requests:** None (no new npm deps).
+
+**Known gaps:**
+
+- Manual / observational Phaser checks (desk dust + confetti + reduced-motion DevTools)
+  not run headless — unit helpers cover gating/caps only.
+- D1/D2/D5–D10 catalog extras out of scope.
+- StudioFloor.svelte.test.ts needed no `reducedVfx` mock (component does not build
+  snapshots).

@@ -19,6 +19,7 @@
 	import { STUDIO_FLOOR_ENABLED } from '$lib/studio/config';
 	import { StudioBridge } from '$lib/studio/bridge';
 	import { getRoomForVenue } from '$lib/studio/venueRooms';
+	import { queryPrefersReducedMotion } from '$lib/studio/vfx';
 	import { loadDevLatch, resolveDevMode } from '$lib/dev/devMode';
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
@@ -34,6 +35,8 @@
 	let sketchExporter: (() => Promise<Blob | null>) | null = $state(null);
 	/** Bumped when Phaser emits open-shop / toolkit (spec 21b). */
 	let openToolkitNonce = $state(0);
+	/** Spec 21d — OS/browser prefers-reduced-motion → Phaser skips floor particles. */
+	let reducedVfx = $state(false);
 	/** Bumped after Dev latch write/clear so resolveDevMode re-reads localStorage. */
 	let latchTick = $state(0);
 
@@ -133,7 +136,8 @@
 			estimatedWorkMs: game.lastWorkDurationMs,
 			workStartedAt: game.workStartedAt,
 			residentClientArmed: clientSummoned && kitchenHasMum && game.phase === 'idle',
-			hiredRoleIds: game.hiredStaffIds
+			hiredRoleIds: game.hiredStaffIds,
+			reducedVfx
 		});
 	}
 
@@ -184,6 +188,7 @@
 		void game.hiredStaffIds;
 		void clientSummoned;
 		void kitchenHasMum;
+		void reducedVfx;
 		syncStudio();
 		if (game.phase !== 'idle') {
 			clientSummoned = false;
@@ -191,6 +196,13 @@
 	});
 
 	onMount(() => {
+		reducedVfx = queryPrefersReducedMotion();
+		const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+		const onMotionChange = () => {
+			reducedVfx = queryPrefersReducedMotion();
+		};
+		motionQuery.addEventListener('change', onMotionChange);
+
 		const stopIncome = game.startIncomeTicker();
 		game.setAutoInviteAction(() => summonClient());
 		const unsub = studioBridge.subscribe((event) => {
@@ -218,6 +230,7 @@
 			// prop-bark: Phaser already shows fridge feedback; toast optional in v1
 		});
 		return () => {
+			motionQuery.removeEventListener('change', onMotionChange);
 			stopIncome();
 			unsub();
 			game.setAutoInviteAction(() => game.inviteClient());
