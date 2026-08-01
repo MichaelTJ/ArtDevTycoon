@@ -60,8 +60,13 @@ export class EngineStore {
 	/** True once the player has seen the "running in Crayon Mode" notice. */
 	noticeDismissed = $state(false);
 
-	/** True when no engine beyond `mock` could ever run on this device. */
+	/** True when at least one non-mock engine is available on this device. */
 	realAiSupported = $derived(this.options.some((o) => o.id !== 'mock' && o.available));
+	/**
+	 * Crayon Mode banner visibility — active engine is mock and the player has not
+	 * dismissed yet. Independent of `realAiSupported` (playtest P10).
+	 */
+	showCrayonNotice = $derived(this.activeId === 'mock' && !this.noticeDismissed);
 	/** True while a commission is mid-flight and switching engines would unload one out from under it. */
 	switchingLocked = $state(false);
 
@@ -381,7 +386,8 @@ Requirements:
   there is no fall-through blank state.
 - Call `engines.init()` in an `$effect` on mount. It is safe to call before the player
   does anything and must not block the first paint.
-- Show `CapabilityNotice` when `!engines.realAiSupported && !engines.noticeDismissed`.
+- Show `CapabilityNotice` when `engines.showCrayonNotice` (active engine is mock and
+  not yet dismissed). Selecting Janus/remote/etc. hides it immediately.
 - The engine menu opens `EnginePicker`. Choosing an engine that needs a download opens
   `ModelDownloadGate` in its `prompt` state; confirming calls `engines.select(id)` and
   moves the gate to `loading`, driven by `engines.loadProgress`.
