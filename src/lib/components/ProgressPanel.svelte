@@ -16,12 +16,14 @@
 		$props();
 
 	function skillHint(skill: SkillProgress): string {
-		if (skill.xpForNext === 0) return `Lv ${skill.level} · Max level`;
-		return `Lv ${skill.level} · ${skill.xpIntoLevel}/${skill.xpForNext} XP`;
-	}
-
-	function skillTagline(id: SkillProgress['id']): string {
-		return SKILL_DEFS.find((def) => def.id === id)?.tagline ?? '';
+		const tagline = SKILL_DEFS.find((def) => def.id === skill.id)?.tagline ?? '';
+		if (skill.xpForNext === 0) {
+			return tagline
+				? `${tagline} · Lv ${skill.level} · Max level`
+				: `Lv ${skill.level} · Max level`;
+		}
+		const xpLine = `Lv ${skill.level} · ${skill.xpIntoLevel}/${skill.xpForNext} XP`;
+		return tagline ? `${tagline} · ${xpLine}` : xpLine;
 	}
 </script>
 
@@ -35,7 +37,7 @@
 		class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-stone-300 bg-white p-5 shadow-sm"
 	>
 		<div class="flex items-start justify-between gap-3">
-			<div>
+			<div class="min-w-0">
 				<h2 class="text-xl font-bold text-stone-800">Progress</h2>
 				<p class="mt-1 text-sm text-stone-500">
 					Cash ${cash} · Reputation {reputation}
@@ -69,30 +71,23 @@
 
 		<section class="mt-6 space-y-3" aria-label="Standing">
 			<h3 class="text-sm font-semibold tracking-wide text-stone-500 uppercase">Standing</h3>
-			<p class="text-sm text-stone-700">Reputation: {reputation}</p>
 			<ProgressMeter
-				label={reputationMeter.label}
+				label="Reputation"
 				value={reputationMeter.current}
 				max={reputationMeter.target}
-				hint={reputationMeter.remainingLabel}
+				hint="{reputationMeter.label} · {reputationMeter.remainingLabel}"
 			/>
 		</section>
 
 		<section class="mt-6 space-y-3" aria-label="Craft skills">
 			<h3 class="text-sm font-semibold tracking-wide text-stone-500 uppercase">Craft skills</h3>
 			{#each skills as skill (skill.id)}
-				{@const tagline = skillTagline(skill.id)}
-				<div>
-					{#if tagline}
-						<p class="mb-0.5 text-xs text-stone-500">{tagline}</p>
-					{/if}
-					<ProgressMeter
-						label={skill.label}
-						value={skill.xpForNext === 0 ? 1 : skill.xpIntoLevel}
-						max={skill.xpForNext === 0 ? 0 : skill.xpForNext}
-						hint={skillHint(skill)}
-					/>
-				</div>
+				<ProgressMeter
+					label={skill.label}
+					value={skill.xpForNext === 0 ? 1 : skill.xpIntoLevel}
+					max={skill.xpForNext === 0 ? 0 : skill.xpForNext}
+					hint={skillHint(skill)}
+				/>
 			{/each}
 		</section>
 	</div>

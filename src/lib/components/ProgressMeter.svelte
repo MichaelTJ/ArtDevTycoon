@@ -31,6 +31,7 @@
 	const safeMax = $derived(max <= 0 ? 1 : max);
 	const progressValue = $derived(max <= 0 ? safeMax : Math.min(displayValue.current, safeMax));
 	const progressId = $derived(`progress-${label.replace(/\s+/g, '-').toLowerCase()}`);
+	const compact = $derived(variant === 'compact');
 </script>
 
 <div
@@ -42,22 +43,31 @@
 	class:ring-1={emphasize}
 	class:ring-amber-200={emphasize}
 >
-	<div class="mb-0.5 flex items-baseline justify-between gap-2">
-		<label for={progressId} class="text-sm text-stone-600 {variant === 'compact' ? 'text-xs' : ''}">
+	<div class="mb-0.5 flex min-w-0 items-center justify-between gap-2">
+		<label
+			for={progressId}
+			class="min-w-0 truncate text-sm text-stone-600 {compact ? 'text-xs' : ''}"
+			title={label}
+		>
 			{label}
 		</label>
-		{#if delta > 0}
-			<span class="text-xs font-semibold text-emerald-700" aria-live="polite">+{delta}</span>
-		{/if}
+		<div class="flex shrink-0 items-center gap-2">
+			{#if compact && hint}
+				<span class="max-w-[9rem] truncate text-xs text-stone-500" title={hint}>{hint}</span>
+			{/if}
+			{#if delta > 0}
+				<span class="text-xs font-semibold text-emerald-700" aria-live="polite">+{delta}</span>
+			{/if}
+		</div>
 	</div>
 	<progress
 		id={progressId}
-		aria-label={label}
-		class="w-full accent-amber-600 {variant === 'compact' ? 'h-2' : 'h-3'}"
+		aria-label={hint ? `${label}. ${hint}` : label}
+		class="block w-full accent-amber-600 {compact ? 'h-2' : 'h-3'}"
 		value={progressValue}
 		max={safeMax}
 	></progress>
-	{#if hint}
-		<p class="mt-0.5 text-xs text-stone-500">{hint}</p>
+	{#if hint && !compact}
+		<p class="mt-0.5 truncate text-xs text-stone-500" title={hint}>{hint}</p>
 	{/if}
 </div>

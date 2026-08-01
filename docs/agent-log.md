@@ -1656,3 +1656,38 @@ src/lib/components/StudioFloor.svelte.test.ts` → 18 files / 84 passed.
 - Manual Phaser walkthrough (kitchen vs garage vs museum camera) not run headless.
 - Touch-pad positions are fixed at first build; window resize after boot does not
   reposition pads (pre-existing; coarse-pointer only).
+
+## 2026-08-01 — Playtest fix P1 (progression HUD layout)
+
+**Zone:** `ProgressMeter.svelte`, `ProgressMeter.svelte.test.ts`, `HudBar.svelte`,
+`HudBar.svelte.test.ts`, `ProgressPanel.svelte`, `ProgressPanel.svelte.test.ts`,
+`GameMenuBar.svelte`, `components/README.md`, `docs/agent-log.md`, `docs/playtest-notes.md`
+
+**Built:** Fixed P1 — progression HUD no longer stacks unreadable text. `ProgressMeter`
+compact variant puts the hint on the label row (one line + bar). `HudBar` compact drops
+duplicate rep line, uses unlock name as the reputation meter label, and stacks career/skill
+grids single-column until 520px. `GameMenuBar` places `HudBar` full-width below menu
+buttons instead of beside them. `ProgressPanel` removes redundant standing copy and folds
+skill taglines into each meter hint.
+
+**Public surface:** Unchanged props/callbacks on all four components.
+
+**Tests:** `ProgressMeter`, `HudBar`, `ProgressPanel`, `GameMenuBar` component tests
+(23 passed). Commands: `npm run check` (0 errors); `npm run lint` green;
+`npm run test:unit -- --run src/lib/components/ProgressMeter.svelte.test.ts
+src/lib/components/ProgressPanel.svelte.test.ts src/lib/components/HudBar.svelte.test.ts
+src/lib/components/GameMenuBar.svelte.test.ts`.
+
+**Decisions:**
+
+- Kept stone/amber styling; layout-only fix, no visual redesign.
+- Reputation in compact HUD uses `reputationMeter.label` (next unlock) with
+  `remainingLabel` as the inline hint — avoids "Reputation" + unlock name + "Rep N" pile-up.
+- Career/skill grids use `min-[520px]:grid-cols-3` so narrow viewports get one meter per row.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playtest not run in this session (headless tests only).
+- Very long unlock names still truncate with `title` tooltip; full name visible in Progress panel.

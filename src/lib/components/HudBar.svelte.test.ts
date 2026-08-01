@@ -34,7 +34,7 @@ test('renders commission progress text', async () => {
 
 test('exposes commission progressbar value and max', async () => {
 	const screen = render(HudBar, base);
-	const progress = screen.getByRole('progressbar', { name: 'Commissions' });
+	const progress = screen.getByRole('progressbar', { name: /Commissions/ });
 	expect(progress.element()).toHaveProperty('value', 2);
 	expect(progress.element()).toHaveProperty('max', 5);
 });
@@ -44,7 +44,7 @@ test('cash figure eventually reads the passed value', async () => {
 	await expect.element(screen.getByLabelText('Current cash')).toHaveTextContent('$100');
 });
 
-test('shows reputation and skill meters when summaries provided', async () => {
+test('shows unlock and skill meters when summaries provided', async () => {
 	const screen = render(HudBar, {
 		...base,
 		variant: 'compact',
@@ -55,9 +55,10 @@ test('shows reputation and skill meters when summaries provided', async () => {
 		]
 	});
 
-	await expect.element(screen.getByLabelText('Current reputation')).toHaveTextContent('Rep 0');
-	await expect.element(screen.getByRole('progressbar', { name: 'Reputation' })).toBeVisible();
-	await expect.element(screen.getByText(/Pencil & Sketchbook/)).toBeVisible();
-	await expect.element(screen.getByRole('progressbar', { name: /Prompting Lv 1/ })).toBeVisible();
+	await expect
+		.element(screen.getByRole('progressbar', { name: /Pencil & Sketchbook/ }))
+		.toBeVisible();
+	await expect.element(screen.getByText('3 more reputation')).toBeVisible();
+	await expect.element(screen.getByRole('progressbar', { name: /Prompting/ })).toBeVisible();
 	await expect.element(screen.getByText('+3')).toBeVisible();
 });
