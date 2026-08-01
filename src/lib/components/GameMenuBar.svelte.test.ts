@@ -39,6 +39,13 @@ test("toolkit button opens the Artist's Toolkit dialog", async () => {
 	await expect.element(screen.getByRole('dialog', { name: "Artist's Toolkit" })).toBeVisible();
 });
 
+test("openToolkitNonce opens the Artist's Toolkit dialog", async () => {
+	game.reset();
+	const screen = render(GameMenuBar, { ...defaultProps, openToolkitNonce: 1 });
+	await expect.element(screen.getByRole('dialog', { name: "Artist's Toolkit" })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Close toolkit' })).toBeVisible();
+});
+
 test('gallery upgrades button opens the Gallery Upgrades dialog', async () => {
 	game.reset();
 	const screen = render(GameMenuBar, defaultProps);

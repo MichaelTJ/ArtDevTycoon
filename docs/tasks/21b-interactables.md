@@ -548,16 +548,16 @@ One-liners only — do **not** implement in this slice unless leftover and zero 
 
 ## 10. Definition of done
 
-- [ ] `interactables.ts` exports registry helpers; unit tests green with literal table §8.1.
-- [ ] Kitchen fridge furniture tagged `fridge`; garage workbench tagged `toolkit-shelf`.
-- [ ] E near fridge toggles open/closed sprite frames and emits `prop-bark` with a line.
-- [ ] E near toolkit shelf emits `open-shop` / `toolkit`; Svelte opens existing ToolkitShop.
-- [ ] Contextual prompt text for fridge + toolkit (`E — …`).
-- [ ] Talk / deliver / desk / easel priority unchanged — props cannot steal commission flow.
-- [ ] Bridge additive outbound events only; `contracts.ts` / `package.json` untouched.
-- [ ] StudioScene edits limited to furniture place + interact prompt/target/try tails (§ Conflict).
-- [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
-- [ ] `src/lib/studio/README.md` updated; `docs/agent-log.md` handoff appended.
+- [x] `interactables.ts` exports registry helpers; unit tests green with literal table §8.1.
+- [x] Kitchen fridge furniture tagged `fridge`; garage workbench tagged `toolkit-shelf`.
+- [x] E near fridge toggles open/closed sprite frames and emits `prop-bark` with a line.
+- [x] E near toolkit shelf emits `open-shop` / `toolkit`; Svelte opens existing ToolkitShop.
+- [x] Contextual prompt text for fridge + toolkit (`E — …`).
+- [x] Talk / deliver / desk / easel priority unchanged — props cannot steal commission flow.
+- [x] Bridge additive outbound events only; `contracts.ts` / `package.json` untouched.
+- [x] StudioScene edits limited to furniture place + interact prompt/target/try tails (§ Conflict).
+- [x] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
+- [x] `src/lib/studio/README.md` updated; `docs/agent-log.md` handoff appended.
 
 ---
 

@@ -31,6 +31,8 @@
 	let selectedEntry: GalleryEntry | null = $state(null);
 	let clientSummoned = $state(false);
 	let sketchExporter: (() => Promise<Blob | null>) | null = $state(null);
+	/** Bumped when Phaser emits open-shop / toolkit (spec 21b). */
+	let openToolkitNonce = $state(0);
 
 	async function submitCommission(): Promise<void> {
 		const blob = sketchExporter ? await sketchExporter() : null;
@@ -194,7 +196,13 @@
 			if (event.type === 'open-gallery-entry') {
 				const entry = game.displayedGalleryEntries.find((e) => e.id === event.entryId);
 				if (entry) openFullView(entry);
+				return;
 			}
+			if (event.type === 'open-shop' && event.shop === 'toolkit') {
+				openToolkitNonce += 1;
+				return;
+			}
+			// prop-bark: Phaser already shows fridge feedback; toast optional in v1
 		});
 		return () => {
 			stopIncome();
@@ -307,6 +315,7 @@
 				game.phase === 'generating' ||
 				game.phase === 'critiquing'}
 			onopenenginemenu={openEngineMenu}
+			{openToolkitNonce}
 			onafterslotchange={() => {
 				clientSummoned = false;
 				studioBridge.send({ type: 'dismiss-client' });

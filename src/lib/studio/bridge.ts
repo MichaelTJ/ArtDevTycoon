@@ -1,5 +1,8 @@
 import type { ClientBrief, GalleryEntry, GamePhase } from '$lib/types/contracts';
+import type { InteractableId, StudioShopId } from './interactables';
 import type { RoomZoneId } from './rooms';
+
+export type { StudioShopId };
 
 export type StudioOutboundEvent =
 	| { type: 'ready' }
@@ -8,7 +11,14 @@ export type StudioOutboundEvent =
 	| { type: 'deliver-to-client' }
 	| { type: 'open-gallery-entry'; entryId: string }
 	| { type: 'interact-desk' }
-	| { type: 'inspect-zone'; zoneId: RoomZoneId };
+	| { type: 'inspect-zone'; zoneId: RoomZoneId }
+	/** Spec 21b — Svelte opens the matching shop modal. */
+	| { type: 'open-shop'; shop: StudioShopId }
+	/**
+	 * Spec 21b — short flavour line (fridge, later props).
+	 * +page MAY show a toast; MAY no-op if Phaser already drew a bark.
+	 */
+	| { type: 'prop-bark'; propId: InteractableId; text: string };
 
 export type StudioInboundCommand =
 	| { type: 'sync'; snapshot: StudioSnapshot }

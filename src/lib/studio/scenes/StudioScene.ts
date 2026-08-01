@@ -11,6 +11,13 @@ import {
 	TILESET_SPACING
 } from '../config';
 import { slotsForVenue, type EaselSlot } from '../easelLayout';
+import {
+	FRIDGE,
+	fridgeBarkLine,
+	interactPromptText,
+	nearestInteractable,
+	type InteractableId
+} from '../interactables';
 import { nextWanderTarget, stepToward, type WanderState } from '../npcWander';
 import type { ResidentNpcDef, RoomDef, RoomZone, TileMarker } from '../rooms';
 import { isSafeStudioImageUrl } from '../safeImageUrl';
@@ -26,6 +33,13 @@ import { DEFAULT_WORK_ESTIMATE_MS, workBarProgress } from '../workProgress';
 
 /** Warm tint so Mum reads apart from door visitors when using the clients sheet. */
 const MUM_TINT = 0xffc9a8;
+
+interface InteractPropView {
+	id: InteractableId;
+	sprite: Phaser.GameObjects.Image;
+	tx: number;
+	ty: number;
+}
 
 interface EaselView {
 	slot: EaselSlot;
@@ -69,9 +83,14 @@ export class StudioScene extends Phaser.Scene {
 	#mumUsesSheet = false;
 	#staff = new Map<FloorStaffRoleId, StaffSprite>();
 	#prompt!: Phaser.GameObjects.Image;
+	#promptLabel!: Phaser.GameObjects.Text;
 	#snapshot: StudioSnapshot | null = null;
 	#easels: EaselView[] = [];
 	#furnitureGroup!: Phaser.Physics.Arcade.StaticGroup;
+	#interactProps: InteractPropView[] = [];
+	#fridgeOpen = false;
+	#fridgeBarkIndex = 0;
+	#fridgeAutoClose: Phaser.Time.TimerEvent | null = null;
 	#groundLayer: Phaser.Tilemaps.TilemapLayer | null = null;
 	#tilemap: Phaser.Tilemaps.Tilemap | null = null;
 	#touchVector = { x: 0, y: 0 };
@@ -100,6 +119,17 @@ export class StudioScene extends Phaser.Scene {
 		this.#setupInput();
 		this.#setupTouchPad();
 		this.#prompt = this.add.image(0, 0, 'prompt-e').setDepth(20).setVisible(false);
+		this.#promptLabel = this.add
+			.text(0, 0, '', {
+				fontFamily: 'monospace',
+				fontSize: '8px',
+				color: '#fafaf9',
+				backgroundColor: '#1c1917cc',
+				padding: { x: 2, y: 1 }
+			})
+			.setOrigin(0.5, 1)
+			.setDepth(21)
+			.setVisible(false);
 		this.#createWorkBar();
 
 		this.#bridge.setCommandHandler((cmd) => this.#onCommand(cmd));
@@ -168,6 +198,9 @@ export class StudioScene extends Phaser.Scene {
 		}
 
 		this.#furnitureGroup?.clear(true, true);
+		this.#interactProps = [];
+		this.#fridgeOpen = false;
+		this.#cancelFridgeAutoClose();
 		this.#groundLayer?.destroy();
 		this.#groundLayer = null;
 		this.#tilemap?.destroy();
@@ -357,6 +390,9 @@ export class StudioScene extends Phaser.Scene {
 
 	#placeFurniture(): void {
 		this.#furnitureGroup = this.physics.add.staticGroup();
+		this.#interactProps = [];
+		this.#fridgeOpen = false;
+		this.#cancelFridgeAutoClose();
 		for (const prop of this.#room.furniture) {
 			const sprite = this.#furnitureGroup.create(
 				prop.tx * TILE_SIZE + TILE_SIZE / 2,
@@ -368,6 +404,40 @@ export class StudioScene extends Phaser.Scene {
 			if (!prop.solid) {
 				sprite.disableBody(true, false);
 			}
+			if (prop.interactableId) {
+				this.#interactProps.push({
+					id: prop.interactableId,
+					sprite,
+					tx: prop.tx,
+					ty: prop.ty
+				});
+			}
+		}
+	}
+
+	#cancelFridgeAutoClose(): void {
+		if (this.#fridgeAutoClose) {
+			this.#fridgeAutoClose.remove(false);
+			this.#fridgeAutoClose = null;
+		}
+	}
+
+	#setFridgeOpen(open: boolean, emitBark: boolean): void {
+		this.#fridgeOpen = open;
+		const fridge = this.#interactProps.find((p) => p.id === 'fridge');
+		if (fridge) {
+			fridge.sprite.setFrame(open ? FRIDGE.openFrame : FRIDGE.closedFrame);
+		}
+		this.#cancelFridgeAutoClose();
+		if (open) {
+			if (emitBark) {
+				const text = fridgeBarkLine(FRIDGE.barkLines, this.#fridgeBarkIndex++);
+				this.#bridge.emit({ type: 'prop-bark', propId: 'fridge', text });
+			}
+			this.#fridgeAutoClose = this.time.delayedCall(2000, () => {
+				this.#fridgeAutoClose = null;
+				this.#setFridgeOpen(false, false);
+			});
 		}
 	}
 
@@ -892,6 +962,7 @@ export class StudioScene extends Phaser.Scene {
 		| { kind: 'desk' }
 		| { kind: 'easel'; entryId: string }
 		| { kind: 'look'; entryId: string | null; zoneId: RoomZone['id'] }
+		| { kind: 'prop'; id: InteractableId }
 		| null {
 		const px = this.#player.x;
 		const py = this.#player.y;
@@ -939,6 +1010,16 @@ export class StudioScene extends Phaser.Scene {
 			return { kind: 'look', entryId: first?.id ?? null, zoneId: showZone.id };
 		}
 
+		const propMarkers = this.#interactProps.map((p) => ({
+			interactableId: p.id,
+			tx: p.tx,
+			ty: p.ty
+		}));
+		const nearest = nearestInteractable(px, py, propMarkers, TILE_SIZE);
+		if (nearest) {
+			return { kind: 'prop', id: nearest.interactableId };
+		}
+
 		return null;
 	}
 
@@ -946,6 +1027,7 @@ export class StudioScene extends Phaser.Scene {
 		const target = this.#nearestTarget();
 		if (!target) {
 			this.#prompt.setVisible(false);
+			this.#promptLabel.setVisible(false);
 			return;
 		}
 		let x = this.#player.x;
@@ -955,6 +1037,21 @@ export class StudioScene extends Phaser.Scene {
 			x = npc.x;
 			y = npc.y - 18;
 		}
+		if (target.kind === 'prop') {
+			const prop = this.#interactProps.find((p) => p.id === target.id);
+			if (prop) {
+				x = prop.sprite.x;
+				y = prop.sprite.y - 12;
+			}
+			const label =
+				target.id === 'fridge'
+					? interactPromptText({ kind: 'fridge', open: this.#fridgeOpen })
+					: interactPromptText({ kind: 'toolkit-shelf' });
+			this.#prompt.setVisible(false);
+			this.#promptLabel.setText(label).setPosition(x, y).setVisible(true);
+			return;
+		}
+		this.#promptLabel.setVisible(false);
 		this.#prompt.setPosition(x, y).setVisible(true);
 	}
 
@@ -985,6 +1082,17 @@ export class StudioScene extends Phaser.Scene {
 				this.#bridge.emit({ type: 'open-gallery-entry', entryId: target.entryId });
 			} else {
 				this.#bridge.emit({ type: 'inspect-zone', zoneId: target.zoneId });
+			}
+			return;
+		}
+		if (target.kind === 'prop') {
+			if (target.id === 'fridge') {
+				this.#setFridgeOpen(!this.#fridgeOpen, !this.#fridgeOpen);
+				return;
+			}
+			if (target.id === 'toolkit-shelf') {
+				this.#bridge.emit({ type: 'open-shop', shop: 'toolkit' });
+				return;
 			}
 			return;
 		}

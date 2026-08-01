@@ -16,6 +16,8 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `nextWanderTarget` / `stepToward`            | Pure Mum patrol helpers                         |
 | `floorStaffFromHired` / `staffAnchorForRole` | Hired staff → floor NPCs (presentation only)    |
 | `clientLookForTier`                          | Door-visitor tint/frame by client tier          |
+| `nearestInteractable` / `interactPromptText` | Pure prop interact helpers (spec 21b)           |
+| `FRIDGE` / `TOOLKIT_SHELF`                   | Data-driven interactable registry               |
 
 ## Venue floor plans
 
@@ -68,6 +70,23 @@ door visitors idle at the wait spot (Mum patrols unless she is the commission ta
 
 Storefront+ show/window zones also show an E prompt; pressing it opens the first
 displayed gallery entry (or emits `inspect-zone` when the wall is empty).
+
+## Interactable props (spec 21b)
+
+Furniture may carry an optional `interactableId` (`rooms.ts`). Registry lives in
+`interactables.ts` — pure helpers, no Phaser.
+
+| Id              | Room           | E action                                                                                                |
+| --------------- | -------------- | ------------------------------------------------------------------------------------------------------- |
+| `fridge`        | `home-kitchen` | Toggle chest frame (2↔3), emit `prop-bark`, auto-close after 2s                                         |
+| `toolkit-shelf` | `art-room`     | Emit `open-shop` / `toolkit` → `+page` bumps `openToolkitNonce` → menu bar opens existing `ToolkitShop` |
+
+Interact priority (must not reorder): talk → deliver → desk → easel → look → **prop**.
+Commission talk/deliver always wins when in range. Contextual prompt text for props is
+`E — …` via a Phaser Text label (glyph prompt stays for talk/deliver/desk/easel).
+
+**Manual check:** kitchen E on fridge swaps frame + bark; garage E on west workbench
+opens ToolkitShop; standing on Mum while armed still Talks, not Open fridge.
 
 Player animations use a single walk loop + `flipX` (Tiny Dungeon sheet has no full
 4-direction set). Work frames are ADT-authored pencil overlays on the same sheet.

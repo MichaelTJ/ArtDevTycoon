@@ -45,4 +45,20 @@ describe('StudioBridge', () => {
 		bridge.send({ type: 'summon-client' });
 		expect(handler).toHaveBeenCalledWith({ type: 'summon-client' });
 	});
+
+	it('emits open-shop and prop-bark outbound events', () => {
+		const bridge = new StudioBridge();
+		const listener = vi.fn();
+		bridge.subscribe(listener);
+
+		bridge.emit({ type: 'open-shop', shop: 'toolkit' });
+		bridge.emit({ type: 'prop-bark', propId: 'fridge', text: 'Leftover casserole.' });
+
+		expect(listener).toHaveBeenNthCalledWith(1, { type: 'open-shop', shop: 'toolkit' });
+		expect(listener).toHaveBeenNthCalledWith(2, {
+			type: 'prop-bark',
+			propId: 'fridge',
+			text: 'Leftover casserole.'
+		});
+	});
 });
