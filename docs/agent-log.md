@@ -889,3 +889,29 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 **Known gaps:**
 
 - Manual live commission against OpenRouter/OpenAI not run (needs player keys).
+
+## 2026-08-01 � Spec 11 BAGEL sketch + paint tools
+
+**Zone:** `SketchCanvas`, `sketchBlank`, `StudioHudOverlay` / `+page` sketch wiring, `gameState` draft sketch, mock + JanusLink `/edit` client, ADTLocalServe companion
+
+**Built:** Optional briefing sketch pad with brush, eraser, size, colour swatches, clear, undo. `createArt` passes `sketchImage` when strokes exist. Mock returns the sketch as artwork. Remote JanusLink calls `POST /api/janus/edit` (ADTLocalServe; FakeEngine stub / 501 without BAGEL). ComfyUI not used.
+
+**Public surface:**
+
+- `SketchCanvas` � paint props + `onexportready`
+- `isSketchBlank` / `setDraftSketch` / `generate({ sketchImage? })`
+- `JanusLinkClient.edit` + `RemoteProviderClient.edit?`
+
+**Tests:** sketchBlank, SketchCanvas, StudioHudOverlay briefing sketch, mock sketch generate, remote edit vs generate routing, janusLink edit multipart. `npm run check` green; scoped unit tests green.
+
+**Decisions:**
+
+- Paint tools stay presentational; export happens on Create Art.
+- ADTLocalServe FakeEngine re-encodes PNG; real JanusEngine returns 501 until `BAGEL_MODEL_DIR` + BAGEL runtime.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Real BAGEL MoT inference not wired in ADTLocalServe yet (endpoint + stub ready).
+- ADTLocalServe pytest needs project venv with torch (not on PATH here).

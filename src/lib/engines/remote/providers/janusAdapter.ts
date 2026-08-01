@@ -39,6 +39,17 @@ export function createJanusAdapter(deps?: { client?: JanusLinkClient }): RemoteP
 			assertJanuslink(config);
 			const result = await client.understand(config, body, signal);
 			return { text: result.text };
+		},
+
+		async edit(config, body, signal) {
+			assertJanuslink(config);
+			const result = await client.edit(config, body, signal);
+			return {
+				images: result.images.map((img) => ({
+					mimeType: img.mimeType,
+					base64: img.base64
+				}))
+			};
 		}
 	};
 }

@@ -41,4 +41,11 @@ export interface RemoteProviderClient {
 		body: { image: Blob; question: string; filename?: string },
 		signal?: AbortSignal
 	): Promise<{ text: string }>;
+
+	/** Optional sketch/image refine (JanusLink `/edit` / BAGEL). */
+	edit?(
+		config: RemoteEngineConfig,
+		body: { image: Blob; prompt: string; seed?: number; filename?: string },
+		signal?: AbortSignal
+	): Promise<{ images: Array<{ mimeType: string; base64: string }> }>;
 }

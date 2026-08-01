@@ -39,6 +39,24 @@ describe('MockEngine', () => {
 		expect(() => artworkSchema.parse(artwork)).not.toThrow();
 	});
 
+	it('uses sketchImage as artwork when provided', async () => {
+		const tinyPng = Uint8Array.from(
+			atob(
+				'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+			),
+			(c) => c.charCodeAt(0)
+		);
+		const sketch = new Blob([tinyPng], { type: 'image/png' });
+		const artwork = await engine.generate({
+			playerPrompt: 'epic masterpiece',
+			prompt: 'epic masterpiece, crayon',
+			sketchImage: sketch
+		});
+		expect(artwork.playerPrompt).toBe('epic masterpiece');
+		expect(artwork.imageUrl.startsWith('data:image/png;base64,')).toBe(true);
+		expect(() => artworkSchema.parse(artwork)).not.toThrow();
+	});
+
 	it('parses critique output against critiqueDraftSchema', async () => {
 		const artwork = await engine.generate({
 			playerPrompt: 'a fluffy cat',

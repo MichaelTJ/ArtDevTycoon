@@ -110,6 +110,8 @@ export class GameStore {
 	/** Corporate seriesId → on-brand flags for pieces collected so far. */
 	seriesOnBrandFlags = $state<Record<string, boolean[]>>({});
 	draftPrompt = $state('');
+	/** Optional player sketch for BAGEL / mock refine; cleared with each new brief. */
+	draftSketchBlob = $state<Blob | null>(null);
 	generationProgress = $state<number | null>(null);
 	/**
 	 * Wall-clock ms of the last finished generate+critique. Used as the studio desk
@@ -279,7 +281,13 @@ export class GameStore {
 		this.currentAuctionResult = null;
 		this.errorMessage = null;
 		this.draftPrompt = '';
+		this.draftSketchBlob = null;
 		this.phase = 'briefing';
+	}
+
+	/** Store optional sketch PNG for the next `createArt` call. */
+	setDraftSketch(blob: Blob | null): void {
+		this.draftSketchBlob = blob;
 	}
 
 	async createArt(): Promise<void> {
@@ -290,6 +298,7 @@ export class GameStore {
 		const client = this.currentClient;
 		const playerPrompt = this.draftPrompt.trim();
 		const builtPrompt = buildPrompt(playerPrompt, this.activeMediumTier);
+		const sketchImage = this.draftSketchBlob;
 
 		this.phase = 'generating';
 		this.errorMessage = null;
@@ -302,7 +311,11 @@ export class GameStore {
 		await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 		try {
-			const artwork = await this.#engine.generate({ playerPrompt, prompt: builtPrompt });
+			const artwork = await this.#engine.generate({
+				playerPrompt,
+				prompt: builtPrompt,
+				...(sketchImage ? { sketchImage } : {})
+			});
 			this.currentArtwork = artwork;
 			this.phase = 'critiquing';
 
@@ -636,6 +649,7 @@ export class GameStore {
 		this.galleryHistory = [];
 		this.seriesOnBrandFlags = {};
 		this.draftPrompt = '';
+		this.draftSketchBlob = null;
 		this.generationProgress = null;
 		this.unlockedMediumTierIds = [DEFAULT_MEDIUM_TIER_ID];
 		this.activeMediumTierId = DEFAULT_MEDIUM_TIER_ID;

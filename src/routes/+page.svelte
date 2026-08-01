@@ -30,6 +30,13 @@
 	let pendingEngineId = $state<EngineId | null>(null);
 	let selectedEntry: GalleryEntry | null = $state(null);
 	let clientSummoned = $state(false);
+	let sketchExporter: (() => Promise<Blob | null>) | null = $state(null);
+
+	async function submitCommission(): Promise<void> {
+		const blob = sketchExporter ? await sketchExporter() : null;
+		game.setDraftSketch(blob);
+		await game.createArt();
+	}
 
 	const studioBridge = new StudioBridge();
 	const studioDebug = $derived(page.url.searchParams.get('studioDebug') === '1');
@@ -333,10 +340,13 @@
 					{studioDebug}
 					floorInteract={true}
 					pendingSkillGains={game.pendingSkillGains}
+					onsketchexportready={(fn) => {
+						sketchExporter = fn;
+					}}
 					oninvite={summonClient}
 					ontalk={talkToClient}
 					ondeliver={() => void deliverToClient()}
-					onsubmit={() => void game.createArt()}
+					onsubmit={() => void submitCommission()}
 					oncollect={() => void deliverToClient()}
 					onretry={() => game.retry()}
 					ondismisserror={dismissError}
@@ -366,10 +376,13 @@
 						studioDebug={false}
 						floorInteract={false}
 						pendingSkillGains={game.pendingSkillGains}
+						onsketchexportready={(fn) => {
+							sketchExporter = fn;
+						}}
 						oninvite={() => game.inviteClient()}
 						ontalk={() => game.inviteClient()}
 						ondeliver={() => void game.collectCash()}
-						onsubmit={() => void game.createArt()}
+						onsubmit={() => void submitCommission()}
 						oncollect={() => void game.collectCash()}
 						onretry={() => game.retry()}
 						ondismisserror={() => game.dismissError()}

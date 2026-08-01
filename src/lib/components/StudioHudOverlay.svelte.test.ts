@@ -54,7 +54,7 @@ test('idle shows waiting copy without invite button', async () => {
 		.not.toBeInTheDocument();
 });
 
-test('briefing shows prompt composer', async () => {
+test('briefing shows prompt composer and sketch pad', async () => {
 	const screen = render(StudioHudOverlay, {
 		...base,
 		phase: 'briefing',
@@ -62,6 +62,7 @@ test('briefing shows prompt composer', async () => {
 	});
 	await expect.element(screen.getByLabelText('Your prompt')).toBeVisible();
 	await expect.element(screen.getByText('Mum')).toBeVisible();
+	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
 });
 
 test('studioDebug talk button appears when client is summoned', async () => {
