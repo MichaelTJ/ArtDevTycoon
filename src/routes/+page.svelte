@@ -200,6 +200,15 @@
 		}
 	}
 
+	function declineClient(): void {
+		if (game.phase !== 'briefing') return;
+		game.declineClient();
+		showAssignArtist = false;
+		clientSummoned = false;
+		studioBridge.send({ type: 'dismiss-client' });
+		syncStudio();
+	}
+
 	const assignArtistOptions = $derived(
 		game.hiredArtists.map((row) => {
 			const entry = getArtistCatalogEntry(row.catalogId);
@@ -488,6 +497,7 @@
 					oncollect={() => void deliverToClient()}
 					onretry={() => game.retry()}
 					ondismisserror={dismissError}
+					ondecline={declineClient}
 				/>
 				{#if game.phase === 'briefing' && game.currentClient}
 					<button
@@ -540,6 +550,7 @@
 						oncollect={() => void game.collectCash()}
 						onretry={() => game.retry()}
 						ondismisserror={() => game.dismissError()}
+						ondecline={declineClient}
 					/>
 				{/snippet}
 			</GameScene>

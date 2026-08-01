@@ -56,7 +56,7 @@ Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
 | P15 | Bug    | Image / critique **titles often cut too short**                                                                                                                             | **03** `ResultsPanel` / artwork title display (+ maybe engine title length)              | **Fixed** — wrap + tooltip on results headings; mock titles use five prompt words (2026-08-01) |
 | P16 | Design | **New Spec 25** — brush types: draw in crayons/watercolours/etc.; choose medium in painting section                                                                         | **[25](./tasks/25-brush-media.md)** outline; builds on **11** + **13**                   | Catalog only for now                                                                           |
 | P17 | Design | When player can afford an unlock, show a **notification badge** on the relevant menu button                                                                                 | **13/14/16** shops + **03** `GameMenuBar` (affordability affordance)                     | Toolkit / Gallery / Staff badges                                                               |
-| P18 | Design | Player should be able to **decline / say no** to commissions                                                                                                                | **04** invite/brief flow (+ **24a** receptionist board when present)                     | Decline Mum walk-in and board offers                                                           |
+| P18 | Design | Player should be able to **decline / say no** to commissions                                                                                                                | **04** invite/brief flow (+ **24a** receptionist board when present)                     | **Fixed** — `declineClient()` + briefing **No thanks**; reception board footer (2026-08-01)    |
 
 ## Suggested fix order (playtest 2)
 
@@ -65,6 +65,6 @@ Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
 3. ~~**P12** — kitchen zoom ×4 / centering~~ **done**
 4. **P14** — stall copy by medium
 5. ~~**P15** — title truncation~~ **done**
-6. **P18** — decline commission
+6. ~~**P18** — decline commission~~ **done**
 7. **P17** — affordability badges on menu
 8. **P16** → Spec **25** (after outline lock)

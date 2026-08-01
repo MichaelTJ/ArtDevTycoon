@@ -55,5 +55,14 @@
 				</li>
 			{/each}
 		</ul>
+
+		<button
+			type="button"
+			class="mt-4 min-h-11 w-full rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+			aria-label="Decline commission board offers"
+			onclick={onclose}
+		>
+			No thanks
+		</button>
 	</div>
 </div>

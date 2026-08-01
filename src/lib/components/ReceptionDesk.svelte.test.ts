@@ -31,3 +31,12 @@ test('dialog is accessible and closable', async () => {
 	await screen.getByRole('button', { name: 'Close reception desk' }).click();
 	expect(onclose).toHaveBeenCalled();
 });
+
+test('no thanks closes board without accepting', async () => {
+	const onclose = vi.fn();
+	const onaccept = vi.fn();
+	const screen = render(ReceptionDesk, { offers, onaccept, onclose });
+	await screen.getByRole('button', { name: 'Decline commission board offers' }).click();
+	expect(onclose).toHaveBeenCalled();
+	expect(onaccept).not.toHaveBeenCalled();
+});

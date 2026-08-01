@@ -526,6 +526,30 @@ export class GameStore {
 		this.phase = 'briefing';
 	}
 
+	/**
+	 * Player turns down the active brief during briefing — no payout, back to idle.
+	 * Reception desk offers are declined by closing the board before `acceptBoardBrief`.
+	 */
+	declineClient(): void {
+		if (this.phase !== 'briefing' || !this.currentClient) {
+			return;
+		}
+		this.currentClient = null;
+		this.currentArtwork = null;
+		this.currentCritique = null;
+		this.mumRealCritique = null;
+		this.currentAuctionResult = null;
+		this.errorMessage = null;
+		this.draftPrompt = '';
+		this.draftSketchBlob = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
+		this.artistAssignment = null;
+		this.phase = 'idle';
+		this.#scheduleAutoInvite();
+		this.#persist();
+	}
+
 	/** Spec 24 — hire a named artist from the catalog. */
 	hireArtist(catalogId: string): boolean {
 		const entry = getArtistCatalogEntry(catalogId);

@@ -43,7 +43,8 @@ const base = {
 	onsubmit: vi.fn(),
 	oncollect: vi.fn(),
 	onretry: vi.fn(),
-	ondismisserror: vi.fn()
+	ondismisserror: vi.fn(),
+	ondecline: vi.fn()
 };
 
 test('idle shows waiting copy without invite button', async () => {
@@ -64,6 +65,18 @@ test('briefing shows prompt composer without sketch pad', async () => {
 	await expect.element(screen.getByLabelText('Your prompt')).toBeVisible();
 	await expect.element(screen.getByText('Mum')).toBeVisible();
 	await expect.element(screen.getByLabelText('Sketch canvas')).not.toBeInTheDocument();
+});
+
+test('briefing decline button fires ondecline', async () => {
+	const ondecline = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		ondecline
+	});
+	await screen.getByRole('button', { name: 'Decline commission' }).click();
+	expect(ondecline).toHaveBeenCalledTimes(1);
 });
 
 test('generating shows sketch pad while waiting', async () => {

@@ -1427,6 +1427,37 @@ describe('GameStore', () => {
 		expect(store.currentClient?.id).toBe(offers[0].id);
 	});
 
+	it('declineClient clears briefing without payout or reputation change', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { random: () => 0 });
+		store.inviteClient();
+		expect(store.phase).toBe('briefing');
+		expect(store.currentClient).not.toBeNull();
+		store.draftPrompt = 'a cat';
+		const cashBefore = store.cash;
+		const repBefore = store.reputation;
+		const commissionsBefore = store.commissionsCompleted;
+		store.declineClient();
+		expect(store.phase).toBe('idle');
+		expect(store.currentClient).toBeNull();
+		expect(store.draftPrompt).toBe('');
+		expect(store.cash).toBe(cashBefore);
+		expect(store.reputation).toBe(repBefore);
+		expect(store.commissionsCompleted).toBe(commissionsBefore);
+	});
+
+	it('declineClient is a no-op outside briefing', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { random: () => 0 });
+		store.declineClient();
+		expect(store.phase).toBe('idle');
+		store.inviteClient();
+		store.draftPrompt = 'test';
+		void store.createArt();
+		expect(store.phase).toBe('generating');
+		store.declineClient();
+		expect(store.phase).toBe('generating');
+		expect(store.currentClient).not.toBeNull();
+	});
+
 	it('major project beat completes and payout collects', () => {
 		vi.useFakeTimers();
 		try {

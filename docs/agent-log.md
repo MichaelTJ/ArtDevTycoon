@@ -1992,3 +1992,42 @@ non-mock engines so installed-model critiques match mock title richness.
 
 - Manual playthrough not run (component + unit tests only).
 - Portfolio/fridge gallery thumbs still use single-line `truncate` (out of zone).
+
+## 2026-08-01 — Playtest 2 fix P18 (decline commissions)
+
+**Zone:** `gameState.svelte*`, `ReceptionDesk*`, `StudioHudOverlay*`, `+page.svelte`,
+`src/lib/stores/README.md`, `src/lib/components/README.md`, `docs/playtest-notes.md`,
+`docs/agent-log.md`
+
+**Built:** Playtest P18 — player can decline active commissions during briefing and dismiss
+the receptionist board without accepting. `GameStore.declineClient()` clears briefing state,
+returns to idle, reschedules auto-invite, and skips payout/reputation changes. Briefing HUD
+shows **No thanks**; reception desk footer **No thanks** closes the board (header Close
+unchanged). `+page` wires `ondecline` → `declineClient()` + `dismiss-client` bridge event.
+
+**Public surface:**
+
+- `GameStore.declineClient(): void` — briefing-only; clears client/draft/assignment
+- `StudioHudOverlay` — optional `ondecline?: () => void` (briefing phase)
+- `ReceptionDesk` — footer **No thanks** calls existing `onclose()`
+
+**Tests:** `gameState.svelte.test.ts` (`declineClient` happy path + phase guard);
+`ReceptionDesk.svelte.test.ts` (footer no thanks); `StudioHudOverlay.svelte.test.ts`
+(briefing decline callback). Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run src/lib/stores/gameState.svelte.test.ts
+src/lib/components/ReceptionDesk.svelte.test.ts
+src/lib/components/StudioHudOverlay.svelte.test.ts`.
+
+**Decisions:**
+
+- No separate `declineBrief()` store method — board offers are local UI until accepted;
+  closing the dialog is sufficient.
+- No reputation penalty on decline (none in data model).
+- Decline limited to `briefing` phase — mid-generation abort out of scope.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (component + unit tests only).
+- Assign-artist modal stays open only if parent forgets to close — `+page` closes it on decline.
