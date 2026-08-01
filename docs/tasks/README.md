@@ -172,6 +172,12 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 22  | [Multiple save slots](./22-multiple-saves.md) | `saveSlots.ts`, `SaveSlotsPanel`, GameStore switch/new/delete, migration from `adt.save.v1` | 12 (+ ideally 20)                                 |
 | 23  | [Dev mode](./23-dev-mode.md)                  | `src/lib/dev/**`, `DevPanel`, gated cheats + modifier peek; subsumes `?studioDebug`         | 01–04, 12; **after 22** if both touch GameMenuBar |
 
+### Studio ops / late game (24 — design)
+
+| #   | Spec                                                | Owns (new)                                                                                                                            | Depends on                        |
+| --- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| 24  | [Artist team & major projects](./24-artist-team.md) | Catalog: receptionist + NPC talk, trainable artists, commission hand-off, comic/series projects — **design only** (split 24a–d later) | 16, 21a–21b; after playtest P1–P5 |
+
 ```
 Wave C  (after 16 is merged — presentation)
    └── 17 Phaser studio floor → worktree ../adt-wt-phaser-studio   branch agent/phaser-studio
@@ -197,6 +203,13 @@ Wave G+ (after 20 — living studio; **do not merge to main** until user approve
 Wave J  (meta / tooling — after 12; prefer serial GameMenuBar)
    ├── 22 Multiple saves    → ../adt-wt-multiple-saves   branch agent/multiple-saves
    └── 23 Dev mode          → ../adt-wt-dev-mode         branch agent/dev-mode  (after 22)
+
+Wave K  (studio ops — design; implement after playtest stabilise)
+   └── 24 Artist team & major projects → catalog docs/tasks/24-artist-team.md
+       ├── 24a Receptionist + NPC talk + commission board
+       ├── 24b Artist roster + training
+       ├── 24c Assign commissions to artists
+       └── 24d Major projects (comic / animated series)
 ```
 
 Spec 17 adds Phaser 3 as an npm dependency (allowed exception in that spec), mounts a
@@ -244,6 +257,12 @@ Spec 22 adds three local save slots (`adt.save.slots.v1`) with migration from le
 `adt.save.v1`. Spec 23 adds gated Dev mode (`?dev=1` / Vite DEV / latch) with cheats,
 save import/export, and a dev-only Level 1 modifier peek — production players without
 the gate never see it. Run **22 before 23** so GameMenuBar gains Saves, then Dev.
+
+Spec 24 (design) is the active-studio fantasy on top of Spec 16’s idle staffing: talkable
+NPCs and a **receptionist** commission board, a trainable **artist team**, hand-off of
+individual jobs, and **major projects** (comic book / animated series). See
+[24-artist-team.md](./24-artist-team.md). Do not implement until the catalog is split into
+24a–24d with locked formulas; keep distinct from Spec 16 passive income.
 
 ## Worktrees are already set up
 
