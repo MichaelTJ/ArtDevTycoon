@@ -24,11 +24,12 @@ import { z } from 'zod';
 export const LEVEL_1 = {
 	id: 1,
 	name: 'Garage Studio',
-	startingCash: 100,
+	/** Enough for a couple of Mum jobs toward pencils ($15) / garage ($30) — not a free shop. */
+	startingCash: 25,
 	/** Commissions required to unlock the commercial gallery. */
 	targetCommissions: 5,
-	/** Cash required, alongside the commission count, to win Level 1. */
-	targetCash: 500,
+	/** Cash required, alongside the commission count, to win Level 1 (aligned with ~$5 Mum jobs). */
+	targetCash: 50,
 	/**
 	 * Appended to every player prompt before generation. Never shown to the player:
 	 * the comedy of Level 1 is that they write "epic masterpiece" and get crayon.

@@ -9,7 +9,7 @@ const defaultProps = {
 	levelName: 'Home Kitchen',
 	commissionsCompleted: 0,
 	targetCommissions: 5,
-	targetCash: 500,
+	targetCash: 50,
 	engineButtonLabel: 'Art engine · Crayon Mode',
 	engineMenuTitle: 'Choose art engine',
 	engineMenuDisabled: false,

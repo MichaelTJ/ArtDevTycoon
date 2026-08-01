@@ -17,7 +17,7 @@ const base = {
 	levelName: 'Garage Studio',
 	commissionsCompleted: 2,
 	targetCommissions: 5,
-	targetCash: 500,
+	targetCash: 50,
 	reputation: 0,
 	reputationMeter
 };

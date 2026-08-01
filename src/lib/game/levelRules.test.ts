@@ -1,37 +1,52 @@
 import { describe, expect, it } from 'vitest';
+import { LEVEL_1 } from '$lib/types/contracts';
 import { isLevelComplete, levelProgress } from './levelRules';
+
+const { targetCash, targetCommissions, startingCash } = LEVEL_1;
 
 describe('isLevelComplete', () => {
 	it('is false until both targets are met', () => {
-		expect(isLevelComplete({ cash: 100, commissionsCompleted: 0 })).toBe(false);
-		expect(isLevelComplete({ cash: 500, commissionsCompleted: 4 })).toBe(false);
-		expect(isLevelComplete({ cash: 499, commissionsCompleted: 5 })).toBe(false);
+		expect(isLevelComplete({ cash: startingCash, commissionsCompleted: 0 })).toBe(false);
+		expect(isLevelComplete({ cash: targetCash, commissionsCompleted: targetCommissions - 1 })).toBe(
+			false
+		);
+		expect(isLevelComplete({ cash: targetCash - 1, commissionsCompleted: targetCommissions })).toBe(
+			false
+		);
 	});
 
 	it('is true when both targets are met', () => {
-		expect(isLevelComplete({ cash: 500, commissionsCompleted: 5 })).toBe(true);
-		expect(isLevelComplete({ cash: 900, commissionsCompleted: 9 })).toBe(true);
+		expect(isLevelComplete({ cash: targetCash, commissionsCompleted: targetCommissions })).toBe(
+			true
+		);
+		expect(
+			isLevelComplete({ cash: targetCash + 40, commissionsCompleted: targetCommissions + 4 })
+		).toBe(true);
 	});
 });
 
 describe('levelProgress', () => {
 	it('returns clamped fractions and overall as the minimum', () => {
-		expect(levelProgress({ cash: 100, commissionsCompleted: 0 })).toEqual({
+		expect(levelProgress({ cash: startingCash, commissionsCompleted: 0 })).toEqual({
 			commissions: 0,
-			cash: 0.2,
+			cash: startingCash / targetCash,
 			overall: 0
 		});
-		expect(levelProgress({ cash: 500, commissionsCompleted: 4 })).toEqual({
-			commissions: 0.8,
+		expect(
+			levelProgress({ cash: targetCash, commissionsCompleted: targetCommissions - 1 })
+		).toEqual({
+			commissions: (targetCommissions - 1) / targetCommissions,
 			cash: 1,
-			overall: 0.8
+			overall: (targetCommissions - 1) / targetCommissions
 		});
-		expect(levelProgress({ cash: 499, commissionsCompleted: 5 })).toEqual({
+		expect(
+			levelProgress({ cash: targetCash - 1, commissionsCompleted: targetCommissions })
+		).toEqual({
 			commissions: 1,
-			cash: 0.998,
-			overall: 0.998
+			cash: (targetCash - 1) / targetCash,
+			overall: (targetCash - 1) / targetCash
 		});
-		expect(levelProgress({ cash: 500, commissionsCompleted: 5 })).toEqual({
+		expect(levelProgress({ cash: targetCash, commissionsCompleted: targetCommissions })).toEqual({
 			commissions: 1,
 			cash: 1,
 			overall: 1

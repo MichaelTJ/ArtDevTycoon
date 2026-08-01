@@ -16,7 +16,7 @@ const cashMeter: NextUnlock = {
 	track: 'cash',
 	label: 'Cash goal',
 	current: 100,
-	target: 500,
+	target: 50,
 	fill: 0.2,
 	remainingLabel: '$400 more'
 };

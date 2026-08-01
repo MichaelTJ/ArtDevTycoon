@@ -17,7 +17,7 @@ test('renders cash and commission figures', async () => {
 test('Continue calls oncontinue', async () => {
 	const oncontinue = vi.fn();
 	const screen = render(LevelCompleteOverlay, {
-		cash: 500,
+		cash: 50,
 		commissionsCompleted: 5,
 		oncontinue
 	});
@@ -27,7 +27,7 @@ test('Continue calls oncontinue', async () => {
 
 test('exposes role=dialog', async () => {
 	const screen = render(LevelCompleteOverlay, {
-		cash: 500,
+		cash: 50,
 		commissionsCompleted: 5,
 		oncontinue: vi.fn()
 	});

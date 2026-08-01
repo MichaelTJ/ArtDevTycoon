@@ -10,7 +10,7 @@ function base(overrides: Partial<ProgressionSnapshot> = {}): ProgressionSnapshot
 		cash: 100,
 		reputation: 0,
 		commissionsCompleted: 0,
-		targetCash: 500,
+		targetCash: 50,
 		targetCommissions: 5,
 		unlockedVenueId: 'fridge',
 		unlockedMediumTierIds: ['crayon'],
@@ -23,7 +23,7 @@ describe('buildProgressMeters', () => {
 	it('always exposes commission and cash level goals', () => {
 		const meters = buildProgressMeters(base());
 		expect(meters.commissions.target).toBe(5);
-		expect(meters.cash.target).toBe(500);
+		expect(meters.cash.target).toBe(50);
 		expect(meters.commissions.label).toBe('Commissions');
 		expect(meters.cash.label).toBe('Cash goal');
 	});

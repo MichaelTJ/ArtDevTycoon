@@ -1803,3 +1803,14 @@ so cash matches the joke; non-Mum clients unchanged. Eight-line seeded praise po
 - Manual playthrough not run (headless/component tests only).
 - Spec 11 optional briefing sketch → `sketchImage` on generate not wired in P6 flow; needs product call if both loops should coexist.
 - Mock engine still returns procedural SVG for prompt-only generate — player drawing vs AI contrast is visual, not semantic, in Crayon Mode.
+
+## 2026-08-01 — Orchestrator: LEVEL_1 cash goals after P4
+
+**Zone:** src/lib/types/contracts.ts (orchestrator-owned), level/HUD tests, docs/playtest-notes.md
+
+**Built:** After P4 kitchen ~$5 jobs, LEVEL_1.startingCash **100→25** and 	argetCash **500→50** so the win meter matches Mum commissions (pencils $15, garage $30). Updated levelRules,
+extUnlock, HudBar/GameMenuBar/ProgressPanel/LevelCompleteOverlay tests.
+
+**Requests:** None.
+
+**Known gaps:** Gallery layout/atmosphere mid-tier prices may still dwarf kitchen cash — playtest if needed.
