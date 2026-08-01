@@ -1419,3 +1419,36 @@ gate also run.
 - C2 / C5 / C6 / C7 catalog extras remain out of scope (seams via `playSfx`).
 - Richer CC0 beds can replace stubs without code changes.
 - Bridge `audioEnabled` sync waits on orchestrator freeze.
+
+## 2026-08-01 — Spec 21 parent docs gap review (living-meta)
+
+**Zone:** `docs/tasks/21-living-studio.md`, `docs/tasks/21-boss-plan.md`,
+`docs/tasks/README.md`, `docs/architecture.md`, `docs/agent-log.md`
+
+**Built:** Docs-only audit of Spec 21 parent catalog vs HEAD. Boss plan still claimed
+21a–21f were all `ready_for_review` / unmerged; living-studio still described a
+pre-21a floor and left “specs written” unticked. Cross-checked agent-log + DoD ticks +
+code presence (`staffPresence`, `interactables`, `$lib/audio`, `vfx`, bridge fields).
+Updated parents so **21a–21d MVP is marked shipped on this tip** and **21e/21f stay
+open**; deferred catalog rows (A4–A8, B3–B12 extras, C2/C5–C7, D1–D2/D5–D10, E2–E7,
+most of F) remain explicitly unticked. Architecture §3.1 / §9 living-studio blurbs
+synced. No Phaser / `src/**` edits.
+
+**Public surface:** None (docs only).
+
+**Tests:** None run (documentation only). Verification = read DoD ticks on 21a–21d
+(x), 21e/21f ([ ]), confirm missing `pathfind.ts` / bark pool on this tip.
+
+**Decisions:**
+
+- Treat gap-review merge commits on this tip as source of truth for ship status, not
+  historical `agent/living-npcs` etc. branch tips alone.
+- Clarified boss freeze: `audioEnabled` on snapshot remains unused (21c prefs only).
+- Did not tick E1/F1/F4 — siblings own those zones.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- 21e (E1 barks) and 21f (F1/F4/F6 consumers) still open in sibling worktrees.
+- Deferred catalog rows remain future follow-ups; parent now tracks them honestly.

@@ -68,9 +68,15 @@ to `false` to fall back to the CSS `KitchenScene`.
 Spec 19 authors distinct venue floor plans via `getRoomForVenue` (6×6 Mum kitchen through
 28×16 mega-museum). Mum is a resident wander NPC in the fridge kitchen — she never uses
 the door — while non-Mum briefs still `spawn-visitor` through the entrance; Phaser
-rebuilds the tilemap when `activeVenueId` changes. Spec 21b tags a few furniture props
-(`interactableId`) so E can open the fridge (frame swap + bark) or the toolkit shop via
-bridge `open-shop` / `prop-bark` without touching commission talk/deliver priority.
+rebuilds the tilemap when `activeVenueId` changes.
+
+Spec 21 living-studio MVP (slices **21a–21d**) makes the floor feel hired and audible:
+dedicated Mum/staff sheets and tiered client looks (`hiredRoleIds`, `client.tier`);
+interactable fridge / toolkit shelf (`open-shop` / `prop-bark`); mute-first venue music
+and work/cash SFX in Svelte (`adt.audio.v1` — Phaser stays audio-free); desk dust + cash
+confetti gated by snapshot `reducedVfx` from `prefers-reduced-motion`. Catalog extras
+and slices **21e** (bark bubbles) / **21f** (Mum pathfind + contextual verbs) remain
+open — see `docs/tasks/21-living-studio.md`.
 
 Pure game rules in `src/lib/game/**` depend on nothing — no Svelte, no DOM, no engine.
 That is what makes them exhaustively unit-testable and reusable by every engine.
@@ -251,9 +257,10 @@ audit resolution; check the bundle instead.
 Upgrades, staff, gallery customisation, complex client types and extra art mediums are
 out of scope for the original Level 1 architecture note — they landed in specs 12–16.
 The walkable Phaser studio floor is spec 17; sized venues and resident Mum are spec 19;
-HUD meters and craft skills are spec 20. Immersion polish after that — more floor NPCs,
-interactable props, audio, and VFX — is catalogued in
-`docs/tasks/21-living-studio.md` (proposal; split before implementing).
+HUD meters and craft skills are spec 20. Living-studio immersion (spec 21) is split into
+21a–21f; MVP for NPCs, interactables, audio, and VFX (21a–21d) is on the integration tip.
+Ambient barks (21e), floor QoL (21f), and deferred catalog rows (pedestrians, radio prop,
+crowds, etc.) stay in `docs/tasks/21-living-studio.md` until their owning slice lands.
 
 `GameState.reputation` is tracked from Level 1 onward (via `reputationGain` per
 commission). Specs 13–16 gate shops and client tiers on it; Spec 20 surfaces it on the
