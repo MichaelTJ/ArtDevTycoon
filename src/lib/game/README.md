@@ -8,22 +8,23 @@ except where an injected `random` callback is passed through from callers.
 
 Import from `$lib/game` via the barrel in `index.ts`.
 
-| Module                | Exports                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `text.ts`             | `normalize`, `stem`, `STOPWORDS`                                                                                                      |
-| `promptPipeline.ts`   | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                       |
-| `scoring.ts`          | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `keywordMatches`, `ScoreBreakdown`                              |
-| `abstractCritique.ts` | `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`                       |
-| `levelRules.ts`       | `isLevelComplete`, `levelProgress`                                                                                                    |
-| `operations.ts`       | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types |
-| `save.ts`             | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` |
-| `saveSlots.ts`        | `SLOTS_STORAGE_KEY`, `ACTIVE_SLOT_KEY`, `SLOT_IDS`, migration + slot CRUD (`listSaveSlots`, `activateSlot`, `newGameInSlot`, …)       |
-| `idleIncome.ts`       | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                     |
-| `auction.ts`          | `resolveAuction`, `AuctionResult`                                                                                                     |
-| `paletteSeries.ts`    | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
-| `skills.ts`           | `SKILL_IDS`, `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, skill types                            |
-| `nextUnlock.ts`       | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                   |
-| `sketchBlank.ts`      | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                     |
+| Module                       | Exports                                                                                                                               |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `text.ts`                    | `normalize`, `stem`, `STOPWORDS`                                                                                                      |
+| `promptPipeline.ts`          | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                       |
+| `scoring.ts`                 | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `keywordMatches`, `ScoreBreakdown`                              |
+| `abstractCritique.ts`        | `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`                       |
+| `levelRules.ts`              | `isLevelComplete`, `levelProgress`                                                                                                    |
+| `operations.ts`              | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types |
+| `save.ts`                    | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` |
+| `saveSlots.ts`               | `SLOTS_STORAGE_KEY`, `ACTIVE_SLOT_KEY`, `SLOT_IDS`, migration + slot CRUD (`listSaveSlots`, `activateSlot`, `newGameInSlot`, …)       |
+| `idleIncome.ts`              | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                     |
+| `auction.ts`                 | `resolveAuction`, `AuctionResult`                                                                                                     |
+| `paletteSeries.ts`           | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
+| `skills.ts`                  | `SKILL_IDS`, `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, skill types                            |
+| `nextUnlock.ts`              | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                   |
+| `sketchBlank.ts`             | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                     |
+| `mumCritiquePresentation.ts` | `isMumCommission`, `captureMumRealCritique`, `MUM_DISPLAY_SCORE`, `pickMumPraiseLine`, `praiseSeedFromArtworkId`, `MumRealCritique`   |
 
 ## Invariants
 

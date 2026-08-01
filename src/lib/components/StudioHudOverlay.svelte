@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { AuctionResult } from '$lib/game/auction';
 	import { reputationGain, type SkillGainPreview } from '$lib/game';
+	import type { MumRealCritique } from '$lib/game/mumCritiquePresentation';
 	import type { Artwork, ClientBrief, Critique, GamePhase } from '$lib/types/contracts';
 	import AbstractBriefHint from './AbstractBriefHint.svelte';
 	import ArtworkFrame from './ArtworkFrame.svelte';
@@ -24,6 +25,7 @@
 		currentArtwork: Artwork | null;
 		currentCritique: Critique | null;
 		currentAuctionResult: AuctionResult | null;
+		mumRealCritique?: MumRealCritique | null;
 		errorMessage: string | null;
 		generationProgress: number | null;
 		draftPrompt: string;
@@ -60,6 +62,7 @@
 		currentArtwork,
 		currentCritique,
 		currentAuctionResult,
+		mumRealCritique = null,
 		errorMessage,
 		generationProgress,
 		draftPrompt = $bindable(),
@@ -187,6 +190,7 @@
 				artwork={currentArtwork}
 				critique={currentCritique}
 				clientName={currentClient.clientName}
+				{mumRealCritique}
 				{oncollect}
 				showCollectButton={!floorInteract}
 				{pendingSkillGains}

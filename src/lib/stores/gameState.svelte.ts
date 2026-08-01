@@ -69,6 +69,12 @@ import { resolveAuction, type AuctionResult } from '$lib/game/auction';
 import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
 import { DEFAULT_WORK_ESTIMATE_MS } from '$lib/studio/workProgress';
 import {
+	captureMumRealCritique,
+	isMumCommission,
+	MUM_DISPLAY_SCORE,
+	type MumRealCritique
+} from '$lib/game/mumCritiquePresentation';
+import {
 	checkPaletteUsage,
 	fullyCompletedSeriesIds,
 	seriesCompletionBonus
@@ -123,6 +129,11 @@ export class GameStore {
 	/** Populated only in the `results` phase. */
 	currentArtwork = $state<Artwork | null>(null);
 	currentCritique = $state<Critique | null>(null);
+	/**
+	 * Engine verdict for Mum commissions — player-facing praise hides this until
+	 * "Ask for real critique" in {@link ResultsPanel}.
+	 */
+	mumRealCritique = $state<MumRealCritique | null>(null);
 	/** Set when the current results payout came from an auction. */
 	currentAuctionResult = $state<AuctionResult | null>(null);
 	/** Player-facing message for the `failed` phase. */
@@ -347,6 +358,7 @@ export class GameStore {
 		this.currentClient = null;
 		this.currentArtwork = null;
 		this.currentCritique = null;
+		this.mumRealCritique = null;
 		this.currentAuctionResult = null;
 		this.errorMessage = null;
 		this.draftPrompt = '';
@@ -404,6 +416,7 @@ export class GameStore {
 		});
 		this.currentArtwork = null;
 		this.currentCritique = null;
+		this.mumRealCritique = null;
 		this.currentAuctionResult = null;
 		this.errorMessage = null;
 		this.draftPrompt = '';
@@ -463,6 +476,14 @@ export class GameStore {
 
 			const { creativityScore } = scorePrompt(client, playerPrompt);
 			const tier = briefTier(client);
+			const isMum = isMumCommission(client.clientName);
+			if (isMum) {
+				this.mumRealCritique = captureMumRealCritique(draft, creativityScore);
+			} else {
+				this.mumRealCritique = null;
+			}
+			const payoutAccuracy = isMum ? MUM_DISPLAY_SCORE : draft.accuracyScore;
+			const payoutCreativity = isMum ? MUM_DISPLAY_SCORE : creativityScore;
 			let finalPayout: number;
 			let auctionResult: AuctionResult | null = null;
 
@@ -476,8 +497,8 @@ export class GameStore {
 			} else {
 				finalPayout = calculatePayout(
 					client,
-					draft.accuracyScore,
-					creativityScore,
+					payoutAccuracy,
+					payoutCreativity,
 					this.presentationMultiplier
 				);
 				if (
@@ -494,9 +515,9 @@ export class GameStore {
 
 			const critique = critiqueSchema.parse({
 				title: draft.title,
-				accuracyScore: draft.accuracyScore,
+				accuracyScore: payoutAccuracy,
 				criticReview: draft.criticReview,
-				creativityScore,
+				creativityScore: payoutCreativity,
 				finalPayout
 			});
 
@@ -614,6 +635,7 @@ export class GameStore {
 			this.galleryHistory = [entry, ...this.galleryHistory];
 			this.currentArtwork = null;
 			this.currentCritique = null;
+			this.mumRealCritique = null;
 			this.currentClient = null;
 			this.currentAuctionResult = null;
 			this.draftSketchBlob = null;
@@ -809,6 +831,7 @@ export class GameStore {
 		this.currentClient = null;
 		this.currentArtwork = null;
 		this.currentCritique = null;
+		this.mumRealCritique = null;
 		this.currentAuctionResult = null;
 		this.errorMessage = null;
 		this.draftPrompt = '';

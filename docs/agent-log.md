@@ -1728,3 +1728,49 @@ src/lib/game/scoring.test.ts`.
 - Manual playtest not run in this session (headless tests only).
 - `LEVEL_1.targetCash` and gallery layout/atmosphere costs may still feel high relative
   to the rebased kitchen ladder — tune in a follow-up if progression HUD still misleads.
+
+## 2026-08-01 — Playtest fix P7 (Mum praise + hidden real critique)
+
+**Zone:** `src/lib/data/mumPraise.ts`, `mumPraise.test.ts`, `src/lib/game/mumCritiquePresentation.ts`,
+`mumCritiquePresentation.test.ts`, `ResultsPanel.svelte`, `ResultsPanel.svelte.test.ts`,
+`StudioHudOverlay.svelte`, `StudioHudOverlay.svelte.test.ts`, `gameState.svelte.ts`,
+`gameState.svelte.test.ts`, `+page.svelte`, component/game/data READMEs, `docs/agent-log.md`,
+`docs/playtest-notes.md`
+
+**Built:** Playtest P7 — Mum commissions now default to toddler-style praise and **10/10**
+Accuracy/Creativity on the results panel. Engine/Janus critique is preserved in
+`GameStore.mumRealCritique` and revealed via an **Ask for real critique** button (harsh
+contrast = comedy). Payout, skill preview, and gallery scores use the 10/10 display values
+so cash matches the joke; non-Mum clients unchanged. Eight-line seeded praise pool in
+`mumPraise.ts`.
+
+**Public surface:**
+
+- `MUM_PRAISE_POOL`, `pickMumPraise(seed)` — praise lines
+- `isMumCommission(clientName)`, `captureMumRealCritique(draft, creativityScore)`,
+  `MUM_DISPLAY_SCORE`, `MumRealCritique`, `praiseSeedFromArtworkId(id)`,
+  `pickMumPraiseLine(seed)`
+- `GameStore.mumRealCritique` — engine verdict for reveal; cleared on invite/collect/reset
+- `ResultsPanel` prop `mumRealCritique?`; `StudioHudOverlay` passes it through
+
+**Tests:** `mumPraise`, `mumCritiquePresentation`, `ResultsPanel` (praise + reveal),
+`StudioHudOverlay` (pass-through), `GameStore` (Mum 10/10 payout + real snapshot). Commands:
+`npm run check` (0 errors); `npm run lint` green; `npm run test:unit -- --run`
+(scoped files above) → 5 files / 88 passed.
+
+**Decisions:**
+
+- Presentation-only layer — engines untouched; real scores stored separately for reveal.
+- Praise picked from artwork id hash so the same piece always gets the same line.
+- `currentCritique` stores display scores (10/10 for Mum) so payout/rep/skill preview stay
+  consistent without duplicating payout math in the UI.
+- Reset `realCritiqueRevealed` when `mumRealCritique` changes (new commission).
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual kitchen playthrough not run headless (praise + reveal button only tested in
+  component tests).
+- Kitchen budgets now ~$5 via merged P4 — max Mum payout matches the praise joke.
+- Auction-house Mum briefs (if any) would not get Mum praise override (walk-in only today).
