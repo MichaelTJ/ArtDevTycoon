@@ -77,8 +77,9 @@ test('lists career standing and craft sections', async () => {
 	await expect.element(screen.getByText('Standing')).toBeVisible();
 	await expect.element(screen.getByText('Craft skills')).toBeVisible();
 	await expect.element(screen.getByText('Prompting')).toBeVisible();
+	await expect.element(screen.getByText('Hitting the brief.')).toBeVisible();
 	await expect.element(screen.getByText(/Reputation: 0/)).toBeVisible();
 
-	await screen.getByRole('button', { name: 'Close' }).click();
+	await screen.getByRole('button', { name: 'Close progress' }).click();
 	expect(onclose).toHaveBeenCalledOnce();
 });

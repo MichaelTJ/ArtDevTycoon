@@ -28,8 +28,9 @@ Import from `$lib/game` via the barrel in `index.ts`.
 - Keyword scoring uses stemming plus a 4-character minimum substring rule so `gold` matches
   `golden` and `sword` matches `longsword`, without short tokens matching everything.
 - Abstract briefs (`abstractness >= 1` with clusters) score via the best interpretation
-  cluster; parroting vague request words yields accuracy 1. Vision engines ask
-  `critiqueTargetsForBrief` keywords (empty → accuracy 1).
+  cluster; parroting vague request words yields accuracy 1; inventing a scene that hits
+  no cluster yields accuracy 2. Vision engines ask `critiqueTargetsForBrief` keywords
+  (empty → accuracy 1).
 - Creativity ignores stopwords so filler like "please draw me" does not inflate scores.
 - Payout weights accuracy 70% / creativity 30% for concrete briefs, and 50% / 50% when
   interpretation scoring applies. Always clamped to `[0, brief.budget]`; the floor of 1

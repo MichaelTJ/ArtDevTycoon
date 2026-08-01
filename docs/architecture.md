@@ -238,8 +238,10 @@ audit resolution; check the bundle instead.
 
 Upgrades, staff, gallery customisation, complex client types and extra art mediums are
 out of scope for the original Level 1 architecture note — they landed in specs 12–16.
-The walkable Phaser studio floor is spec 17. Leave seams for Level 2+ room art; do not
-invent unique tilesets for art-room / studio / gallery until those levels ship.
+The walkable Phaser studio floor is spec 17; sized venues and resident Mum are spec 19;
+HUD meters and craft skills are spec 20. Immersion polish after that — more floor NPCs,
+interactable props, audio, and VFX — is catalogued in
+`docs/tasks/21-living-studio.md` (proposal; split before implementing).
 
 `GameState.reputation` is tracked from Level 1 onward (via `reputationGain` per
 commission). Specs 13–16 gate shops and client tiers on it; Spec 20 surfaces it on the

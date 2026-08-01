@@ -915,3 +915,123 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 
 - Real BAGEL MoT inference not wired in ADTLocalServe yet (endpoint + stub ready).
 - ADTLocalServe pytest needs project venv with torch (not on PATH here).
+
+## 2026-08-01 — Spec 07 gap review (JanusLink / My PC)
+
+**Zone:** `src/lib/engines/remote/**`, `MyPcSetup*`, `EnginePicker*`, `engineStore*`, engine/component READMEs, `docs/agent-log.md` (no redesign of 08/09 providers)
+
+**Built:** Closed Spec 07 quality gaps against the current multi-provider architecture. JanusLink client now sets `credentials: 'omit'`, falls back to HTTP status text when the error body lacks `{ error }`, and is typed to the `januslink` config arm only. Restored the full JanusLink player setup guide (Tailscale, `JANUS_ALLOWED_ORIGINS`, Bearer-only auth) in `remote/README.md` and the My PC setup help. Added missing unit/component coverage for load failure/progress, CORS on generate, status-text errors, EngineStore remote test/connect, and picker “Change My PC server”.
+
+**Public surface:** Unchanged APIs; `JanusLinkConfig` type exported from `janusLinkClient`.
+
+**Tests:** `janusLinkClient` / `remoteEngine` / `remoteConfig` (node); `engineStore` My PC suite; `MyPcSetup` / `EnginePicker` (client). Commands: `npm run check` (0 errors); scoped `npm run test:unit -- --run src/lib/engines/remote src/lib/stores/engineStore.svelte.test.ts src/lib/components/MyPcSetup.svelte.test.ts src/lib/components/EnginePicker.svelte.test.ts` → 12 files / 77 tests passed. Owned-file prettier/eslint clean.
+
+**Decisions:**
+
+- Left Spec 08/09 provider framework intact; only tightened Spec 07 JanusLink path + docs/tests.
+- Probe copy stays “Set up My PC” (not JanusLink-only) because 08/09 widened providers.
+
+**Requests:**
+
+- `npm run lint` still fails prettier on out-of-zone `docs/tasks/21-*.md`, `22-*.md`, `23-*.md`, and `docs/tasks/README.md` — orchestrator should format those.
+- Optional: `docs/architecture.md` remote tier row already mentions 07–09 providers; `contracts.ts` comment still says JanusLink-only — widen comment if desired.
+
+**Known gaps:**
+
+- Manual E2E against a live JanusLink install still not run (needs GPU PC + Tailscale + allowlisted origin).
+- Full-repo `npm run lint` red only from unowned task-doc prettier drift.
+
+## 2026-08-01 � Spec 17 gap review (Phaser studio floor)
+
+**Zone:** `src/lib/studio/**`, `StudioFloor*`, `StudioHudOverlay*` (tests/docs only), `static/studio/**` (unchanged), DoD ticks in `docs/tasks/17-phaser-studio.md`, `docs/agent-log.md`
+
+**Built:** Closed remaining Spec 17 quality gaps without redesigning Specs 18�21 studio extensions.
+
+- `slotsForVenue`: storefront / gallery-hall / mega-museum are easels-only; fridge magnets + garage 3+3 mix preserved (spec 19).
+- `isSafeStudioImageUrl` + StudioScene easel loader: reject unsafe URLs; unload `art-<id>` textures on replace; ignore stale async loads.
+- Door visitor faces room center on arrive.
+- `StudioFloor` loading / error / boot-timeout UI; destroy-on-unmount hardened; BootScene sets `studioBootFailed` on asset loaderror.
+- Component tests for loading, ready, destroy; easel kind tests; safeImageUrl unit tests.
+- Spec 17 Definition of done ticked; studio + components READMEs updated.
+
+**Public surface:**
+
+- `isSafeStudioImageUrl(url: string): boolean` from `/studio/safeImageUrl`
+- `StudioFloor` boot status (loading until bridge `ready`)
+
+**Tests:** `npm run check` green; `npm run test:unit -- --run src/lib/studio src/lib/components/StudioFloor.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts` ? 9 files / 29 passed. Full suite: 541 passed; 1 pre-existing flake in `ResultsPanel.svelte.test.ts` (out of zone). Owned-file prettier/eslint clean.
+
+**Decisions:**
+
+- Did not add a new bridge event for boot failure (keeps Spec 17 exact surface); registry flag + StudioFloor timeout instead.
+- Left Mum / venue rebuild / deliver-to-client / work progress bar from Specs 19�20 intact.
+- 4-dir walk anims remain flipX + single sheet (Tiny Dungeon constraint; documented in studio README).
+
+**Requests:**
+
+- Full-repo `npm run lint` may still fail prettier on unowned `docs/tasks/21-*.md` / `22` / `23` / task README � format centrally if still drifting.
+- Optional: re-run `npm run test:e2e` with `studioDebug=1` (not run this session; path already present).
+
+**Known gaps:**
+
+- Manual playtest of touch D-pad / easel thumbnails under real WebGL not re-run here.
+- Player anims still not true 4-direction sheets (asset limitation; intentional).
+
+## 2026-08-01 — Spec 18 gap review (abstract prompts)
+
+**Zone:** Spec 18 D1+D2 paths (`kitchenBriefs*`, `briefs*`, `abstractCritique*`, `scoring*`, engines critique wiring, `AbstractBriefHint*`, `StudioHudOverlay` mount, READMEs, architecture §1 already present, task DoD, agent-log)
+
+**Built:** Gap audit against Spec 18. Core ladder / cluster scoring / pickBrief gating / UI hint / architecture blurb were already present from 18a/18b. Closed remaining quality gaps:
+
+- Remote critique now sets `accuracyScore = 1` when `critiqueTargetsForBrief` returns empty (matches Janus; no longer only via `accuracyFromHits(0,0)`).
+- Remote unit tests for abstract parrot (empty targets) and sunday-dinner cluster keyword questions.
+- Scoring test for invent-but-unrecognised abstract prompts → accuracy 2.
+- Mum band-0 briefs (`c1`–`c3`, `c7`) share `/avatars/c1.svg` per §2.2; kitchen tests assert cluster keyword counts 2–6.
+- Spec 18 Definition of done ticked; game/engines README wording tightened.
+
+**Public surface:** Unchanged from Spec 18a/18b (`KITCHEN_BRIEFS`, abstract critique helpers, `AbstractBriefHint`, `critiqueTargetsForBrief` engine path).
+
+**Tests:** Owned Spec 18 suite green (`kitchenBriefs`, `briefs`, `abstractCritique`, `scoring`, `critiqueProtocol`, `mockEngine`, `janusEngine`, `remoteEngine`, `gameState` opener/abstractness, `AbstractBriefHint`). Commands: `npm run check` (0 errors); `npm run lint` green; full `npm run test:unit -- --run` → 91 files / 545 passed.
+
+**Decisions:**
+
+- Did not retag billionaire briefs with clusters (explicitly out of scope).
+- Spec table ratio 0.75 for the four-keyword nostalgia prompt remains documented as algorithmic 1.0; the 3/4 ladder case stays covered separately.
+- At `commissionsCompleted === 0`, opener guarantee still forces Mum band-0 even when billionaire is unlocked (spec §5.2 wins over the §5.4 “billionaire may appear” wording).
+
+**Requests:** None for Spec 18. Optional: format any remaining unowned task-doc prettier drift centrally.
+
+**Known gaps:**
+
+- None material for Spec 18 acceptance criteria.
+- Pre-existing out-of-zone client flake (`ResultsPanel`) may still appear under full-suite load.
+
+## 2026-08-01 — Spec 20 gap review (progression feedback)
+
+**Zone:** Spec 20 ownership (`skills*`, `nextUnlock*`, `save` skill XP, `gameState` skill wiring, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`, `HudBar` / `GameMenuBar` / `ResultsPanel` / `StudioHudOverlay`, docs)
+
+**Built:** Gap audit against Spec 20. Core domain math, save fields, GameStore XP/multiplier wiring, HUD meters, Progress panel, and pending results toast were already present. Closed remaining quality gaps:
+
+- `ProgressMeter` treats `max <= 0` as a full bar (capped skills).
+- `ProgressPanel` shows skill taglines; capped skill meters no longer render empty.
+- Compact `HudBar` reputation hint now includes the next-unlock label.
+- `GameMenuBar` mounts `WorkGainToast` in `collected` mode from `lastCollectedGains`.
+- `nextUnlock` Max prestige uses current/current (not `max(rep, 1)`).
+- `ResultsPanel` tests use a data-URL artwork (no `/test.png` 404 flake).
+- Added StudioHudOverlay pending-gains coverage + ProgressMeter max-0 / banked-toast tests.
+
+**Public surface:** Unchanged from Spec 20 (`skillProgress`, `previewSkillGains`, `buildProgressMeters`, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`, GameStore skill fields).
+
+**Tests:** Spec 20 suite green; full `npm run test:unit -- --run` → 91 files / 548 passed. Commands: `npm run check` (0 errors); `npm run lint` green.
+
+**Decisions:**
+
+- Banked toast lives on `GameMenuBar` (results UI unmounts on collect; menu strip stays visible for the 1.6s pulse).
+- Did not redesign shop unlock tables or Phaser desk XP bars (out of scope).
+
+**Requests:** None.
+
+**Known gaps:**
+
+- None material for Spec 20 acceptance criteria.
+- Skill trees / Phaser desk XP bars remain deliberately out of scope.

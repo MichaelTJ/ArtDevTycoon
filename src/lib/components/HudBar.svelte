@@ -77,7 +77,7 @@
 				label="Reputation"
 				value={reputationMeter.current}
 				max={reputationMeter.target}
-				hint={reputationMeter.remainingLabel}
+				hint="{reputationMeter.label} · {reputationMeter.remainingLabel}"
 				variant={meterVariant}
 			/>
 		</div>

@@ -26,3 +26,16 @@ test('exposes pending delta in the accessibility tree', async () => {
 
 	await expect.element(screen.getByText('+3')).toBeVisible();
 });
+
+test('treats max 0 as a full bar', async () => {
+	const screen = render(ProgressMeter, {
+		label: 'Hustle',
+		value: 0,
+		max: 0,
+		hint: 'Lv 10 · Max level'
+	});
+
+	const progress = screen.getByRole('progressbar', { name: 'Hustle' });
+	expect(progress.element()).toHaveProperty('value', 1);
+	expect(progress.element()).toHaveProperty('max', 1);
+});

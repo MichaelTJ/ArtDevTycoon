@@ -27,7 +27,9 @@
 		easing: cubicOut
 	});
 
+	/** Spec: max 0 means "full" (capped meters), not an empty 0/1 bar. */
 	const safeMax = $derived(max <= 0 ? 1 : max);
+	const progressValue = $derived(max <= 0 ? safeMax : Math.min(displayValue.current, safeMax));
 	const progressId = $derived(`progress-${label.replace(/\s+/g, '-').toLowerCase()}`);
 </script>
 
@@ -52,7 +54,7 @@
 		id={progressId}
 		aria-label={label}
 		class="w-full accent-amber-600 {variant === 'compact' ? 'h-2' : 'h-3'}"
-		value={Math.min(displayValue.current, safeMax)}
+		value={progressValue}
 		max={safeMax}
 	></progress>
 	{#if hint}

@@ -60,3 +60,16 @@ test('progress button opens the Progress dialog', async () => {
 	await expect.element(screen.getByRole('dialog', { name: 'Progress' })).toBeVisible();
 	await expect.element(screen.getByText('Craft skills')).toBeVisible();
 });
+
+test('shows banked gains toast after collect pulse', async () => {
+	game.reset();
+	game.lastCollectedGains = {
+		skills: { prompting: 8, imagination: 6, hustle: 4 },
+		reputation: 2,
+		cash: 85
+	};
+	const screen = render(GameMenuBar, defaultProps);
+	await expect.element(screen.getByText(/Banked/)).toBeVisible();
+	await expect.element(screen.getByText(/\+\$85/)).toBeVisible();
+	game.clearLastCollectedGains();
+});

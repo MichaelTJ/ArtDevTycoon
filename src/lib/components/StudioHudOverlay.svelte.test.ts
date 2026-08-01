@@ -96,3 +96,16 @@ test('results shows deliver hint and hides Collect Cash on the floor', async () 
 	await screen.getByTestId('studio-debug-deliver').click();
 	expect(ondeliver).toHaveBeenCalledTimes(1);
 });
+
+test('results shows pending skill gains before collect', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'results',
+		currentClient: LEVEL_1_BRIEFS[0],
+		currentArtwork: artwork,
+		currentCritique: critique,
+		pendingSkillGains: { prompting: 8, imagination: 3, hustle: 2 }
+	});
+	await expect.element(screen.getByText(/On collect/)).toBeVisible();
+	await expect.element(screen.getByText(/\+8\/\+3\/\+2 XP/)).toBeVisible();
+});

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { NextUnlock, SkillProgress } from '$lib/game';
+	import { SKILL_DEFS, type NextUnlock, type SkillProgress } from '$lib/game';
 	import ProgressMeter from './ProgressMeter.svelte';
 
 	interface Props {
@@ -18,6 +18,10 @@
 	function skillHint(skill: SkillProgress): string {
 		if (skill.xpForNext === 0) return `Lv ${skill.level} · Max level`;
 		return `Lv ${skill.level} · ${skill.xpIntoLevel}/${skill.xpForNext} XP`;
+	}
+
+	function skillTagline(id: SkillProgress['id']): string {
+		return SKILL_DEFS.find((def) => def.id === id)?.tagline ?? '';
 	}
 </script>
 
@@ -39,7 +43,8 @@
 			</div>
 			<button
 				type="button"
-				class="min-h-11 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				class="min-h-11 shrink-0 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="Close progress"
 				onclick={onclose}
 			>
 				Close
@@ -76,12 +81,18 @@
 		<section class="mt-6 space-y-3" aria-label="Craft skills">
 			<h3 class="text-sm font-semibold tracking-wide text-stone-500 uppercase">Craft skills</h3>
 			{#each skills as skill (skill.id)}
-				<ProgressMeter
-					label={skill.label}
-					value={skill.xpIntoLevel}
-					max={skill.xpForNext === 0 ? 1 : skill.xpForNext}
-					hint={skillHint(skill)}
-				/>
+				{@const tagline = skillTagline(skill.id)}
+				<div>
+					{#if tagline}
+						<p class="mb-0.5 text-xs text-stone-500">{tagline}</p>
+					{/if}
+					<ProgressMeter
+						label={skill.label}
+						value={skill.xpForNext === 0 ? 1 : skill.xpIntoLevel}
+						max={skill.xpForNext === 0 ? 0 : skill.xpForNext}
+						hint={skillHint(skill)}
+					/>
+				</div>
 			{/each}
 		</section>
 	</div>

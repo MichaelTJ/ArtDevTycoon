@@ -57,6 +57,7 @@ test('shows reputation and skill meters when summaries provided', async () => {
 
 	await expect.element(screen.getByLabelText('Current reputation')).toHaveTextContent('Rep 0');
 	await expect.element(screen.getByRole('progressbar', { name: 'Reputation' })).toBeVisible();
+	await expect.element(screen.getByText(/Pencil & Sketchbook/)).toBeVisible();
 	await expect.element(screen.getByRole('progressbar', { name: /Prompting Lv 1/ })).toBeVisible();
 	await expect.element(screen.getByText('+3')).toBeVisible();
 });
