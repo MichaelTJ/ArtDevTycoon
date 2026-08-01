@@ -1,4 +1,5 @@
 import { LEVEL_1_BRIEFS } from '$lib/data/briefs';
+import { stallMessagesForArtwork } from '$lib/data/stallMessages';
 import { pickMumPraiseLine, praiseSeedFromArtworkId } from '$lib/game/mumCritiquePresentation';
 import type { Artwork, Critique } from '$lib/types/contracts';
 import { expect, test, vi } from 'vitest';
@@ -168,6 +169,20 @@ test('Mum results pass through praise mode to ResultsPanel', async () => {
 	await expect
 		.element(screen.getByRole('button', { name: 'Ask for real critique from the art critic' }))
 		.toBeVisible();
+});
+
+test('critiquing shows medium-specific stall copy instead of commissioner wait', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'critiquing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		currentArtwork: artwork,
+		activeMediumTierId: 'pencil'
+	});
+	const firstLine = stallMessagesForArtwork('pencil', artwork.id)[0]!;
+	await expect.element(screen.getByText('Finishing up')).toBeVisible();
+	await expect.element(screen.getByText(firstLine)).toBeVisible();
+	expect(screen.container.textContent).not.toContain('Waiting for the commissioner');
 });
 
 test('auction results show long critique title in full', async () => {
