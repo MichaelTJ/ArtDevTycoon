@@ -1452,3 +1452,47 @@ synced. No Phaser / `src/**` edits.
 
 - 21e (E1 barks) and 21f (F1/F4/F6 consumers) still open in sibling worktrees.
 - Deferred catalog rows remain future follow-ups; parent now tracks them honestly.
+
+## 2026-08-01 — Spec 21f gap review (Studio QoL)
+
+**Zone:** `src/lib/studio/pathfind*`, `interactPrompt*`, `npcWander*` (+ path-queue
+helpers), `scenes/StudioScene.ts` (prompt draw + Mum path-follow + camera lerp only),
+`README.md`, `docs/tasks/21f-studio-qol.md` (DoD ticks), `docs/agent-log.md`
+
+**Built:** Gap audit found Spec 21f missing on this branch (prior impl only on
+`agent/studio-qol` @ `bf1c11f`; HEAD already had 21a–21d including `reducedVfx`).
+Ported F1/F4/F6 without touching spawn/registry/particles: `interactPromptLabel` +
+text world prompts; 4-neighbour BFS Mum pathfinding over `RoomDef.collision`;
+`reducedVfx` consumers for Mum pause (~600 ms) and hard camera follow. Reused 21d
+`+page` / `queryPrefersReducedMotion` snapshot wiring — did not rename or re-add the
+field.
+
+**Public surface:**
+
+- `findPath(grid, start, goal)` / `findPathInRoom(width, height, collision, start, goal)`
+  → `TileMarker[] | null`
+- `interactPromptLabel(input)` / `prefersReducedMotion(media?)`
+- `withPath` / `tileFromPixel` on `WanderState` (path + pathIndex)
+
+**Tests:** `pathfind.test.ts` (kitchen A–D + null + mega open + 3×3);
+`interactPrompt.test.ts` (fallback table + registry win + prefersReducedMotion);
+`npcWander` path-queue cases. Commands: `npm run check` (0 errors); `npm run lint`
+green; `npm run test:unit -- --run src/lib/studio` → 13 files / 56 passed.
+
+**Decisions:**
+
+- Text-only world prompts (depth 20, white + dark stroke); `prompt-e` stays loaded
+  unused.
+- Path queue lives on `WanderState`; repath only when path empty (new waypoint /
+  skip).
+- Camera soft lerp (0.12) gated off when `reducedVfx` — hard follow (1).
+- Kept 21a `#playMumAnim` / staff looks and 21b prop handlers / 21d emitters
+  untouched aside from owned prompt + Mum path + camera methods.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Curator/staff still straight-line patrol (optional BFS reuse not required for MVP).
+- Catalog F3 minimap, F5 gamepad, F7 memory density — out of scope.
+- Manual Phaser walkthrough (Mum vs fridge/table, verb prompts) not run headless.
