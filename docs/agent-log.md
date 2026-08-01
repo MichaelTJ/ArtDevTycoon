@@ -1544,3 +1544,43 @@ hides bubble and clears the live region; countdown resets.
 - E2–E7 catalog extras out of scope.
 - Manual Phaser idle timing / bubble follow not exercised headless.
 - Spec 21f pathfinding merged separately; bark attach follows Mum/staff sprites.
+
+## 2026-08-01 — Playtest fix P10 (Crayon notice vs active engine)
+
+**Zone:** `src/lib/stores/engineStore.svelte.ts`, `engineStore.svelte.test.ts`,
+`CapabilityNotice.svelte` (unchanged), `CapabilityNotice.svelte.test.ts` (unchanged),
+`src/routes/+page.svelte` (notice snippet + `capabilityReason`), `stores/README.md`,
+`components/README.md`, `docs/agent-log.md`, `docs/playtest-notes.md`
+
+**Built:** Fixed P10 — the Crayon Mode banner no longer stays visible after selecting
+Janus or any non-mock engine. Added `EngineStore.showCrayonNotice` derived from
+`activeId === 'mock' && !noticeDismissed`. `+page` gates `CapabilityNotice` on that flag
+instead of `!realAiSupported`. When real AI is available but the player is still on mock,
+`capabilityReason` nudges them to pick an engine from the menu; when unavailable, the
+existing WebGPU / My PC reason text is unchanged. Dismiss (`Got it`) still works on mock.
+
+**Public surface:**
+
+- `EngineStore.showCrayonNotice` — `$derived` boolean for the Crayon banner
+- `EngineStore.realAiSupported` — unchanged (device capability probe)
+- `EngineStore.dismissNotice()` — unchanged
+
+**Tests:** `engineStore.svelte.test.ts` — `showCrayonNotice` on mock, dismiss, and after
+`select('janus-webgpu')`; existing `CapabilityNotice.svelte.test.ts` unchanged. Commands:
+`npm run check` (0 errors); `npm run lint` green; `npm run test:unit -- --run
+src/lib/stores/engineStore.svelte.test.ts
+src/lib/components/CapabilityNotice.svelte.test.ts` → 20 passed.
+
+**Decisions:**
+
+- Kept `CapabilityNotice.supported` prop; parent passes `false` whenever mounted (outer
+  `{#if engines.showCrayonNotice}` is the sole visibility gate).
+- Did not reset `noticeDismissed` when switching back to mock — dismiss is session-scoped
+  as before.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playtest not run in this session (headless tests only).
+- Switching back to mock after dismiss does not re-show the banner (intentional).

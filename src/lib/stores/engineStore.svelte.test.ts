@@ -150,6 +150,66 @@ describe('EngineStore', () => {
 		expect(store.loadProgress).toBeNull();
 	});
 
+	it('showCrayonNotice is true on mock until dismissed', async () => {
+		const store = new EngineStore(
+			createFakeManager({
+				options: [
+					{
+						id: 'mock',
+						displayName: 'Crayon Mode',
+						description: 'Instant',
+						requirements: { approxDownloadMb: 0 },
+						availability: { available: true, requiresDownload: false, approxDownloadMb: 0 }
+					},
+					{
+						id: 'janus-webgpu',
+						displayName: 'Janus',
+						description: 'AI',
+						requirements: { approxDownloadMb: 1024 },
+						availability: { available: true, requiresDownload: true, approxDownloadMb: 1024 }
+					}
+				]
+			})
+		);
+
+		await store.init();
+
+		expect(store.showCrayonNotice).toBe(true);
+		store.dismissNotice();
+		expect(store.showCrayonNotice).toBe(false);
+	});
+
+	it('showCrayonNotice hides when a non-mock engine is active', async () => {
+		const store = new EngineStore(
+			createFakeManager({
+				options: [
+					{
+						id: 'mock',
+						displayName: 'Crayon Mode',
+						description: 'Instant',
+						requirements: { approxDownloadMb: 0 },
+						availability: { available: true, requiresDownload: false, approxDownloadMb: 0 }
+					},
+					{
+						id: 'janus-webgpu',
+						displayName: 'Janus',
+						description: 'AI',
+						requirements: { approxDownloadMb: 1024 },
+						availability: { available: true, requiresDownload: true, approxDownloadMb: 1024 }
+					}
+				]
+			})
+		);
+
+		await store.init();
+		expect(store.showCrayonNotice).toBe(true);
+
+		await store.select('janus-webgpu');
+
+		expect(store.activeId).toBe('janus-webgpu');
+		expect(store.showCrayonNotice).toBe(false);
+	});
+
 	it('a failing select sets loadError and state error without throwing', async () => {
 		const store = new EngineStore(
 			createFakeManager({

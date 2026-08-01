@@ -79,9 +79,11 @@
 	);
 
 	const capabilityReason = $derived(
-		engines.options.find((option) => option.id !== 'mock' && !option.available)
-			?.unavailableReason ??
-			'Real AI needs WebGPU in the browser, or My PC (JanusLink) from the engine menu.'
+		engines.realAiSupported
+			? 'Pick a real art engine from the menu above when you are ready.'
+			: (engines.options.find((option) => option.id !== 'mock' && !option.available)
+					?.unavailableReason ??
+					'Real AI needs WebGPU in the browser, or My PC (JanusLink) from the engine menu.')
 	);
 
 	const pendingEngine = $derived(
@@ -385,9 +387,9 @@
 			}}
 		>
 			{#snippet notice()}
-				{#if !engines.realAiSupported && !engines.noticeDismissed}
+				{#if engines.showCrayonNotice}
 					<CapabilityNotice
-						supported={engines.realAiSupported}
+						supported={false}
 						reason={capabilityReason}
 						ondismiss={engines.dismissNotice}
 					/>

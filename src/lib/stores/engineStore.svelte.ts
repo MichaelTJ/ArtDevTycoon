@@ -88,6 +88,9 @@ export class EngineStore {
 
 	realAiSupported = $derived(this.options.some((o) => o.id !== 'mock' && o.available));
 
+	/** True while the active engine is mock and the player has not dismissed the banner. */
+	showCrayonNotice = $derived(this.activeId === 'mock' && !this.noticeDismissed);
+
 	async init(): Promise<void> {
 		try {
 			this.state = 'probing';

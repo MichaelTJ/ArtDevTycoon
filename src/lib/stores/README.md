@@ -4,11 +4,12 @@ Reactive Svelte 5 stores that wire the domain layer, engine manager, and UI toge
 
 ## Public surface
 
-| Export            | Role                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------- |
-| `engines`         | Singleton {@link EngineStore} — engine picker state and the one {@link EngineManager} |
-| `engines.manager` | The engine instance {@link GameStore} calls for `generate` / `critique`               |
-| `game`            | Singleton {@link GameStore} — commission loop state machine                           |
+| Export                     | Role                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| `engines`                  | Singleton {@link EngineStore} — engine picker state and the one {@link EngineManager} |
+| `engines.manager`          | The engine instance {@link GameStore} calls for `generate` / `critique`               |
+| `engines.showCrayonNotice` | Derived — true when `activeId === 'mock'` and the Crayon banner was not dismissed     |
+| `game`                     | Singleton {@link GameStore} — commission loop state machine                           |
 
 Import from:
 
