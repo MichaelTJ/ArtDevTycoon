@@ -241,6 +241,8 @@ Document in ADTLocalServe `docs/SPEC.md` §2.x. **ComfyUI is explicitly out.**
 - [x] `npm run check` + owned unit tests green
 - [x] READMEs + agent-log handoff
 
+**Playtest P6 (2026-08-01):** sketch pad moved to **`generating`** (paint while waiting); submit drawing vs AI happens before critique via `GameStore.confirmSubmitChoice` — briefing pre-sketch → `sketchImage` path not used in that flow.
+
 ---
 
 ## Manual verification

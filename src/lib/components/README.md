@@ -47,14 +47,11 @@ Import everything from `$lib/components` (barrel `index.ts`):
 | `ArtworkFullView`      | `entry: GalleryEntry`                                                                                                                                                                                                                                        | `onclose()`                                                                                   |
 | `StudioFloor`          | `bridge: StudioBridge`, `initialVenueId?`, `class?`; loading/error until bridge `ready`                                                                                                                                                                      | — (Phaser emits via bridge)                                                                   |
 | `SketchCanvas`         | `disabled?`, `hasStrokes` (bindable), paint tools (brush/eraser, size 2–40, colour palette + custom)                                                                                                                                                         | `onexportready?(getBlob)` — PNG blob or `null` when blank                                     |
-| `StudioHudOverlay`     | phase, client/artwork/critique, `mumRealCritique?`, `draftPrompt` (bindable), `clientSummoned`, `floorInteract?`, `pendingSkillGains?`, `onsketchexportready?`, `studioDebug?`                                                                               | `oninvite` / `ontalk` / `ondeliver` / `onsubmit` / `oncollect` / `onretry` / `ondismisserror` |
+| `StudioHudOverlay`     | phase, client/artwork/critique, `mumRealCritique?`, `draftPrompt` (bindable), `pendingSubmitChoice?`, `aiGeneratedImageUrl?`, `clientSummoned`, `floorInteract?`, `pendingSkillGains?`, `onsketchexportready?`, `onconfirmsubmit?`, `studioDebug?` | `oninvite` / `ontalk` / `ondeliver` / `onsubmit` / `oncollect` / `onretry` / `ondismisserror` |
 
-### Sketch pad (spec 11)
+### Sketch pad (spec 11 + playtest P6)
 
-`SketchCanvas` is a presentational 384×384 paint surface shown during briefing above
-`PromptComposer`. Parent (`+page` via `StudioHudOverlay.onsketchexportready`) registers
-the PNG exporter and calls `game.setDraftSketch` before `createArt`. No store imports
-inside the canvas. Undo stack depth is 20; clear wipes to white and clears `hasStrokes`.
+`SketchCanvas` is a presentational 384×384 paint surface. **P6:** shown during **`generating`** so the player can paint while the engine works; after generate, `StudioHudOverlay` offers **Submit AI image** vs **Submit your drawing** (disabled when blank). Parent registers the PNG exporter via `onsketchexportready` and calls `game.confirmSubmitChoice` with the blob when the player picks their drawing. Briefing is prompt-only. Undo stack depth is 20; clear wipes to white and clears `hasStrokes`.
 
 ### Studio floor (spec 17)
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { SubmitChoice } from '$lib/game/submitChoice';
 	import type { AuctionResult } from '$lib/game/auction';
 	import { reputationGain, type SkillGainPreview } from '$lib/game';
 	import type { MumRealCritique } from '$lib/game/mumCritiquePresentation';
@@ -42,8 +43,12 @@
 		 */
 		floorInteract?: boolean;
 		pendingSkillGains?: SkillGainPreview | null;
-		/** Parent registers the sketch PNG exporter for createArt. */
+		/** True after generate completes — player picks drawing vs AI before critique. */
+		pendingSubmitChoice?: boolean;
+		aiGeneratedImageUrl?: string | null;
+		/** Parent registers the sketch PNG exporter for submit choice. */
 		onsketchexportready?: (getBlob: () => Promise<Blob | null>) => void;
+		onconfirmsubmit?: (choice: SubmitChoice) => void;
 		oninvite: () => void;
 		ontalk: () => void;
 		ondeliver: () => void;
@@ -70,7 +75,10 @@
 		studioDebug = false,
 		floorInteract = true,
 		pendingSkillGains = null,
+		pendingSubmitChoice = false,
+		aiGeneratedImageUrl = null,
 		onsketchexportready,
+		onconfirmsubmit,
 		oninvite,
 		ontalk,
 		ondeliver,
@@ -123,17 +131,51 @@
 				<AbstractBriefHint abstractness={currentClient.abstractness ?? 0} />
 			{/if}
 		{/if}
-		<SketchCanvas bind:hasStrokes={sketchHasStrokes} onexportready={onsketchexportready} />
 		<PromptComposer bind:value={draftPrompt} {onsubmit} />
 	{:else if phase === 'generating'}
 		{#if currentClient}
 			<ClientCard brief={currentClient} />
 		{/if}
-		<GeneratingPanel
-			progress={generationProgress}
-			stageLabel="Painting"
-			messages={loadingMessages}
-		/>
+		<div class={pendingSubmitChoice ? 'sr-only' : ''} aria-hidden={pendingSubmitChoice}>
+			<SketchCanvas bind:hasStrokes={sketchHasStrokes} onexportready={onsketchexportready} />
+		</div>
+		{#if pendingSubmitChoice && aiGeneratedImageUrl}
+			<ArtworkFrame
+				imageUrl={aiGeneratedImageUrl}
+				title="AI result"
+				alt="Generated art from your prompt"
+				size="full"
+			/>
+			<p class="text-sm text-stone-700">
+				Generation finished — choose what to submit for critique.
+			</p>
+			<div class="flex flex-col gap-2">
+				<button
+					type="button"
+					class="min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+					onclick={() => onconfirmsubmit?.('ai')}
+				>
+					Submit AI image
+				</button>
+				<button
+					type="button"
+					class="min-h-11 rounded-lg border border-stone-400 bg-white px-4 py-2 font-semibold text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
+					disabled={!sketchHasStrokes}
+					onclick={() => onconfirmsubmit?.('drawing')}
+				>
+					Submit your drawing
+				</button>
+			</div>
+		{:else}
+			<p class="text-sm text-stone-600">
+				Paint on the canvas while you wait — then pick your drawing or the AI image.
+			</p>
+			<GeneratingPanel
+				progress={generationProgress}
+				stageLabel="Painting"
+				messages={loadingMessages}
+			/>
+		{/if}
 	{:else if phase === 'critiquing' && currentArtwork}
 		{#if currentClient}
 			<ClientCard brief={currentClient} />

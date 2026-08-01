@@ -29,6 +29,7 @@
 	import { loadDevLatch, resolveDevMode } from '$lib/dev/devMode';
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
+	import type { SubmitChoice } from '$lib/game/submitChoice';
 	import { LEVEL_1, type EngineId, type GalleryEntry } from '$lib/types/contracts';
 	import { page } from '$app/state';
 	import { onDestroy, onMount } from 'svelte';
@@ -49,9 +50,12 @@
 	let lastStingerGains: typeof game.lastCollectedGains = null;
 
 	async function submitCommission(): Promise<void> {
-		const blob = sketchExporter ? await sketchExporter() : null;
-		game.setDraftSketch(blob);
 		await game.createArt();
+	}
+
+	async function confirmSubmitChoice(choice: SubmitChoice): Promise<void> {
+		const blob = choice === 'drawing' && sketchExporter ? await sketchExporter() : null;
+		await game.confirmSubmitChoice(choice, blob);
 	}
 
 	const studioBridge = new StudioBridge();
@@ -426,9 +430,12 @@
 					{studioDebug}
 					floorInteract={true}
 					pendingSkillGains={game.pendingSkillGains}
+					pendingSubmitChoice={game.pendingSubmitChoice}
+					aiGeneratedImageUrl={game.aiGeneratedImageUrl}
 					onsketchexportready={(fn) => {
 						sketchExporter = fn;
 					}}
+					onconfirmsubmit={(choice) => void confirmSubmitChoice(choice)}
 					oninvite={summonClient}
 					ontalk={talkToClient}
 					ondeliver={() => void deliverToClient()}
@@ -463,9 +470,12 @@
 						{studioDebug}
 						floorInteract={false}
 						pendingSkillGains={game.pendingSkillGains}
+						pendingSubmitChoice={game.pendingSubmitChoice}
+						aiGeneratedImageUrl={game.aiGeneratedImageUrl}
 						onsketchexportready={(fn) => {
 							sketchExporter = fn;
 						}}
+						onconfirmsubmit={(choice) => void confirmSubmitChoice(choice)}
 						oninvite={() => game.inviteClient()}
 						ontalk={() => game.inviteClient()}
 						ondeliver={() => void game.collectCash()}

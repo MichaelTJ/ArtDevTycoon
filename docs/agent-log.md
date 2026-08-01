@@ -1774,3 +1774,32 @@ so cash matches the joke; non-Mum clients unchanged. Eight-line seeded praise po
   component tests).
 - Kitchen budgets now ~$5 via merged P4 — max Mum payout matches the praise joke.
 - Auction-house Mum briefs (if any) would not get Mum praise override (walk-in only today).
+
+## 2026-08-01 — Playtest design P6 (paint while waiting + submit choice)
+
+**Zone:** `SketchCanvas*`, `StudioHudOverlay*`, `ResultsPanel*` (unchanged), `gameState*`, `submitChoice.ts`, `+page.svelte`, component/store/game READMEs, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P6 MVP — after the player submits a prompt, `SketchCanvas` stays interactive during `generating` so they can paint while the engine works. When generate completes (still phase `generating`, `pendingSubmitChoice`), the HUD shows the AI preview plus **Submit AI image** / **Submit your drawing** (disabled when blank). `confirmSubmitChoice` swaps `artwork.imageUrl` if needed, then runs critique/payout on the chosen image. Mum praise (P7), P5 focus gate, and P10 crayon notice preserved. Spec 11 briefing sketch → `sketchImage` generate path deferred in favour of paint-while-waiting (orchestrator may restore BAGEL pre-sketch later).
+
+**Public surface:**
+
+- `SubmitChoice`, `artworkForSubmitChoice`, `blobToDataUrl` — `$lib/game/submitChoice`
+- `GameStore.pendingSubmitChoice`, `GameStore.aiGeneratedImageUrl`, `GameStore.confirmSubmitChoice(choice, sketchBlob)`
+- `StudioHudOverlay` props `pendingSubmitChoice`, `aiGeneratedImageUrl`, `onconfirmsubmit`
+
+**Tests:** `submitChoice.test.ts`, `gameState` (submit-choice + drawing URL swap + Mum 10/10), `StudioHudOverlay` (generating canvas + choice UI), existing `SketchCanvas` / `ResultsPanel`. Commands: `npm run check` (0 errors); `npm run lint` green; `npm run test:unit -- --run` (scoped files above) → 5 files / 93 passed.
+
+**Decisions:**
+
+- No `contracts.ts` / `GamePhase` change — submit choice is sub-state on `generating` via `pendingSubmitChoice`.
+- Engine lock held from `createArt` through `confirmSubmitChoice` (or generate failure).
+- Canvas kept mounted (visually hidden) during choice so PNG export still works.
+- Prompt-only `generate()` for P6; player drawing is submit-time only, not BAGEL edit input.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (headless/component tests only).
+- Spec 11 optional briefing sketch → `sketchImage` on generate not wired in P6 flow; needs product call if both loops should coexist.
+- Mock engine still returns procedural SVG for prompt-only generate — player drawing vs AI contrast is visual, not semantic, in Crayon Mode.

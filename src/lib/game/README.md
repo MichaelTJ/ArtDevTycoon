@@ -23,6 +23,7 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `paletteSeries.ts`           | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                     |
 | `skills.ts`                  | `SKILL_IDS`, `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, skill types                            |
 | `nextUnlock.ts`              | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                   |
+| `submitChoice.ts`            | `SubmitChoice`, `artworkForSubmitChoice`, `blobToDataUrl` — P6 submit drawing vs AI before critique                                   |
 | `sketchBlank.ts`             | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                     |
 | `mumCritiquePresentation.ts` | `isMumCommission`, `captureMumRealCritique`, `MUM_DISPLAY_SCORE`, `pickMumPraiseLine`, `praiseSeedFromArtworkId`, `MumRealCritique`   |
 

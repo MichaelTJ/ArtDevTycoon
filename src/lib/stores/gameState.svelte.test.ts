@@ -83,6 +83,12 @@ function createStore(
 	});
 }
 
+/** P6: generate then confirm AI image so critique runs (most happy-path tests). */
+async function submitAi(store: GameStore): Promise<void> {
+	await store.createArt();
+	await store.confirmSubmitChoice('ai', null);
+}
+
 describe('GameStore', () => {
 	it('starts idle with starting cash and empty gallery', () => {
 		const store = createStore({
@@ -179,33 +185,69 @@ describe('GameStore', () => {
 		expect(store.phase).toBe('briefing');
 	});
 
-	it('createArt passes sketchImage when draftSketchBlob is set', async () => {
+	it('createArt stops at submit choice without calling critique', async () => {
 		const generate = vi.fn(
 			async (input: { playerPrompt: string; prompt: string; sketchImage?: Blob }) => {
 				void input;
 				return fakeArtwork;
 			}
 		);
-		const store = createStore({
-			generate,
-			critique: vi.fn(async () => fakeDraft)
-		});
+		const critique = vi.fn(async () => fakeDraft);
+		const store = createStore({ generate, critique });
 		store.inviteClient();
 		store.draftPrompt = 'a cat';
-		const sketch = new Blob([Uint8Array.from([9, 9, 9])], { type: 'image/png' });
-		store.setDraftSketch(sketch);
 
 		await store.createArt();
 
 		expect(generate).toHaveBeenCalledWith(
 			expect.objectContaining({
-				playerPrompt: 'a cat',
-				sketchImage: sketch
+				playerPrompt: 'a cat'
 			})
 		);
-		const call = generate.mock.calls[0]?.[0];
-		expect(call?.prompt).toBeDefined();
-		expect(call?.prompt).not.toBe('a cat');
+		expect(generate.mock.calls[0]?.[0]).not.toHaveProperty('sketchImage');
+		expect(store.pendingSubmitChoice).toBe(true);
+		expect(store.phase).toBe('generating');
+		expect(critique).not.toHaveBeenCalled();
+	});
+
+	it('confirmSubmitChoice with drawing swaps imageUrl before critique', async () => {
+		const aiUrl = 'data:image/svg+xml,ai';
+		const generate = vi.fn(async () => ({ ...fakeArtwork, imageUrl: aiUrl }));
+		const critique = vi.fn(async (input: unknown) => {
+			const { artwork } = input as { artwork: Artwork };
+			expect(artwork.imageUrl).not.toBe(aiUrl);
+			expect(artwork.imageUrl.startsWith('data:image/png')).toBe(true);
+			return fakeDraft;
+		});
+		const store = createStore({ generate, critique });
+		store.inviteClient();
+		store.draftPrompt = 'a cat';
+		await store.createArt();
+		const sketch = new Blob([Uint8Array.from([9, 9, 9])], { type: 'image/png' });
+
+		await store.confirmSubmitChoice('drawing', sketch);
+
+		expect(store.phase).toBe('results');
+		expect(store.currentArtwork?.imageUrl.startsWith('data:image/png')).toBe(true);
+	});
+
+	it('confirmSubmitChoice with ai keeps the generated imageUrl', async () => {
+		const aiUrl = 'data:image/svg+xml,ai';
+		const generate = vi.fn(async () => ({ ...fakeArtwork, imageUrl: aiUrl }));
+		const critique = vi.fn(async (input: unknown) => {
+			const { artwork } = input as { artwork: Artwork };
+			expect(artwork.imageUrl).toBe(aiUrl);
+			return fakeDraft;
+		});
+		const store = createStore({ generate, critique });
+		store.inviteClient();
+		store.draftPrompt = 'a cat';
+		await store.createArt();
+
+		await store.confirmSubmitChoice('ai', null);
+
+		expect(store.phase).toBe('results');
+		expect(store.currentArtwork?.imageUrl).toBe(aiUrl);
 	});
 
 	it('inviteClient clears draft sketch', () => {
@@ -225,8 +267,10 @@ describe('GameStore', () => {
 		});
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
-		store.setDraftSketch(new Blob([Uint8Array.from([1])], { type: 'image/png' }));
 		await store.createArt();
+		const sketch = new Blob([Uint8Array.from([1])], { type: 'image/png' });
+		await store.confirmSubmitChoice('drawing', sketch);
+		expect(store.draftSketchBlob).not.toBeNull();
 		await store.collectCash();
 		expect(store.draftSketchBlob).toBeNull();
 	});
@@ -266,8 +310,14 @@ describe('GameStore', () => {
 		const run = store.createArt();
 
 		await vi.waitFor(() => {
-			expect(store.phase).toBe('critiquing');
+			expect(store.pendingSubmitChoice).toBe(true);
 			expect(store.currentArtwork).toEqual(fakeArtwork);
+		});
+
+		const confirm = store.confirmSubmitChoice('ai', null);
+
+		await vi.waitFor(() => {
+			expect(store.phase).toBe('critiquing');
 			expect(resolveCritique).toBeDefined();
 		});
 
@@ -275,6 +325,7 @@ describe('GameStore', () => {
 
 		resolveCritique!(fakeDraft);
 		await run;
+		await confirm;
 
 		expect(store.phase).toBe('results');
 		expect(store.currentCritique).not.toBeNull();
@@ -288,7 +339,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 
-		await store.createArt();
+		await submitAi(store);
 
 		expect(store.phase).toBe('results');
 		expect(store.currentArtwork).not.toBeNull();
@@ -308,7 +359,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 
-		await store.createArt();
+		await submitAi(store);
 
 		expect(store.mumRealCritique).toEqual({
 			title: 'Wobbly Cup',
@@ -399,6 +450,8 @@ describe('GameStore', () => {
 
 		await store.createArt();
 
+		expect(lockCalls).toEqual([true]);
+		await store.confirmSubmitChoice('ai', null);
 		expect(lockCalls).toEqual([true, false]);
 	});
 
@@ -447,6 +500,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
+		await store.confirmSubmitChoice('ai', null);
 
 		const before = store.cash;
 		await store.collectCash();
@@ -469,6 +523,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
+		await store.confirmSubmitChoice('ai', null);
 
 		await store.collectCash();
 
@@ -503,6 +558,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
+		await store.confirmSubmitChoice('ai', null);
 		await store.collectCash();
 
 		const saved = persistSave.mock.calls[0][0] as SaveData;
@@ -524,6 +580,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
+		await store.confirmSubmitChoice('ai', null);
 
 		await store.collectCash();
 		const cashAfterFirst = store.cash;
@@ -542,6 +599,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
+		await store.confirmSubmitChoice('ai', null);
 		await store.collectCash();
 
 		store.inviteClient();
@@ -561,6 +619,7 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 		await store.createArt();
+		await store.confirmSubmitChoice('ai', null);
 		await store.collectCash();
 		store.reset();
 
@@ -576,11 +635,13 @@ describe('GameStore', () => {
 			generate: vi.fn(async ({ playerPrompt }) => ({ ...fakeArtwork, playerPrompt })),
 			critique: vi.fn(async () => fakeDraft)
 		});
+		store.cash = LEVEL_1.targetCash;
 
 		for (let i = 0; i < LEVEL_1.targetCommissions; i++) {
 			store.inviteClient();
 			store.draftPrompt = 'a cozy coffee cup on a wooden table';
 			await store.createArt();
+			await store.confirmSubmitChoice('ai', null);
 			await store.collectCash();
 		}
 
@@ -673,7 +734,7 @@ describe('GameStore', () => {
 		store.phase = 'briefing';
 		store.draftPrompt = 'a detailed skillful composition with rich texture';
 
-		await store.createArt();
+		await submitAi(store);
 
 		expect(resolveAuction).toHaveBeenCalledOnce();
 		expect(store.currentCritique?.finalPayout).toBe(400);
@@ -701,7 +762,7 @@ describe('GameStore', () => {
 		store.phase = 'briefing';
 		store.draftPrompt = 'a navy and gold vault door in soft light';
 
-		await store.createArt();
+		await submitAi(store);
 
 		const base = calculatePayout(
 			store.currentClient,
@@ -733,7 +794,7 @@ describe('GameStore', () => {
 		store.phase = 'briefing';
 		store.draftPrompt = 'a vault door in soft light with no palette words';
 
-		await store.createArt();
+		await submitAi(store);
 
 		const base = calculatePayout(
 			store.currentClient,
@@ -762,7 +823,7 @@ describe('GameStore', () => {
 		);
 
 		expect(store.unlockMediumTier('pencil')).toBe(true);
-		expect(store.cash).toBe(50);
+		expect(store.cash).toBe(285);
 		expect(store.activeMediumTierId).toBe('pencil');
 		expect(store.unlockedMediumTierIds).toContain('pencil');
 		expect(persistSave).toHaveBeenCalledOnce();
@@ -779,14 +840,14 @@ describe('GameStore', () => {
 				persistSave,
 				loadSave: () => ({
 					...createDefaultSave(LEVEL_1.startingCash, () => 1_000),
-					cash: 100,
+					cash: 10,
 					reputation: 5
 				})
 			}
 		);
 
 		expect(store.unlockMediumTier('pencil')).toBe(false);
-		expect(store.cash).toBe(100);
+		expect(store.cash).toBe(10);
 		expect(store.activeMediumTierId).toBe('crayon');
 		expect(persistSave).not.toHaveBeenCalled();
 	});
@@ -922,7 +983,7 @@ describe('GameStore', () => {
 		store.reputation = 4;
 
 		expect(store.unlockVenue('garage')).toBe(true);
-		expect(store.cash).toBe(0);
+		expect(store.cash).toBe(370);
 		expect(store.unlockedVenueId).toBe('garage');
 		expect(persistSave).toHaveBeenCalledOnce();
 		expect(store.displayedGalleryEntries.length).toBeLessThanOrEqual(8);
@@ -931,7 +992,7 @@ describe('GameStore', () => {
 	it('unlockVenue refuses when unaffordable or when skipping tiers', () => {
 		const persistSave = vi.fn();
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
-		store.cash = 100;
+		store.cash = 20;
 		store.reputation = 4;
 
 		expect(store.unlockVenue('garage')).toBe(false);
@@ -1041,10 +1102,11 @@ describe('GameStore', () => {
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 
-		await store.createArt();
+		await submitAi(store);
 
-		// Mum override uses 10/10 for payout: 100 * 1.0 * 1.05 = 105
-		expect(store.currentCritique?.finalPayout).toBe(105);
+		expect(store.currentCritique?.finalPayout).toBe(
+			calculatePayout(store.currentClient!, 10, 10, store.presentationMultiplier)
+		);
 	});
 
 	it('hireStaff deducts cash, raises incomePerSecond, and persists', () => {
@@ -1276,7 +1338,7 @@ describe('GameStore', () => {
 		});
 		store.inviteClient();
 		store.draftPrompt = 'a cozy coffee cup on a wooden table with warm light steam';
-		await store.createArt();
+		await submitAi(store);
 
 		expect(store.phase).toBe('results');
 		expect(store.pendingSkillGains).not.toBeNull();

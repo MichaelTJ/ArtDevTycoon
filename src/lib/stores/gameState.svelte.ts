@@ -74,6 +74,7 @@ import {
 	MUM_DISPLAY_SCORE,
 	type MumRealCritique
 } from '$lib/game/mumCritiquePresentation';
+import { artworkForSubmitChoice, blobToDataUrl, type SubmitChoice } from '$lib/game/submitChoice';
 import {
 	checkPaletteUsage,
 	fullyCompletedSeriesIds,
@@ -85,6 +86,7 @@ import {
 	type Artwork,
 	type ClientBrief,
 	type Critique,
+	type CritiqueDraft,
 	type GalleryEntry,
 	type GamePhase
 } from '$lib/types/contracts';
@@ -142,8 +144,15 @@ export class GameStore {
 	/** Corporate seriesId → on-brand flags for pieces collected so far. */
 	seriesOnBrandFlags = $state<Record<string, boolean[]>>({});
 	draftPrompt = $state('');
-	/** Optional player sketch for BAGEL / mock refine; cleared with each new brief. */
+	/** Optional player sketch blob captured at submit-choice time; cleared with each new brief. */
 	draftSketchBlob = $state<Blob | null>(null);
+	/**
+	 * After generate completes, the player picks their drawing or the AI image before
+	 * critique runs. Stays true while phase is still `generating`.
+	 */
+	pendingSubmitChoice = $state(false);
+	/** AI image URL held until the player confirms a submit choice. */
+	aiGeneratedImageUrl = $state<string | null>(null);
 	generationProgress = $state<number | null>(null);
 	/**
 	 * Wall-clock ms of the last finished generate+critique. Used as the studio desk
@@ -363,6 +372,8 @@ export class GameStore {
 		this.errorMessage = null;
 		this.draftPrompt = '';
 		this.draftSketchBlob = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
 		this.generationProgress = null;
 		this.workStartedAt = null;
 		this.pendingSkillGains = null;
@@ -421,10 +432,12 @@ export class GameStore {
 		this.errorMessage = null;
 		this.draftPrompt = '';
 		this.draftSketchBlob = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
 		this.phase = 'briefing';
 	}
 
-	/** Store optional sketch PNG for the next `createArt` call. */
+	/** Store optional sketch PNG captured at submit-choice time. */
 	setDraftSketch(blob: Blob | null): void {
 		this.draftSketchBlob = blob;
 	}
@@ -434,15 +447,16 @@ export class GameStore {
 			return;
 		}
 
-		const client = this.currentClient;
 		const playerPrompt = this.draftPrompt.trim();
 		const builtPrompt = buildPrompt(playerPrompt, this.activeMediumTier);
-		const sketchImage = this.draftSketchBlob;
 
 		this.phase = 'generating';
 		this.errorMessage = null;
 		this.generationProgress = null;
 		this.currentAuctionResult = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
+		this.currentArtwork = null;
 		this.workStartedAt = this.#now();
 		this.#setSwitchingLocked(true);
 
@@ -455,15 +469,64 @@ export class GameStore {
 
 			const artwork = await this.#engine.generate({
 				playerPrompt,
-				prompt: builtPrompt,
-				...(sketchImage ? { sketchImage } : {})
+				prompt: builtPrompt
 			});
 			if (this.phase !== 'generating') return;
 
 			this.currentArtwork = artwork;
-			this.phase = 'critiquing';
+			this.aiGeneratedImageUrl = artwork.imageUrl;
+			this.pendingSubmitChoice = true;
+		} catch (error) {
+			this.pendingSkillGains = null;
+			this.pendingSubmitChoice = false;
+			this.aiGeneratedImageUrl = null;
+			this.errorMessage =
+				error instanceof EngineError
+					? error.message
+					: 'Something went wrong creating your art. Please try again.';
+			this.phase = 'failed';
+			this.workStartedAt = null;
+			this.#setSwitchingLocked(false);
+		}
+	}
 
-			// Let the player see the finished piece before the (often slow) critique begins.
+	/**
+	 * After generate finishes, the player submits their canvas drawing or the AI image;
+	 * critique and payout run against the chosen `imageUrl`.
+	 */
+	async confirmSubmitChoice(choice: SubmitChoice, sketchBlob: Blob | null): Promise<void> {
+		if (
+			!this.pendingSubmitChoice ||
+			!this.currentArtwork ||
+			!this.currentClient ||
+			!this.aiGeneratedImageUrl ||
+			this.phase !== 'generating'
+		) {
+			return;
+		}
+		if (choice === 'drawing' && !sketchBlob) {
+			return;
+		}
+
+		const client = this.currentClient;
+		const playerPrompt = this.currentArtwork.playerPrompt;
+		const aiImageUrl = this.aiGeneratedImageUrl;
+
+		let drawingDataUrl: string | null = null;
+		if (choice === 'drawing' && sketchBlob) {
+			drawingDataUrl = await blobToDataUrl(sketchBlob);
+			this.draftSketchBlob = sketchBlob;
+		} else {
+			this.draftSketchBlob = null;
+		}
+
+		const artwork = artworkForSubmitChoice(this.currentArtwork, aiImageUrl, choice, drawingDataUrl);
+		this.currentArtwork = artwork;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
+		this.phase = 'critiquing';
+
+		try {
 			await new Promise<void>((resolve) => setTimeout(resolve, 0));
 			if (this.phase !== 'critiquing') return;
 
@@ -474,65 +537,10 @@ export class GameStore {
 			});
 			if (this.phase !== 'critiquing') return;
 
-			const { creativityScore } = scorePrompt(client, playerPrompt);
-			const tier = briefTier(client);
-			const isMum = isMumCommission(client.clientName);
-			if (isMum) {
-				this.mumRealCritique = captureMumRealCritique(draft, creativityScore);
-			} else {
-				this.mumRealCritique = null;
-			}
-			const payoutAccuracy = isMum ? MUM_DISPLAY_SCORE : draft.accuracyScore;
-			const payoutCreativity = isMum ? MUM_DISPLAY_SCORE : creativityScore;
-			let finalPayout: number;
-			let auctionResult: AuctionResult | null = null;
-
-			if (tier === 'auction-house') {
-				auctionResult = this.#resolveAuction(
-					toGalleryScore(draft.accuracyScore, creativityScore),
-					client.budget,
-					this.#random
-				);
-				finalPayout = auctionResult.winningBid;
-			} else {
-				finalPayout = calculatePayout(
-					client,
-					payoutAccuracy,
-					payoutCreativity,
-					this.presentationMultiplier
-				);
-				if (
-					tier === 'corporate' &&
-					client.seriesPosition === 3 &&
-					client.seriesId &&
-					client.paletteConstraint
-				) {
-					const prior = this.seriesOnBrandFlags[client.seriesId] ?? [];
-					const currentOnBrand = checkPaletteUsage(playerPrompt, client.paletteConstraint).onBrand;
-					finalPayout += seriesCompletionBonus([...prior, currentOnBrand]);
-				}
-			}
-
-			const critique = critiqueSchema.parse({
-				title: draft.title,
-				accuracyScore: payoutAccuracy,
-				criticReview: draft.criticReview,
-				creativityScore: payoutCreativity,
-				finalPayout
-			});
-
-			this.currentCritique = critique;
-			this.currentAuctionResult = auctionResult;
-			this.pendingSkillGains = previewSkillGains({
-				accuracyScore: critique.accuracyScore,
-				creativityScore: critique.creativityScore,
-				finalPayout: critique.finalPayout
-			});
-			const started = this.workStartedAt ?? this.#now();
-			this.lastWorkDurationMs = Math.max(250, this.#now() - started);
-			this.phase = 'results';
+			this.#applyCritiqueResult(client, playerPrompt, draft);
 		} catch (error) {
 			this.pendingSkillGains = null;
+			this.pendingSubmitChoice = false;
 			this.errorMessage =
 				error instanceof EngineError
 					? error.message
@@ -542,6 +550,66 @@ export class GameStore {
 			this.workStartedAt = null;
 			this.#setSwitchingLocked(false);
 		}
+	}
+
+	#applyCritiqueResult(client: ClientBrief, playerPrompt: string, draft: CritiqueDraft): void {
+		const { creativityScore } = scorePrompt(client, playerPrompt);
+		const tier = briefTier(client);
+		const isMum = isMumCommission(client.clientName);
+		if (isMum) {
+			this.mumRealCritique = captureMumRealCritique(draft, creativityScore);
+		} else {
+			this.mumRealCritique = null;
+		}
+		const payoutAccuracy = isMum ? MUM_DISPLAY_SCORE : draft.accuracyScore;
+		const payoutCreativity = isMum ? MUM_DISPLAY_SCORE : creativityScore;
+		let finalPayout: number;
+		let auctionResult: AuctionResult | null = null;
+
+		if (tier === 'auction-house') {
+			auctionResult = this.#resolveAuction(
+				toGalleryScore(draft.accuracyScore, creativityScore),
+				client.budget,
+				this.#random
+			);
+			finalPayout = auctionResult.winningBid;
+		} else {
+			finalPayout = calculatePayout(
+				client,
+				payoutAccuracy,
+				payoutCreativity,
+				this.presentationMultiplier
+			);
+			if (
+				tier === 'corporate' &&
+				client.seriesPosition === 3 &&
+				client.seriesId &&
+				client.paletteConstraint
+			) {
+				const prior = this.seriesOnBrandFlags[client.seriesId] ?? [];
+				const currentOnBrand = checkPaletteUsage(playerPrompt, client.paletteConstraint).onBrand;
+				finalPayout += seriesCompletionBonus([...prior, currentOnBrand]);
+			}
+		}
+
+		const critique = critiqueSchema.parse({
+			title: draft.title,
+			accuracyScore: payoutAccuracy,
+			criticReview: draft.criticReview,
+			creativityScore: payoutCreativity,
+			finalPayout
+		});
+
+		this.currentCritique = critique;
+		this.currentAuctionResult = auctionResult;
+		this.pendingSkillGains = previewSkillGains({
+			accuracyScore: critique.accuracyScore,
+			creativityScore: critique.creativityScore,
+			finalPayout: critique.finalPayout
+		});
+		const started = this.workStartedAt ?? this.#now();
+		this.lastWorkDurationMs = Math.max(250, this.#now() - started);
+		this.phase = 'results';
 	}
 
 	/**
@@ -639,6 +707,8 @@ export class GameStore {
 			this.currentClient = null;
 			this.currentAuctionResult = null;
 			this.draftSketchBlob = null;
+			this.pendingSubmitChoice = false;
+			this.aiGeneratedImageUrl = null;
 
 			this.phase = isLevelComplete({
 				cash: this.cash,
@@ -787,6 +857,8 @@ export class GameStore {
 		}
 		this.errorMessage = null;
 		this.draftSketchBlob = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
 		this.phase = 'briefing';
 	}
 
@@ -807,6 +879,8 @@ export class GameStore {
 		this.seriesOnBrandFlags = {};
 		this.draftPrompt = '';
 		this.draftSketchBlob = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
 		this.generationProgress = null;
 		this.unlockedMediumTierIds = [DEFAULT_MEDIUM_TIER_ID];
 		this.activeMediumTierId = DEFAULT_MEDIUM_TIER_ID;
@@ -836,6 +910,8 @@ export class GameStore {
 		this.errorMessage = null;
 		this.draftPrompt = '';
 		this.draftSketchBlob = null;
+		this.pendingSubmitChoice = false;
+		this.aiGeneratedImageUrl = null;
 		this.generationProgress = null;
 		this.workStartedAt = null;
 		this.pendingSkillGains = null;

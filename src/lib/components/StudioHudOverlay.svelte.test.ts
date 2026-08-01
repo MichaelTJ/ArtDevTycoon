@@ -55,7 +55,7 @@ test('idle shows waiting copy without invite button', async () => {
 		.not.toBeInTheDocument();
 });
 
-test('briefing shows prompt composer and sketch pad', async () => {
+test('briefing shows prompt composer without sketch pad', async () => {
 	const screen = render(StudioHudOverlay, {
 		...base,
 		phase: 'briefing',
@@ -63,7 +63,35 @@ test('briefing shows prompt composer and sketch pad', async () => {
 	});
 	await expect.element(screen.getByLabelText('Your prompt')).toBeVisible();
 	await expect.element(screen.getByText('Mum')).toBeVisible();
+	await expect.element(screen.getByLabelText('Sketch canvas')).not.toBeInTheDocument();
+});
+
+test('generating shows sketch pad while waiting', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0]
+	});
 	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
+	await expect.element(screen.getByText(/Paint on the canvas while you wait/)).toBeVisible();
+});
+
+test('generating submit choice shows AI preview and both buttons', async () => {
+	const onconfirmsubmit = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		pendingSubmitChoice: true,
+		aiGeneratedImageUrl: artwork.imageUrl,
+		onconfirmsubmit
+	});
+	await expect.element(screen.getByRole('button', { name: 'Submit AI image' })).toBeVisible();
+	const drawingBtn = screen.getByRole('button', { name: 'Submit your drawing' });
+	await expect.element(drawingBtn).toBeVisible();
+	await expect.element(drawingBtn).toBeDisabled();
+	await screen.getByRole('button', { name: 'Submit AI image' }).click();
+	expect(onconfirmsubmit).toHaveBeenCalledWith('ai');
 });
 
 test('studioDebug talk button appears when client is summoned', async () => {

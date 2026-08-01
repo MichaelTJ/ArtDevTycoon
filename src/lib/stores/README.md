@@ -22,8 +22,8 @@ Import from:
 | --------------- | -------------------------------------------- | ---------------------- |
 | `idle`          | {@link IdlePanel}                            | start / after collect  |
 | `briefing`      | {@link ClientCard} + {@link PromptComposer}  | `inviteClient()`       |
-| `generating`    | {@link ClientCard} + {@link GeneratingPanel} | `createArt()`          |
-| `critiquing`    | {@link ClientCard} + {@link GeneratingPanel} | after generate         |
+| `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting) + {@link GeneratingPanel}; after generate, submit-choice UI until `confirmSubmitChoice` | `createArt()` then player picks |
+| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel} | after submit choice              |
 | `results`       | {@link ResultsPanel}                         | after critique         |
 | `failed`        | {@link ErrorPanel} + composer                | engine error           |
 | `levelComplete` | {@link LevelCompleteOverlay}                 | 5 commissions and $500 |
@@ -35,7 +35,8 @@ before the gallery entry is persisted.
 ## Invariants
 
 - `GameStore` defaults to `engines.manager`, never a second `EngineManager`.
-- `createArt()` calls `engines.setSwitchingLocked(true)` for its whole async body.
+- `createArt()` calls `engines.setSwitchingLocked(true)` until `confirmSubmitChoice` finishes (or generation fails).
+- Playtest P6: `createArt()` runs prompt-only generate, then `pendingSubmitChoice` until the player calls `confirmSubmitChoice('drawing' | 'ai', sketchBlob?)`; critique uses the chosen `imageUrl` (no new `GamePhase` — still `generating` during the choice step).
 - Hidden Level 1 prompt modifiers are applied only inside `createArt()` via
   `buildLevel1Prompt()`; the UI never displays the built prompt.
 - `GameState` does not persist across reloads (intentional for Level 1 testing). Engine

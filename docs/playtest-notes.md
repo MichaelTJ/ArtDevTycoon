@@ -9,7 +9,7 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 | P3  | Bug     | Kitchen only shows ~3×3 tiles; too zoomed. Bigger rooms may show more (zoom tied to room size?). Prefer black/blank letterbox around smaller rooms so camera isn’t a microscope                                               | **17** camera/zoom + **19** office spaces                                                           | **Fixed** — `cameraZoomToFitRoom` caps zoom at 1×; whole kitchen letterboxes (2026-08-01) |
 | P4  | Balance | Mum commission payouts way too big. Target: Mum pays **~$5**; enough for new pencils; garage move should stay pretty cheap                                                                                                    | **01** domain / scoring payouts + **12** progression + **13** mediums + **14** gallery unlock costs | **Fixed** — kitchen budgets $5–8; pencil $15; garage $30 (2026-08-01)                     |
 | P5  | Bug     | After painting, focusing “your prompt” still lets Phaser eat keys — typing/WASD moves the character instead of inserting letters                                                                                              | **17** Phaser input capture + **04** integration (prompt field focus)                               | **Fixed** — `domInputFocus` gate via `StudioFloor` registry sync (2026-08-01)             |
-| P6  | Design  | New loop: player prompts → while waiting, paint on canvas → on reveal, choose submit **own drawing** or **prompted image**                                                                                                    | **11** BAGEL sketch (+ refine)                                                                      | Touches **04** flow / results submit; may need a small new sub-spec later                 |
+| P6  | Design  | New loop: player prompts → while waiting, paint on canvas → on reveal, choose submit **own drawing** or **prompted image**                                                                                                    | **11** BAGEL sketch (+ refine)                                                                      | **Fixed** — paint during `generating`, choose-before-critique via `confirmSubmitChoice` (2026-08-01) |
 | P7  | Design  | Mum comments = toddler praise (“Wow! I love it so much!”, “Did you do this all by yourself?!”). Auto **10/10** Accuracy + Creativity. Real Janus critique hidden behind **“Ask for real critique”** (harsh = comedy contrast) | **18** abstract prompts / critique presentation + **03** results UI                                 | **Fixed** — praise pool + ResultsPanel reveal; payout uses 10/10 (2026-08-01)             |
 | P8  | Design  | Want to **interact with NPCs** (talk / menus), not just see verbs / barks                                                                                                                                                     | **24** (24a talk handlers) — builds on **21a/21b/21f** floor targets                                | Today “Talk to …” is mostly label-only                                                    |
 | P9  | Design  | One NPC is a **receptionist** who offers **choices of commissions**                                                                                                                                                           | **24** (24a receptionist + commission board)                                                        | Grown-up desk loop vs Mum kitchen invite                                                  |
@@ -23,7 +23,7 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 4. ~~**P1** — progression HUD readability~~ **done**
 5. ~~**P4** — early economy numbers~~ **done**
 6. ~~**P7** — Mum praise vs real critique~~ **done**
-7. **P6** — paint-while-waiting loop (larger design)
+7. ~~**P6** — paint-while-waiting loop (larger design)~~ **done**
 8. **P8 / P9** → Spec **24a** (after bugs above; see [24-artist-team.md](./tasks/24-artist-team.md))
 
 ## Status
@@ -35,5 +35,6 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] P1 — progression HUD layout (compact meters + GameMenuBar stack)
 - [x] P4 — early economy (kitchen budgets, pencil/garage unlock costs)
 - [x] P7 — Mum toddler praise + hidden real critique reveal
+- [x] P6 — paint while generating + submit drawing vs AI before critique
 - [ ] Triaged into task specs / bugfix PRs
 - [ ] Remaining items implemented
