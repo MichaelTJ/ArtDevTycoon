@@ -1374,3 +1374,48 @@ Commands: `npm run check` (0 errors); `npm run lint` green;
 - D1/D2/D5–D10 catalog extras out of scope.
 - StudioFloor.svelte.test.ts needed no `reducedVfx` mock (component does not build
   snapshots).
+
+## 2026-08-01 — Spec 21c gap review (Studio audio)
+
+**Zone:** `src/lib/audio/**`, `AudioSettingsPanel*`, `static/studio/audio/**`,
+`GameMenuBar*`, `components/index.ts` + README, `+page.svelte`, studio CREDITS,
+`docs/tasks/21c-studio-audio.md`, `docs/agent-log.md`
+
+**Built:** Gap audit found Spec 21c entirely missing (no `$lib/audio`, no Phaser
+audio either — correct design). Implemented mute-first HTMLAudioElement pipeline:
+
+- Schema `adt.audio.v1` (Zod clamp/defaults; music default `0`) + load/persist
+  swallow policy.
+- Catalog beds by venue + work/stinger SFX; `isAudioEnabled` for future snapshot.
+- `MuteSafePlayer` + `createStudioAudio` / `studioAudio` singleton; gesture unlock
+  via `attachAudioUnlock`; rejecting `play()` never throws.
+- Cue wiring in `+page` (venue bed, phase loops, cash + level-up stingers).
+- `AudioSettingsPanel` + GameMenuBar **Audio** entry (beside Progress / Saves / Dev).
+- CC0 near-silent WAV stubs under `static/studio/audio/**` + CREDITS.
+
+**Public surface:**
+
+- `$lib/audio`: `studioAudio`, `createStudioAudio`, `attachAudioUnlock`,
+  `isAudioEnabled`, `playSfx`, prefs schema/helpers, catalog ids
+- `AudioSettingsPanel` props: `prefs`, `onchange`, `onclose`
+
+**Tests:** schema/levels/catalog/player/controller tables; AudioSettingsPanel +
+GameMenuBar Audio entry. Commands: `npm run check` (0 errors); `npm run lint`;
+scoped `npm run test:unit -- --run` on owned files → 7 files / 48 passed; full unit
+gate also run.
+
+**Decisions:**
+
+- Zero Phaser / bridge edits — `audioEnabled` not on snapshot yet; export ready.
+- WAV stubs (valid RIFF) instead of broken empty MP3; catalog URLs point at `.wav`.
+- Singleton `studioAudio` shared by `+page` + GameMenuBar; `dispose()` rebuilds the
+  element pool so page teardown does not permanently kill the controller.
+- Left Spec 23 Dev and Spec 22 Saves menu entries untouched aside from inserting Audio.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- C2 / C5 / C6 / C7 catalog extras remain out of scope (seams via `playSfx`).
+- Richer CC0 beds can replace stubs without code changes.
+- Bridge `audioEnabled` sync waits on orchestrator freeze.

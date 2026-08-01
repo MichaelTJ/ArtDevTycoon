@@ -13,6 +13,12 @@
 		StudioFloor,
 		StudioHudOverlay
 	} from '$lib/components';
+	import {
+		attachAudioUnlock,
+		skillXpBeforeCollect,
+		skillsThatLeveledUp,
+		studioAudio
+	} from '$lib/audio';
 	import { getEnvironmentForLevel } from '$lib/data/environments';
 	import { getLayout } from '$lib/data/galleryLayouts';
 	import { getStaffRole } from '$lib/data/staffRoles';
@@ -39,6 +45,8 @@
 	let reducedVfx = $state(false);
 	/** Bumped after Dev latch write/clear so resolveDevMode re-reads localStorage. */
 	let latchTick = $state(0);
+	/** Identity of last collect toast that already fired stingers (avoid replay on clear). */
+	let lastStingerGains: typeof game.lastCollectedGains = null;
 
 	async function submitCommission(): Promise<void> {
 		const blob = sketchExporter ? await sketchExporter() : null;
@@ -178,6 +186,25 @@
 	});
 
 	$effect(() => {
+		studioAudio.syncMusicForVenue(game.unlockedVenueId);
+	});
+
+	$effect(() => {
+		studioAudio.onPhase(game.phase);
+	});
+
+	$effect(() => {
+		const gains = game.lastCollectedGains;
+		if (!gains || gains === lastStingerGains) return;
+		lastStingerGains = gains;
+		studioAudio.playCashStinger();
+		const before = skillXpBeforeCollect(game.skillXp, gains.skills);
+		if (skillsThatLeveledUp(before, game.skillXp).length > 0) {
+			studioAudio.playLevelUpStinger();
+		}
+	});
+
+	$effect(() => {
 		void game.phase;
 		void game.currentClient;
 		void game.displayedGalleryEntries;
@@ -203,6 +230,8 @@
 		};
 		motionQuery.addEventListener('change', onMotionChange);
 
+		const detachUnlock = attachAudioUnlock(studioAudio);
+		studioAudio.syncMusicForVenue(game.unlockedVenueId);
 		const stopIncome = game.startIncomeTicker();
 		game.setAutoInviteAction(() => summonClient());
 		const unsub = studioBridge.subscribe((event) => {
@@ -231,6 +260,7 @@
 		});
 		return () => {
 			motionQuery.removeEventListener('change', onMotionChange);
+			detachUnlock();
 			stopIncome();
 			unsub();
 			game.setAutoInviteAction(() => game.inviteClient());
@@ -239,6 +269,7 @@
 
 	onDestroy(() => {
 		studioBridge.setCommandHandler(null);
+		studioAudio.dispose();
 	});
 
 	function openEngineMenu(): void {

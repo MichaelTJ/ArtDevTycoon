@@ -25,5 +25,7 @@ CC0). If either 404s, loaderror is ignored and StudioScene falls back to `client
 ## Art Dev Tycoon originals (CC0)
 
 - `ui/prompt-e.png` — simple interact prompt glyph authored for this project (CC0)
+- `audio/**` — near-silent WAV stubs for Spec 21c music beds + work/stinger SFX (CC0).
+  Full list and roles: [`audio/CREDITS.md`](./audio/CREDITS.md).
 
 Donate to Kenney if you can: https://kenney.itch.io/kenney-donation
