@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { KITCHEN_BRIEFS } from '$lib/data/kitchenBriefs';
 import type { ClientBrief, DeviceCapability } from '$lib/types/contracts';
 import type { RemoteProviderClient } from './providers';
 import { RemoteEngine } from './remoteEngine';
@@ -107,6 +108,33 @@ describe('RemoteEngine', () => {
 		});
 		const result = await engine.probe(capability);
 		expect(result.available).toBe(true);
+	});
+
+	it('load throws EngineError when connection test fails', async () => {
+		const client = fakeClient({
+			testConnection: vi.fn().mockResolvedValue({ ok: false, reason: 'unauthorized' })
+		});
+		const engine = new RemoteEngine({
+			getClient: () => client,
+			loadConfig: () => config
+		});
+		await expect(engine.load()).rejects.toMatchObject({
+			code: 'internal',
+			message: 'unauthorized'
+		});
+	});
+
+	it('load emits ready progress when health succeeds', async () => {
+		const onProgress = vi.fn();
+		const engine = new RemoteEngine({
+			getClient: () => fakeClient(),
+			loadConfig: () => config
+		});
+		await engine.load({ onProgress });
+		expect(onProgress).toHaveBeenCalledWith(
+			expect.objectContaining({ status: 'ready', fraction: 1 })
+		);
+		await engine.unload();
 	});
 
 	it('generate returns schema-valid Artwork with verbatim playerPrompt', async () => {
@@ -234,6 +262,75 @@ describe('RemoteEngine', () => {
 
 		expect(draft.criticReview.length).toBeGreaterThan(0);
 		expect(draft.criticReview).not.toBe('   ');
+		await engine.unload();
+	});
+
+	it('scores accuracy 1 with empty critique targets for abstract parrots', async () => {
+		const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
+		const understand = vi.fn().mockResolvedValue({ text: 'A mood without a scene.' });
+
+		const engine = new RemoteEngine({
+			getClient: () => fakeClient({ understand }),
+			loadConfig: () => config
+		});
+		await engine.load();
+		const artwork = await engine.generate({
+			playerPrompt: 'I miss the old days',
+			prompt: 'I miss the old days, crayon'
+		});
+
+		const draft = await engine.critique({
+			brief: c6,
+			playerPrompt: 'I miss the old days',
+			artwork
+		});
+
+		expect(draft.accuracyScore).toBe(1);
+		// No keyword questions — only the review prompt.
+		expect(understand).toHaveBeenCalledTimes(1);
+		expect(understand.mock.calls[0]?.[1]).toEqual(
+			expect.objectContaining({
+				question: expect.stringMatching(/miss the old days/i)
+			})
+		);
+		await engine.unload();
+	});
+
+	it('asks critiqueTargetsForBrief cluster keywords for a committed reading', async () => {
+		const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
+		const understand = vi
+			.fn()
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'yes' })
+			.mockResolvedValueOnce({ text: 'A warm Sunday table.' });
+
+		const engine = new RemoteEngine({
+			getClient: () => fakeClient({ understand }),
+			loadConfig: () => config
+		});
+		await engine.load();
+		const artwork = await engine.generate({
+			playerPrompt: 'sunday dinner with family around the tablecloth',
+			prompt: 'sunday dinner with family around the tablecloth, crayon'
+		});
+
+		const draft = await engine.critique({
+			brief: c6,
+			playerPrompt: 'sunday dinner with family around the tablecloth',
+			artwork
+		});
+
+		expect(draft.accuracyScore).toBe(10);
+		expect(understand).toHaveBeenCalledTimes(5);
+		const asked = understand.mock.calls
+			.slice(0, 4)
+			.map((call) => String((call[1] as { question: string }).question).toLowerCase());
+		expect(asked.some((q) => q.includes('sunday'))).toBe(true);
+		expect(asked.some((q) => q.includes('dinner'))).toBe(true);
+		expect(asked.some((q) => q.includes('family'))).toBe(true);
+		expect(asked.some((q) => q.includes('tablecloth'))).toBe(true);
 		await engine.unload();
 	});
 });

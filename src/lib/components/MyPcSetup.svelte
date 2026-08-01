@@ -223,20 +223,38 @@
 			</button>
 
 			{#if helpOpen}
-				<div class="rounded-lg bg-stone-50 p-3 text-sm text-stone-600">
+				<div class="space-y-2 rounded-lg bg-stone-50 p-3 text-sm text-stone-600">
 					<p>
-						Install from
+						Install and run
 						<a
 							class="font-medium text-amber-800 underline"
 							href="https://github.com/MichaelTJ/ADTLocalServe"
 							target="_blank"
-							rel="noopener noreferrer">ADTLocalServe / JanusLink</a
-						>. On the PC, add this game's origin to
+							rel="noopener noreferrer">JanusLink (ADTLocalServe)</a
+						>
+						on your GPU PC (<code class="rounded bg-stone-200 px-1">installer/install.ps1</code>
+						or manual
+						<code class="rounded bg-stone-200 px-1">janus-api</code>
+						+
+						<code class="rounded bg-stone-200 px-1">phone-app</code>).
+					</p>
+					<p>
+						Join this phone or laptop to the
+						<strong class="font-medium text-stone-700">same Tailscale</strong>
+						tailnet as the PC. Copy the Tailscale HTTPS base URL (e.g.
+						<code class="rounded bg-stone-200 px-1">https://pc-name.tailnet-xxxx.ts.net</code>) and
+						<code class="rounded bg-stone-200 px-1">JANUS_API_KEY</code>
+						from the installer /
+						<code class="rounded bg-stone-200 px-1">.env</code>.
+					</p>
+					<p>
+						On the PC, add this game's origin to
 						<code class="rounded bg-stone-200 px-1">JANUS_ALLOWED_ORIGINS</code>
 						in
 						<code class="rounded bg-stone-200 px-1">phone-app/.env</code>
 						(e.g.
-						<code class="rounded bg-stone-200 px-1">http://localhost:5173</code>).
+						<code class="rounded bg-stone-200 px-1">http://localhost:5173</code>), then Test
+						connection → Connect.
 					</p>
 				</div>
 			{/if}

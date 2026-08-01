@@ -38,6 +38,20 @@ test('ollama shows both model fields', async () => {
 	await expect.element(screen.getByLabelText('Critique model')).toBeVisible();
 });
 
+test('automatic1111 shows critique provider fields', async () => {
+	const screen = render(MyPcSetup, {
+		...baseProps,
+		provider: 'automatic1111',
+		baseUrl: 'http://127.0.0.1:7860',
+		critiqueProvider: 'ollama',
+		critiqueBaseUrl: 'http://localhost:11434',
+		critiqueModel: 'llava'
+	});
+	await expect.element(screen.getByLabelText('Critique provider')).toBeVisible();
+	await expect.element(screen.getByLabelText('Critique base URL')).toBeVisible();
+	await expect.element(screen.getByLabelText('Critique model')).toBeVisible();
+});
+
 test('Connect is disabled until test succeeds', async () => {
 	const screen = render(MyPcSetup, { ...baseProps });
 	const connect = screen.getByRole('button', { name: 'Connect', exact: true });
@@ -79,6 +93,13 @@ test('shows error alert when test fails', async () => {
 		testError: 'Could not reach host'
 	});
 	await expect.element(screen.getByRole('alert')).toHaveTextContent('Could not reach host');
+});
+
+test('JanusLink setup help mentions Tailscale and JANUS_ALLOWED_ORIGINS', async () => {
+	const screen = render(MyPcSetup, { ...baseProps, provider: 'januslink' });
+	await screen.getByRole('button', { name: 'Setup help' }).click();
+	await expect.element(screen.getByText(/same Tailscale/i)).toBeVisible();
+	await expect.element(screen.getByText(/JANUS_ALLOWED_ORIGINS/)).toBeVisible();
 });
 
 test('Refresh models fires callback', async () => {

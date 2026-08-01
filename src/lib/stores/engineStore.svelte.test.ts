@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EngineManager } from '$lib/engines/manager';
+import { getRemoteProviderClient } from '$lib/engines/remote/providers';
+import { loadRemoteConfig, REMOTE_CONFIG_STORAGE_KEY } from '$lib/engines/remote/remoteConfig';
 import type {
 	DeviceCapability,
 	EngineAvailability,
@@ -8,6 +10,10 @@ import type {
 	LoadProgress
 } from '$lib/types/contracts';
 import { EngineStore } from './engineStore.svelte';
+
+vi.mock('$lib/engines/remote/providers', () => ({
+	getRemoteProviderClient: vi.fn()
+}));
 
 const capability: DeviceCapability = {
 	webgpu: false,
@@ -165,5 +171,191 @@ describe('EngineStore', () => {
 		await expect(store.select('mock')).resolves.toBeUndefined();
 		expect(store.loadError).toBe('Download failed');
 		expect(store.state).toBe('error');
+	});
+});
+
+describe('EngineStore My PC remote setup', () => {
+	const storeMap = new Map<string, string>();
+
+	beforeEach(() => {
+		storeMap.clear();
+		vi.stubGlobal('localStorage', {
+			getItem: (key: string) => storeMap.get(key) ?? null,
+			setItem: (key: string, value: string) => {
+				storeMap.set(key, value);
+			},
+			removeItem: (key: string) => {
+				storeMap.delete(key);
+			},
+			clear: () => {
+				storeMap.clear();
+			}
+		});
+		vi.mocked(getRemoteProviderClient).mockReset();
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('openRemoteSetup shows the dialog and resets test state', () => {
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteTestState = 'error';
+		store.openRemoteSetup();
+		expect(store.showRemoteSetup).toBe(true);
+		expect(store.remoteTestState).toBe('idle');
+		expect(store.remoteProvider).toBe('januslink');
+	});
+
+	it('testRemoteConnection succeeds and enables connect path', async () => {
+		const testConnection = vi.fn().mockResolvedValue({ ok: true, device: 'cuda' });
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection,
+			listModels: vi.fn().mockResolvedValue([]),
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteProvider = 'januslink';
+		store.remoteBaseUrl = 'https://pc.tailnet-xxxx.ts.net';
+		store.remoteApiKey = 'k'.repeat(32);
+
+		await store.testRemoteConnection();
+
+		expect(testConnection).toHaveBeenCalledOnce();
+		expect(store.remoteTestState).toBe('success');
+		expect(store.remoteTestError).toBeNull();
+	});
+
+	it('testRemoteConnection surfaces provider failure reason', async () => {
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn().mockResolvedValue({
+				ok: false,
+				reason: 'Could not reach host. JANUS_ALLOWED_ORIGINS?'
+			}),
+			listModels: vi.fn().mockResolvedValue([]),
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteBaseUrl = 'https://pc.tailnet-xxxx.ts.net';
+		store.remoteApiKey = 'k'.repeat(32);
+
+		await store.testRemoteConnection();
+
+		expect(store.remoteTestState).toBe('error');
+		expect(store.remoteTestError).toContain('JANUS_ALLOWED_ORIGINS');
+	});
+
+	it('connectRemote saves januslink config and selects remote', async () => {
+		const select = vi.fn(async (id: EngineId) => {
+			void id;
+		});
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn().mockResolvedValue({ ok: true }),
+			listModels: vi.fn().mockResolvedValue([]),
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({ select }));
+		store.remoteProvider = 'januslink';
+		store.remoteBaseUrl = 'https://pc.tailnet-xxxx.ts.net/';
+		store.remoteApiKey = 'a'.repeat(32);
+		store.remoteTestState = 'success';
+		store.showRemoteSetup = true;
+
+		await store.connectRemote();
+
+		expect(store.showRemoteSetup).toBe(false);
+		expect(select).toHaveBeenCalledWith('remote', expect.any(Function));
+		expect(storeMap.has(REMOTE_CONFIG_STORAGE_KEY)).toBe(true);
+		expect(loadRemoteConfig()).toEqual({
+			provider: 'januslink',
+			baseUrl: 'https://pc.tailnet-xxxx.ts.net',
+			apiKey: 'a'.repeat(32)
+		});
+	});
+
+	it('connectRemote refuses when test has not succeeded', async () => {
+		const select = vi.fn();
+		const store = new EngineStore(createFakeManager({ select }));
+		store.remoteBaseUrl = 'https://pc.tailnet-xxxx.ts.net';
+		store.remoteApiKey = 'a'.repeat(32);
+		store.remoteTestState = 'idle';
+
+		await store.connectRemote();
+
+		expect(select).not.toHaveBeenCalled();
+		expect(store.remoteTestState).toBe('error');
+		expect(store.remoteTestError).toMatch(/Test the connection/i);
+	});
+
+	it('setRemoteProvider applies default base URL and resets test state', () => {
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteTestState = 'success';
+		store.remoteTestError = 'stale';
+		store.remoteAvailableModels = ['old'];
+		store.setRemoteProvider('ollama');
+		expect(store.remoteProvider).toBe('ollama');
+		expect(store.remoteBaseUrl).toBe('http://localhost:11434');
+		expect(store.remoteTestState).toBe('idle');
+		expect(store.remoteTestError).toBeNull();
+		expect(store.remoteAvailableModels).toEqual([]);
+	});
+
+	it('refreshRemoteModels works before model fields are filled', async () => {
+		const listModels = vi.fn().mockResolvedValue(['flux', 'llava']);
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn(),
+			listModels,
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteProvider = 'ollama';
+		store.remoteBaseUrl = 'http://localhost:11434';
+		store.remoteGenerateModel = '';
+		store.remoteCritiqueModel = '';
+
+		await store.refreshRemoteModels();
+
+		expect(listModels).toHaveBeenCalledOnce();
+		expect(store.remoteAvailableModels).toEqual(['flux', 'llava']);
+	});
+
+	it('connectRemote saves ollama config with split models', async () => {
+		const select = vi.fn(async (id: EngineId) => {
+			void id;
+		});
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn().mockResolvedValue({ ok: true }),
+			listModels: vi.fn().mockResolvedValue([]),
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({ select }));
+		store.remoteProvider = 'ollama';
+		store.remoteBaseUrl = 'http://localhost:11434/';
+		store.remoteApiKey = '';
+		store.remoteGenerateModel = 'flux';
+		store.remoteCritiqueModel = 'llava';
+		store.remoteTestState = 'success';
+		store.showRemoteSetup = true;
+
+		await store.connectRemote();
+
+		expect(select).toHaveBeenCalledWith('remote', expect.any(Function));
+		expect(loadRemoteConfig()).toEqual({
+			provider: 'ollama',
+			baseUrl: 'http://localhost:11434',
+			apiKey: '',
+			generateModel: 'flux',
+			critiqueModel: 'llava'
+		});
 	});
 });

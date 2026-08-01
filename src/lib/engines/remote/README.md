@@ -12,6 +12,7 @@ WebGPU and no model download in the browser.
 | `loadRemoteConfig` / `saveRemoteConfig` / `clearRemoteConfig` | localStorage under `adt.engine.remote.config` |
 | `remoteEngineConfigSchema`                                    | Discriminated Zod config by `provider`        |
 | `defaultBaseUrlForProvider`                                   | UI defaults                                   |
+| `createJanusLinkClient`                                       | Spec 07 JanusLink HTTP (Bearer only)          |
 | `getRemoteProviderClient`                                     | Provider HTTP factory (`providers/`)          |
 
 Import the engine via the registry (`ENGINE_REGISTRY`); do not construct it from game code.
@@ -32,7 +33,32 @@ Legacy saves with only `baseUrl` + `apiKey` migrate to `provider: 'januslink'`.
 Cloud keys are stored in this browser's `localStorage` and sent only to the configured
 vendor. Cloud calls bill the player's own account.
 
-## Player setup
+## Player setup — JanusLink (primary Spec 07 path)
+
+1. Install and run **JanusLink** on the GPU PC
+   ([ADTLocalServe](https://github.com/MichaelTJ/ADTLocalServe) —
+   `installer/install.ps1` or manual `janus-api` + `phone-app`).
+2. Join the phone/laptop to the **same Tailscale** tailnet.
+3. On the PC, set `phone-app` env:
+   ```
+   JANUS_ALLOWED_ORIGINS=http://localhost:5173,https://your-game-host.example
+   ```
+   (include every origin that serves the game).
+4. Copy the **Tailscale HTTPS base URL** (e.g. `https://pc-name.tailnet-xxxx.ts.net`)
+   and the **`JANUS_API_KEY`** from the installer / `.env` into the game's My PC setup
+   dialog.
+5. Engine menu → **My PC** → Set up My PC → paste URL + API key → **Test connection** →
+   **Connect**.
+
+**Auth:** JanusLink session cookies are `SameSite=lax`, so they are not sent on
+cross-origin `fetch` from a static game host. The game uses
+`Authorization: Bearer <JANUS_API_KEY>` only (`credentials: 'omit'`). Cookie/QR pairing
+remains how phones use JanusLink's own UI; this client does not mint pairing tokens.
+
+**CORS:** `phone-app` CORS-enables `/api/janus/*` for origins in `JANUS_ALLOWED_ORIGINS`.
+Without that allowlist entry, the browser blocks the game.
+
+## Player setup — other providers
 
 1. Engine menu → **My PC** → Set up My PC.
 2. Choose a provider.
@@ -55,6 +81,8 @@ vendor. Cloud calls bill the player's own account.
 - Never echo API keys in errors or logs.
 - No `+server.ts` in this game — the client talks to the provider directly.
 - Runtime failures still fall back to `mock` via `EngineManager`.
+- Refresh-models may use temporary placeholder model/key fields; Connect requires a full
+  validated config. A1111 connection tests `/sd-models` then `/options`, then critique.
 
 ## Tests
 

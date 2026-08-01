@@ -618,14 +618,17 @@ Pass new bindables and `onrefreshmodels={() => engines.refreshRemoteModels()}`.
 
 ## 13. Definition of done
 
-- [ ] Discriminated `remoteEngineConfigSchema` with legacy januslink migration
-- [ ] `getRemoteProviderClient` + four providers (janus adapter, ollama, lmstudio, a1111)
-- [ ] `RemoteEngine` routes via factory; `playerPrompt` never sent to providers
-- [ ] `MyPcSetup` provider select + split model fields; Coming soon for Comfy/OpenRouter/OpenAI/Cloud
-- [ ] Store/page wiring for new fields
-- [ ] No real network in unit tests; no `+server.ts`
-- [ ] `npm run check` green; unit tests green for owned files
-- [ ] READMEs + `docs/agent-log.md` handoff
+- [x] Discriminated `remoteEngineConfigSchema` with legacy januslink migration
+- [x] `getRemoteProviderClient` + four providers (janus adapter, ollama, lmstudio, a1111)
+- [x] `RemoteEngine` routes via factory; `playerPrompt` never sent to providers
+- [x] `MyPcSetup` provider select + split model fields; Coming soon for Comfy/OpenRouter/OpenAI/Cloud
+- [x] Store/page wiring for new fields
+- [x] No real network in unit tests; no `+server.ts`
+- [x] `npm run check` green; unit tests green for owned files
+- [x] READMEs + `docs/agent-log.md` handoff
+
+> Note (post Spec 09): OpenRouter/OpenAI are live providers, not Coming soon. DoD item above
+> retains the original Spec 08 wording; UI Coming soon is ComfyUI + ADT Cloud only.
 
 ---
 

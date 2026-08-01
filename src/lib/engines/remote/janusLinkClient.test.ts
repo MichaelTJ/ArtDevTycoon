@@ -1,15 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createJanusLinkClient } from './janusLinkClient';
-import type { RemoteEngineConfig } from './remoteConfig';
+import { createJanusLinkClient, type JanusLinkConfig } from './janusLinkClient';
 
-const config: RemoteEngineConfig = {
+const config: JanusLinkConfig = {
 	provider: 'januslink',
 	baseUrl: 'https://pc.tailnet-xxxx.ts.net',
 	apiKey: 'k'.repeat(32)
 };
 
 describe('janusLinkClient', () => {
-	it('testConnection succeeds on healthy response', async () => {
+	it('testConnection succeeds on healthy response with Bearer and credentials omit', async () => {
 		const fetchMock = vi
 			.fn()
 			.mockResolvedValue(
@@ -23,6 +22,7 @@ describe('janusLinkClient', () => {
 			'https://pc.tailnet-xxxx.ts.net/api/janus/health',
 			expect.objectContaining({
 				method: 'GET',
+				credentials: 'omit',
 				headers: expect.any(Headers)
 			})
 		);
@@ -37,6 +37,15 @@ describe('janusLinkClient', () => {
 		const client = createJanusLinkClient({ fetch: fetchMock });
 		const result = await client.testConnection(config);
 		expect(result).toEqual({ ok: false, reason: 'unauthorized' });
+	});
+
+	it('testConnection falls back to status text when body has no error', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response('{}', { status: 503, statusText: 'Service Unavailable' }));
+		const client = createJanusLinkClient({ fetch: fetchMock });
+		const result = await client.testConnection(config);
+		expect(result).toEqual({ ok: false, reason: 'Service Unavailable' });
 	});
 
 	it('testConnection maps network failure to CORS/reachability message', async () => {
@@ -64,6 +73,14 @@ describe('janusLinkClient', () => {
 		const result = await client.generate(config, { prompt: 'a fox', seed: 1 });
 		expect(result.promptId).toBe('p1');
 		expect(result.images[0]?.base64).toBe('AAAA');
+		const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+		expect(init.credentials).toBe('omit');
+	});
+
+	it('generate maps network failure to CORS/reachability message', async () => {
+		const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+		const client = createJanusLinkClient({ fetch: fetchMock });
+		await expect(client.generate(config, { prompt: 'x' })).rejects.toThrow(/JANUS_ALLOWED_ORIGINS/);
 	});
 
 	it('understand returns text', async () => {
@@ -110,5 +127,6 @@ describe('janusLinkClient', () => {
 		expect(fetchMock.mock.calls[0]?.[0]).toBe('https://pc.tailnet-xxxx.ts.net/api/janus/edit');
 		const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
 		expect(init.body).toBeInstanceOf(FormData);
+		expect(init.credentials).toBe('omit');
 	});
 });

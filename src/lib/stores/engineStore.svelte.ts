@@ -201,8 +201,11 @@ export class EngineStore {
 	}
 
 	async refreshRemoteModels(): Promise<void> {
-		const draft = this.buildRemoteConfigFromFields();
-		const parsed = remoteEngineConfigSchema.safeParse(draft);
+		// listModels only needs provider + baseUrl (+ optional key). Inject placeholders for
+		// required model fields so players can refresh before typing model ids.
+		const parsed = remoteEngineConfigSchema.safeParse(
+			withListModelPlaceholders(this.buildRemoteConfigFromFields())
+		);
 		if (!parsed.success) {
 			this.remoteAvailableModels = [];
 			return;
@@ -318,6 +321,45 @@ export class EngineStore {
 	private syncOptions(): void {
 		this.options = this.#manager.options.map(toOption);
 	}
+}
+
+/**
+ * Fill required model/key fields so Zod accepts a draft used only for `listModels`.
+ * The list endpoints ignore these placeholders.
+ */
+function withListModelPlaceholders(draft: unknown): unknown {
+	if (!draft || typeof draft !== 'object' || Array.isArray(draft)) {
+		return draft;
+	}
+	const obj = { ...(draft as Record<string, unknown>) };
+	const provider = obj.provider;
+	if (provider === 'januslink') {
+		return obj;
+	}
+	if (typeof obj.generateModel !== 'string' || obj.generateModel.trim().length === 0) {
+		// A1111 allows empty generateModel; others need a non-empty placeholder.
+		if (provider !== 'automatic1111') {
+			obj.generateModel = '_';
+		}
+	}
+	if (typeof obj.critiqueModel !== 'string' || obj.critiqueModel.trim().length === 0) {
+		obj.critiqueModel = '_';
+	}
+	if (provider === 'automatic1111') {
+		if (typeof obj.critiqueProvider !== 'string') {
+			obj.critiqueProvider = 'ollama';
+		}
+		if (typeof obj.critiqueBaseUrl !== 'string' || obj.critiqueBaseUrl.trim().length === 0) {
+			obj.critiqueBaseUrl = defaultBaseUrlForProvider('ollama');
+		}
+	}
+	if (
+		(provider === 'openrouter' || provider === 'openai') &&
+		(typeof obj.apiKey !== 'string' || obj.apiKey.length < 8)
+	) {
+		obj.apiKey = 'list-models-placeholder';
+	}
+	return obj;
 }
 
 /** The one shared engine store used by the game screen and {@link GameStore}. */

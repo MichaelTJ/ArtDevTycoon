@@ -22,12 +22,12 @@ directly.
 
 ## Engine tiers
 
-| id               | tier | Download | WebGPU | Desktop only | Status                                                                      |
-| ---------------- | ---- | -------- | ------ | ------------ | --------------------------------------------------------------------------- |
-| `mock`           | 0    | none     | no     | no           | **Complete** — procedural SVG + text scoring                                |
-| `janus-webgpu`   | 1    | ~1024 MB | yes    | no           | **Complete** — in-browser Janus (spec 05)                                   |
-| `remote`         | 1    | none     | no     | no           | **Complete** — My PC providers (07+08): JanusLink, Ollama, LM Studio, A1111 |
-| `sdturbo-webgpu` | 2    | ~1536 MB | yes    | yes          | **Complete** — SD-Turbo + Janus critique (spec 06)                          |
+| id               | tier | Download | WebGPU | Desktop only | Status                                                                                |
+| ---------------- | ---- | -------- | ------ | ------------ | ------------------------------------------------------------------------------------- |
+| `mock`           | 0    | none     | no     | no           | **Complete** — procedural SVG + text scoring                                          |
+| `janus-webgpu`   | 1    | ~1024 MB | yes    | no           | **Complete** — in-browser Janus (spec 05)                                             |
+| `remote`         | 1    | none     | no     | no           | **Complete** — My PC (07–09): JanusLink, Ollama, LM Studio, A1111, OpenRouter, OpenAI |
+| `sdturbo-webgpu` | 2    | ~1536 MB | yes    | yes          | **Complete** — SD-Turbo + Janus critique (spec 06)                                    |
 
 ## Invariants
 
@@ -40,9 +40,9 @@ directly.
 - **Runtime failures fall back to `mock` once**, except `'cancelled'`, which propagates.
 - **Critique without vision** routes to `mock` when `capabilities.critique === false`.
 - **Critique targets** come from `critiqueTargetsForBrief(brief, playerPrompt)`, not a
-  raw `preferredKeywords` slice. Empty targets (abstract parrot / no cluster) → accuracy 1
-  for vision engines; mock keeps using `scorePrompt` and names the cluster label in review
-  copy when a reading was committed.
+  raw `preferredKeywords` slice. Empty targets (abstract parrot / no cluster) → Janus and
+  Remote set `accuracyScore = 1` and still request review prose; mock keeps using
+  `scorePrompt` and names the cluster label in review copy when a reading was committed.
 - **Determinism:** `hashString`, `mulberry32`, and seeded template picks keep mock output
   stable for tests and replays.
 
@@ -52,12 +52,14 @@ directly.
 2. Add a descriptor to `ENGINE_REGISTRY` with a dynamic `create` import.
 3. Declare accurate `requirements` — `meetsRequirements` gates before `probe`.
 4. Run inference in a Web Worker (specs 05/06); `mock` stays on the main thread.
+   Remote engines use HTTP instead (no WebGPU download in the tab).
 5. Use `critiqueProtocol` helpers for vision Q&A so accuracy matches the domain ladder.
 6. Throw only `EngineError`; wrap unknowns with `toEngineError`.
 
 ## Deliberately not done here
 
-- Additional local/cloud providers (specs 08–11): Ollama, OpenRouter, ADT Cloud, BAGEL.
+- ADT Cloud accounts/credits (spec 10).
+- ComfyUI as a first-class My PC provider (greyed Coming soon; A1111 covers local SD).
 
 ## Tests
 
