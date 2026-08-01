@@ -31,15 +31,22 @@ describe('KITCHEN_BRIEFS', () => {
 		for (const brief of KITCHEN_BRIEFS) {
 			if ((brief.abstractness ?? 0) >= 1) {
 				expect(brief.interpretationClusters!.length).toBeGreaterThanOrEqual(2);
+				for (const cluster of brief.interpretationClusters!) {
+					expect(cluster.keywords.length).toBeGreaterThanOrEqual(2);
+					expect(cluster.keywords.length).toBeLessThanOrEqual(6);
+				}
 			}
 		}
 	});
 
-	it('lists Mum on the kitchen opener and mood ids', () => {
+	it('lists Mum on the kitchen opener and mood ids with shared band-0 avatar', () => {
 		const mumIds = ['c1', 'c2', 'c3', 'c6', 'c7', 'c12'];
 		for (const id of mumIds) {
 			const brief = KITCHEN_BRIEFS.find((b) => b.id === id);
 			expect(brief?.clientName).toBe('Mum');
+		}
+		for (const id of ['c1', 'c2', 'c3', 'c7']) {
+			expect(KITCHEN_BRIEFS.find((b) => b.id === id)?.avatarUrl).toBe('/avatars/c1.svg');
 		}
 	});
 

@@ -205,8 +205,10 @@ export class RemoteEngine implements ArtEngine {
 				input.signal
 			);
 
-			const hits = answers.filter(parseYesNo).length;
-			const accuracyScore = accuracyFromHits(hits, questions.length);
+			const accuracyScore =
+				keywords.length === 0
+					? 1
+					: accuracyFromHits(answers.filter(parseYesNo).length, questions.length);
 			const title = buildTitle(input.playerPrompt, hashString(input.artwork.id));
 			const fallback = fallbackReview(
 				input.brief.clientName,

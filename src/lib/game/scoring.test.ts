@@ -95,6 +95,10 @@ describe('scorePrompt', () => {
 			10
 		);
 	});
+
+	it('scores c6 invented-but-unrecognised prompt at accuracy 2', () => {
+		expect(scorePrompt(c6, 'dragon spaceship laser').accuracyScore).toBe(2);
+	});
 });
 
 describe('calculatePayout', () => {

@@ -573,18 +573,18 @@ Update the happy path:
 
 ## 12. Definition of done
 
-- [ ] `phaser` in `package.json`; app builds with `adapter-static`
-- [ ] Level 1 loads a tilemap kitchen; player walks with WASD/arrows
-- [ ] Invite / auto-invite summons a client who walks in; E (or debug button) starts briefing
-- [ ] Work loop anim plays at the desk during generating/critiquing
-- [ ] Easels/magnets show displayed art; count grows with venue tier
-- [ ] `static/studio/CREDITS.md` lists CC0 (or commercial-OK) sources
-- [ ] Phaser destroyed on component teardown
-- [ ] `STUDIO_FLOOR_ENABLED = false` restores KitchenScene path
-- [ ] `npm run check`, `lint`, `test:unit -- --run` green
-- [ ] `npm run test:e2e` passes with `studioDebug=1` path
-- [ ] `src/lib/studio/README.md` + components README updated
-- [ ] Handoff appended to `docs/agent-log.md`
+- [x] `phaser` in `package.json`; app builds with `adapter-static`
+- [x] Level 1 loads a tilemap kitchen; player walks with WASD/arrows
+- [x] Invite / auto-invite summons a client who walks in; E (or debug button) starts briefing
+- [x] Work loop anim plays at the desk during generating/critiquing
+- [x] Easels/magnets show displayed art; count grows with venue tier
+- [x] `static/studio/CREDITS.md` lists CC0 (or commercial-OK) sources
+- [x] Phaser destroyed on component teardown
+- [x] `STUDIO_FLOOR_ENABLED = false` restores KitchenScene path
+- [x] `npm run check`, `lint`, `test:unit -- --run` green
+- [x] `npm run test:e2e` passes with `studioDebug=1` path
+- [x] `src/lib/studio/README.md` + components README updated
+- [x] Handoff appended to `docs/agent-log.md`
 
 ---
 

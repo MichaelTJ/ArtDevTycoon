@@ -12,6 +12,7 @@ import {
 import { slotsForVenue, type EaselSlot } from '../easelLayout';
 import { nextWanderTarget, stepToward, type WanderState } from '../npcWander';
 import type { ResidentNpcDef, RoomDef, RoomZone } from '../rooms';
+import { isSafeStudioImageUrl } from '../safeImageUrl';
 import { getRoomForVenue } from '../venueRooms';
 import { DEFAULT_WORK_ESTIMATE_MS, workBarProgress } from '../workProgress';
 
@@ -60,6 +61,9 @@ export class StudioScene extends Phaser.Scene {
 	#workBarBg!: Phaser.GameObjects.Rectangle;
 	#workBarFill!: Phaser.GameObjects.Rectangle;
 	#touchPadBuilt = false;
+	/** Phaser texture keys for floor thumbnails — unloaded when entries leave display. */
+	#artTextureKeys = new Set<string>();
+	#artLoadGeneration = 0;
 
 	constructor() {
 		super('StudioScene');
@@ -577,6 +581,9 @@ export class StudioScene extends Phaser.Scene {
 				if (!this.#client) return;
 				this.#clientArrived = true;
 				this.#client.anims.play('client-idle', true);
+				// Face toward room center (spec 17 §6.3).
+				const centerX = (this.#room.width * TILE_SIZE) / 2;
+				this.#client.setFlipX(this.#client.x > centerX);
 			}
 		});
 	}
@@ -607,10 +614,13 @@ export class StudioScene extends Phaser.Scene {
 			view.art?.destroy();
 		}
 		this.#easels = [];
+		this.#artLoadGeneration += 1;
+		const loadGeneration = this.#artLoadGeneration;
 
 		const venueId = this.#snapshot?.activeVenueId ?? this.#builtVenueId;
 		const entries = this.#snapshot?.displayedEntries ?? [];
 		const slots = slotsForVenue(venueId, this.#room);
+		const keepKeys = new Set<string>();
 
 		for (let i = 0; i < slots.length; i++) {
 			const slot = slots[i]!;
@@ -620,21 +630,30 @@ export class StudioScene extends Phaser.Scene {
 			const stand = this.add.image(x, y, 'furniture', frame).setDepth(6);
 			const entry = entries[i] ?? null;
 			let art: Phaser.GameObjects.Image | null = null;
-			if (entry) {
+			if (entry && isSafeStudioImageUrl(entry.imageUrl)) {
 				const key = `art-${entry.id}`;
+				keepKeys.add(key);
 				if (!this.textures.exists(key)) {
 					this.load.image(key, entry.imageUrl);
 					this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+						if (loadGeneration !== this.#artLoadGeneration) return;
 						if (!this.textures.exists(key)) return;
+						this.#artTextureKeys.add(key);
 						const img = this.add
 							.image(x, y - 2, key)
 							.setDisplaySize(12, 12)
 							.setDepth(7);
 						const found = this.#easels.find((e) => e.entryId === entry.id);
-						if (found) found.art = img;
+						if (found) {
+							found.art?.destroy();
+							found.art = img;
+						} else {
+							img.destroy();
+						}
 					});
 					this.load.start();
 				} else {
+					this.#artTextureKeys.add(key);
 					art = this.add
 						.image(x, y - 2, key)
 						.setDisplaySize(12, 12)
@@ -642,6 +661,14 @@ export class StudioScene extends Phaser.Scene {
 				}
 			}
 			this.#easels.push({ slot, stand, art, entryId: entry?.id ?? null });
+		}
+
+		for (const key of [...this.#artTextureKeys]) {
+			if (keepKeys.has(key)) continue;
+			if (this.textures.exists(key)) {
+				this.textures.remove(key);
+			}
+			this.#artTextureKeys.delete(key);
 		}
 	}
 

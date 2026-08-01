@@ -164,7 +164,8 @@ export type Critique = z.infer<typeof critiqueSchema>;
  * - `mock`           procedural art and text scoring; no download, works everywhere
  * - `janus-webgpu`   Janus-Pro-1B; one model does both generation and critique
  * - `sdturbo-webgpu` SD-Turbo 512px images, paired with Janus for critique; desktop
- * - `remote`         JanusLink on the player's PC (My PC) — Tailscale HTTPS + Bearer key
+ * - `remote`         My PC path: JanusLink (spec 07), plus local/cloud providers
+ *                    (Ollama/LM Studio/A1111, OpenRouter/OpenAI) via the same engine id
  */
 export const ENGINE_IDS = ['mock', 'janus-webgpu', 'sdturbo-webgpu', 'remote'] as const;
 export type EngineId = (typeof ENGINE_IDS)[number];

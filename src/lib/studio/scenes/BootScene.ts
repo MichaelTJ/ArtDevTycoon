@@ -2,11 +2,17 @@ import Phaser from 'phaser';
 
 /** Loads studio atlases then starts StudioScene. */
 export class BootScene extends Phaser.Scene {
+	#loadFailed = false;
+
 	constructor() {
 		super('BootScene');
 	}
 
 	preload(): void {
+		this.load.on('loaderror', () => {
+			this.#loadFailed = true;
+		});
+
 		this.load.image('walls-floors', '/studio/tiles/walls-floors.png');
 		this.load.spritesheet('furniture', '/studio/tiles/furniture.png', {
 			frameWidth: 16,
@@ -25,6 +31,12 @@ export class BootScene extends Phaser.Scene {
 	}
 
 	create(): void {
+		// On asset failure, flag the registry and skip StudioScene. StudioFloor polls
+		// `studioBootFailed` so the error UI appears without a new bridge event type.
+		if (this.#loadFailed) {
+			this.game.registry.set('studioBootFailed', true);
+			return;
+		}
 		this.scene.start('StudioScene');
 	}
 }

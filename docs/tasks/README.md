@@ -157,6 +157,20 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 18  | [Progressive abstract prompts](./18-abstract-prompts.md)      | `kitchenBriefs.ts`, `abstractCritique.ts`, `AbstractBriefHint.svelte`, scoring/pickBrief/engine critique targets              | 01–04, 12–16           |
 | 19  | [Office spaces & resident Mum](./19-office-spaces.md)         | `src/lib/studio/rooms*`, `npcWander`, `venueRooms`, Phaser scene rebuild / Mum NPC; small `+page` summon wiring               | 17, 18                 |
 | 20  | [Progression feedback & skills](./20-progression-feedback.md) | `skills.ts`, `nextUnlock.ts`, `ProgressMeter` / `ProgressPanel` / `WorkGainToast`; HudBar + GameMenuBar meters; save skill XP | 12–16, 17; wait for 19 |
+| 21  | [Living studio (proposal)](./21-living-studio.md)             | Parent catalog; boss plan [`21-boss-plan.md`](./21-boss-plan.md)                                                              | 17–20                  |
+| 21a | [Living NPCs](./21a-living-npcs.md)                           | Mum sheet, floor staff, client tier looks, `hiredRoleIds` + `client.tier` on bridge                                           | 17–20                  |
+| 21b | [Interactables](./21b-interactables.md)                       | Prop registry, fridge, toolkit shelf → open-shop                                                                              | 17–20; after/with 21a  |
+| 21c | [Studio audio](./21c-studio-audio.md)                         | Music beds, work/cash SFX, `adt.audio.v1` settings                                                                            | 17–20                  |
+| 21d | [Studio VFX](./21d-studio-vfx.md)                             | Desk dust + cash confetti; `reducedVfx`                                                                                       | 17–20                  |
+| 21e | [Ambient events](./21e-ambient-events.md)                     | Bark / thought bubbles (Mum + staff)                                                                                          | 21a (+ ideally 21b)    |
+| 21f | [Studio QoL](./21f-studio-qol.md)                             | Contextual E verbs, Mum BFS pathfind, `reducedVfx` hook                                                                       | after 21a/21b scene    |
+
+### Meta / tooling specs (22–23)
+
+| #   | Spec                                          | Owns (new)                                                                                  | Depends on                                        |
+| --- | --------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 22  | [Multiple save slots](./22-multiple-saves.md) | `saveSlots.ts`, `SaveSlotsPanel`, GameStore switch/new/delete, migration from `adt.save.v1` | 12 (+ ideally 20)                                 |
+| 23  | [Dev mode](./23-dev-mode.md)                  | `src/lib/dev/**`, `DevPanel`, gated cheats + modifier peek; subsumes `?studioDebug`         | 01–04, 12; **after 22** if both touch GameMenuBar |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -171,6 +185,18 @@ Wave E  (after 17 and 18 are merged — do not overlap Wave D studio/`+page` edi
 
 Wave F  (after 19 has committed — HUD/progression feedback; do not overlap 19's +page/studio edits)
    └── 20 Progression feedback & skills → main tree (or ../adt-wt-progression-feedback)  branch agent/progression-feedback
+
+Wave G+ (after 20 — living studio; **do not merge** until user approves each branch)
+   ├── 21a Living NPCs      → ../adt-wt-living-npcs      branch agent/living-npcs      (R1 first)
+   ├── 21b Interactables    → ../adt-wt-interactables    branch agent/interactables    (R2)
+   ├── 21c Studio audio     → ../adt-wt-studio-audio     branch agent/studio-audio     (R3)
+   ├── 21d Studio VFX       → ../adt-wt-studio-vfx       branch agent/studio-vfx       (R3)
+   ├── 21f Studio QoL       → ../adt-wt-studio-qol       branch agent/studio-qol       (R4)
+   └── 21e Ambient events   → ../adt-wt-studio-ambient   branch agent/studio-ambient   (R5)
+
+Wave J  (meta / tooling — after 12; prefer serial GameMenuBar)
+   ├── 22 Multiple saves    → ../adt-wt-multiple-saves   branch agent/multiple-saves
+   └── 23 Dev mode          → ../adt-wt-dev-mode         branch agent/dev-mode  (after 22)
 ```
 
 Spec 17 adds Phaser 3 as an npm dependency (allowed exception in that spec), mounts a
@@ -206,6 +232,16 @@ Imagination, Hustle) that gain XP on collect; pending gains on the results panel
 touches `HudBar` / `GameMenuBar` / `ResultsPanel` / `save.ts` / `gameState` — **wait until
 Wave E (19) has committed** so studio/`+page` wiring is stable, and do not run it beside
 another agent on those menu or store files.
+
+Spec 21’s parent catalog is [21-living-studio.md](./21-living-studio.md); implementable
+slices are **21a–21f** (see table). Orchestrator tracking: [21-boss-plan.md](./21-boss-plan.md).
+Only one agent may edit `StudioScene.ts` / `bridge.ts` at a time (R1=21a). **Do not merge**
+feature branches until the user approves each task.
+
+Spec 22 adds three local save slots (`adt.save.slots.v1`) with migration from legacy
+`adt.save.v1`. Spec 23 adds gated Dev mode (`?dev=1` / Vite DEV / latch) with cheats,
+save import/export, and a dev-only Level 1 modifier peek — production players without
+the gate never see it. Run **22 before 23** so GameMenuBar gains Saves, then Dev.
 
 ## Worktrees are already set up
 

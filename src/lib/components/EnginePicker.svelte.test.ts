@@ -63,6 +63,21 @@ test('Set up My PC calls onconfigure without selecting', async () => {
 	expect(onselect).not.toHaveBeenCalled();
 });
 
+test('available remote shows Change My PC server', async () => {
+	const onconfigure = vi.fn();
+	const connected = options.map((option) =>
+		option.id === 'remote' ? { ...option, available: true, unavailableReason: undefined } : option
+	);
+	const screen = render(EnginePicker, {
+		options: connected,
+		activeId: 'remote',
+		onselect: vi.fn(),
+		onconfigure
+	});
+	await screen.getByRole('button', { name: 'Change My PC server' }).click();
+	expect(onconfigure).toHaveBeenCalledWith('remote');
+});
+
 test('active option is checked', async () => {
 	const screen = render(EnginePicker, {
 		options,

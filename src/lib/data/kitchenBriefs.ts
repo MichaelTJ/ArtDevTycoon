@@ -19,7 +19,7 @@ const KITCHEN_BRIEF_DEFS = [
 	{
 		id: 'c2',
 		clientName: 'Mum',
-		avatarUrl: '/avatars/c2.svg',
+		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Can you draw a nice cup of tea for the fridge?',
 		budget: 110,
 		preferredKeywords: ['tea', 'cup'],
@@ -28,7 +28,7 @@ const KITCHEN_BRIEF_DEFS = [
 	{
 		id: 'c3',
 		clientName: 'Mum',
-		avatarUrl: '/avatars/c3.svg',
+		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Paint me a sunny flower. Something cheerful.',
 		budget: 120,
 		preferredKeywords: ['flower', 'sun'],
@@ -37,7 +37,7 @@ const KITCHEN_BRIEF_DEFS = [
 	{
 		id: 'c7',
 		clientName: 'Mum',
-		avatarUrl: '/avatars/c4.svg',
+		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Draw a little bird on the windowsill.',
 		budget: 100,
 		preferredKeywords: ['bird', 'window'],

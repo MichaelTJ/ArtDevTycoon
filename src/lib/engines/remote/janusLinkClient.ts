@@ -4,6 +4,9 @@ import type { RemoteEngineConfig } from './remoteConfig';
 export const CONNECTION_TEST_TIMEOUT_MS = 6000;
 export const REQUEST_TIMEOUT_MS = 180_000;
 
+/** JanusLink arm of {@link RemoteEngineConfig} — the only shape this client accepts. */
+export type JanusLinkConfig = Extract<RemoteEngineConfig, { provider: 'januslink' }>;
+
 export const janusGenerateResultSchema = z.object({
 	promptId: z.string().min(1),
 	images: z
@@ -39,22 +42,22 @@ export interface JanusLinkClientDeps {
 
 export interface JanusLinkClient {
 	testConnection(
-		config: RemoteEngineConfig,
+		config: JanusLinkConfig,
 		signal?: AbortSignal
 	): Promise<{ ok: true; device?: string } | { ok: false; reason: string }>;
 	generate(
-		config: RemoteEngineConfig,
+		config: JanusLinkConfig,
 		body: { prompt: string; seed?: number },
 		signal?: AbortSignal
 	): Promise<JanusGenerateResult>;
 	understand(
-		config: RemoteEngineConfig,
+		config: JanusLinkConfig,
 		body: { image: Blob; question: string; filename?: string },
 		signal?: AbortSignal
 	): Promise<JanusUnderstandResult>;
 	/** Sketch/image refine via ADTLocalServe `/api/janus/edit` (BAGEL when installed). */
 	edit(
-		config: RemoteEngineConfig,
+		config: JanusLinkConfig,
 		body: { image: Blob; prompt: string; seed?: number; filename?: string },
 		signal?: AbortSignal
 	): Promise<JanusGenerateResult>;
@@ -67,14 +70,19 @@ function reachabilityReason(baseUrl: string): string {
 	);
 }
 
-function errorMessageFromBody(data: unknown, status: number): string {
+/** Prefer `{ error }` body; else HTTP status text; never echo secrets. */
+function errorMessageFromBody(data: unknown, response: Response): string {
 	if (data && typeof data === 'object' && 'error' in data) {
 		const err = (data as { error: unknown }).error;
 		if (typeof err === 'string' && err.trim().length > 0) {
 			return err;
 		}
 	}
-	return `Request failed (${status})`;
+	const statusText = response.statusText.trim();
+	if (statusText.length > 0) {
+		return statusText;
+	}
+	return `Request failed (${response.status})`;
 }
 
 async function parseJson(response: Response): Promise<unknown> {
@@ -90,16 +98,18 @@ export function createJanusLinkClient(deps: JanusLinkClientDeps = {}): JanusLink
 	const fetchImpl = deps.fetch ?? fetch;
 
 	async function authorizedFetch(
-		config: RemoteEngineConfig,
+		config: JanusLinkConfig,
 		path: string,
 		init: RequestInit,
 		signal?: AbortSignal
 	): Promise<Response> {
 		const headers = new Headers(init.headers);
 		headers.set('Authorization', `Bearer ${config.apiKey}`);
+		// Cookie sessions are SameSite=lax — omit credentials; Bearer only.
 		return fetchImpl(`${config.baseUrl}${path}`, {
 			...init,
 			headers,
+			credentials: 'omit',
 			signal
 		});
 	}
@@ -118,7 +128,7 @@ export function createJanusLinkClient(deps: JanusLinkClientDeps = {}): JanusLink
 				);
 				const data = await parseJson(response);
 				if (!response.ok) {
-					return { ok: false, reason: errorMessageFromBody(data, response.status) };
+					return { ok: false, reason: errorMessageFromBody(data, response) };
 				}
 				const health = janusHealthResultSchema.safeParse(data);
 				if (!health.success) {
@@ -152,7 +162,7 @@ export function createJanusLinkClient(deps: JanusLinkClientDeps = {}): JanusLink
 
 			const data = await parseJson(response);
 			if (!response.ok) {
-				throw new Error(errorMessageFromBody(data, response.status));
+				throw new Error(errorMessageFromBody(data, response));
 			}
 			const parsed = janusGenerateResultSchema.safeParse(data);
 			if (!parsed.success) {
@@ -183,7 +193,7 @@ export function createJanusLinkClient(deps: JanusLinkClientDeps = {}): JanusLink
 
 			const data = await parseJson(response);
 			if (!response.ok) {
-				throw new Error(errorMessageFromBody(data, response.status));
+				throw new Error(errorMessageFromBody(data, response));
 			}
 			const parsed = janusUnderstandResultSchema.safeParse(data);
 			if (!parsed.success) {
@@ -217,7 +227,7 @@ export function createJanusLinkClient(deps: JanusLinkClientDeps = {}): JanusLink
 
 			const data = await parseJson(response);
 			if (!response.ok) {
-				throw new Error(errorMessageFromBody(data, response.status));
+				throw new Error(errorMessageFromBody(data, response));
 			}
 			const parsed = janusGenerateResultSchema.safeParse(data);
 			if (!parsed.success) {

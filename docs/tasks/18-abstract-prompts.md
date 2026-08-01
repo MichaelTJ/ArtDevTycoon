@@ -636,17 +636,17 @@ engines ask yes/no questions about the chosen cluster's keywords via
 
 ## 10. Definition of done
 
-- [ ] `clientBriefSchema` accepts all pre-existing brief literals unchanged (default
+- [x] `clientBriefSchema` accepts all pre-existing brief literals unchanged (default
       `abstractness: 0`).
-- [ ] First invite at `commissionsCompleted === 0` is always a Mum band-0 kitchen ask.
-- [ ] Band 1 unlocks at 2 commissions; band 2 at 4 — verified by `pickBrief` tests.
-- [ ] `c6` request text is `I miss the old days.` and parrot prompts score accuracy 1.
-- [ ] A prompt that fills a c6 cluster (e.g. sunday dinner) scores accuracy 10.
-- [ ] Mock, Janus, and Remote critique paths use `critiqueTargetsForBrief` (no direct
+- [x] First invite at `commissionsCompleted === 0` is always a Mum band-0 kitchen ask.
+- [x] Band 1 unlocks at 2 commissions; band 2 at 4 — verified by `pickBrief` tests.
+- [x] `c6` request text is `I miss the old days.` and parrot prompts score accuracy 1.
+- [x] A prompt that fills a c6 cluster (e.g. sunday dinner) scores accuracy 10.
+- [x] Mock, Janus, and Remote critique paths use `critiqueTargetsForBrief` (no direct
       `preferredKeywords` slice for question building).
-- [ ] `AbstractBriefHint` shows only for abstractness ≥ 1.
-- [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
-- [ ] Directory READMEs + `docs/agent-log.md` handoff updated.
+- [x] `AbstractBriefHint` shows only for abstractness ≥ 1.
+- [x] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
+- [x] Directory READMEs + `docs/agent-log.md` handoff updated.
 
 ## 11. Explicitly out of scope
 

@@ -81,6 +81,13 @@ test('shows error alert when test fails', async () => {
 	await expect.element(screen.getByRole('alert')).toHaveTextContent('Could not reach host');
 });
 
+test('JanusLink setup help mentions Tailscale and JANUS_ALLOWED_ORIGINS', async () => {
+	const screen = render(MyPcSetup, { ...baseProps, provider: 'januslink' });
+	await screen.getByRole('button', { name: 'Setup help' }).click();
+	await expect.element(screen.getByText(/same Tailscale/i)).toBeVisible();
+	await expect.element(screen.getByText(/JANUS_ALLOWED_ORIGINS/)).toBeVisible();
+});
+
 test('Refresh models fires callback', async () => {
 	const onrefreshmodels = vi.fn();
 	const screen = render(MyPcSetup, {
