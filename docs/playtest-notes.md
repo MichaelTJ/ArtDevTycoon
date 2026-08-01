@@ -8,7 +8,7 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 | P2  | Bug     | Phaser window slowly expands / feels like a zoom-in after start — worrying                                                                                                                                                    | **17** Phaser studio floor                                                                          | **Fixed** — fixed 420px host + `Scale.RESIZE`; no `scale.resize(room)` loop (2026-08-01)             |
 | P3  | Bug     | Kitchen only shows ~3×3 tiles; too zoomed. Bigger rooms may show more (zoom tied to room size?). Prefer black/blank letterbox around smaller rooms so camera isn’t a microscope                                               | **17** camera/zoom + **19** office spaces                                                           | **Fixed** — `cameraZoomToFitRoom` caps zoom at 1×; whole kitchen letterboxes (2026-08-01)            |
 | P4  | Balance | Mum commission payouts way too big. Target: Mum pays **~$5**; enough for new pencils; garage move should stay pretty cheap                                                                                                    | **01** domain / scoring payouts + **12** progression + **13** mediums + **14** gallery unlock costs | **Fixed** — kitchen budgets $5–8; pencil $15; garage $30 (2026-08-01)                                |
-| P5  | Bug     | After painting, focusing “your prompt” still lets Phaser eat keys — typing/WASD moves the character instead of inserting letters                                                                                              | **17** Phaser input capture + **04** integration (prompt field focus)                               | **Fixed** — `domInputFocus` gate via `StudioFloor` registry sync (2026-08-01)                        |
+| P5  | Bug     | After painting, focusing “your prompt” still lets Phaser eat keys — typing/WASD moves the character instead of inserting letters                                                                                              | **17** Phaser input capture + **04** integration (prompt field focus)                               | Was marked fixed; **regressed / incomplete** — see **P11**                                           |
 | P6  | Design  | New loop: player prompts → while waiting, paint on canvas → on reveal, choose submit **own drawing** or **prompted image**                                                                                                    | **11** BAGEL sketch (+ refine)                                                                      | **Fixed** — paint during `generating`, choose-before-critique via `confirmSubmitChoice` (2026-08-01) |
 | P7  | Design  | Mum comments = toddler praise (“Wow! I love it so much!”, “Did you do this all by yourself?!”). Auto **10/10** Accuracy + Creativity. Real Janus critique hidden behind **“Ask for real critique”** (harsh = comedy contrast) | **18** abstract prompts / critique presentation + **03** results UI                                 | **Fixed** — praise pool + ResultsPanel reveal; payout uses 10/10 (2026-08-01)                        |
 | P8  | Design  | Want to **interact with NPCs** (talk / menus), not just see verbs / barks                                                                                                                                                     | **24** (24a talk handlers) — builds on **21a/21b/21f** floor targets                                | Today “Talk to …” is mostly label-only                                                               |
@@ -37,5 +37,34 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] P7 — Mum toddler praise + hidden real critique reveal
 - [x] P6 — paint while generating + submit drawing vs AI before critique
 - [x] P4 follow-up — `LEVEL_1.startingCash` 25 / `targetCash` 50 (orchestrator, contracts)
-- [ ] P8 / P9 — Spec 24a (not started)
+- [ ] P8 / P9 — Spec 24 (agent in flight / merge pending)
+- [ ] Playtest 2: P11–P15, P17–P18; P16 → Spec 25 outline
 - [ ] Triaged into task specs / bugfix PRs
+
+---
+
+# Playtest notes 2 (2026-08-01 evening)
+
+Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
+
+| #   | Kind   | Note                                                                                                                                                                        | Primary task(s) / commits                                                                | Notes / secondary                                    |
+| --- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| P11 | Bug    | Still **cannot type** in the SvelteKit prompt box — Phaser may still intercept keys (or another focus/capture bug)                                                          | **17** `domInputFocus` / `StudioScene` (**P5** regression) + **04** PromptComposer focus | Re-verify registry sync; check `keyboard.addCapture` |
+| P12 | Bug    | Kitchen view better but room sits **top-left** with lots of blank Phaser space — **zoom in ×4**                                                                             | **17** `cameraFit.ts` / `#applyRoomViewport` (follow-up to **P2/P3** `f09efd7`)          | Center room + raise zoom (user: ×4)                  |
+| P13 | Bug    | P6 loop: when prompt image finishes, **drawing disappears** — keep canvas; show **AI image below** drawing; player must finish painting                                     | **11** / **P6** (`7caf51e` `confirmSubmitChoice` / `StudioHudOverlay`)                   | Layout: sketch on top, AI preview under; no unmount  |
+| P14 | Design | Replace “Waiting for the commissioner” with **medium-relevant stall** lines (“Ironing out the paper”, “Framing it up”, “Putting pencils away”, …) — art not handed over yet | **03** UI + **13** mediums — `StudioHudOverlay` critiquing `stageLabel` / message pools  | Tie copy to `activeMediumTierId`                     |
+| P15 | Bug    | Image / critique **titles often cut too short**                                                                                                                             | **03** `ResultsPanel` / artwork title display (+ maybe engine title length)              | CSS truncate vs generator max length                 |
+| P16 | Design | **New Spec 25** — brush types: draw in crayons/watercolours/etc.; choose medium in painting section                                                                         | **[25](./tasks/25-brush-media.md)** outline; builds on **11** + **13**                   | Catalog only for now                                 |
+| P17 | Design | When player can afford an unlock, show a **notification badge** on the relevant menu button                                                                                 | **13/14/16** shops + **03** `GameMenuBar` (affordability affordance)                     | Toolkit / Gallery / Staff badges                     |
+| P18 | Design | Player should be able to **decline / say no** to commissions                                                                                                                | **04** invite/brief flow (+ **24a** receptionist board when present)                     | Decline Mum walk-in and board offers                 |
+
+## Suggested fix order (playtest 2)
+
+1. **P11** — typing broken again (blocks prompt loop)
+2. **P13** — paint + AI layout (blocks new loop fantasy)
+3. **P12** — kitchen zoom ×4 / centering
+4. **P14** — stall copy by medium
+5. **P15** — title truncation
+6. **P18** — decline commission
+7. **P17** — affordability badges on menu
+8. **P16** → Spec **25** (after outline lock)
