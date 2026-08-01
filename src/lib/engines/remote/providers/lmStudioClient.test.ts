@@ -52,6 +52,26 @@ describe('lmStudioClient', () => {
 		expect(result.text).toBe('yes');
 	});
 
+	it('generate surfaces 401 reason without leaking api key', async () => {
+		const secret = 'super-secret-lmstudio-key-0001';
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ error: { message: 'Invalid API key' } }), { status: 401 })
+			);
+		const client = createLmStudioClient({ fetch: fetchMock });
+		let caught: unknown;
+		try {
+			await client.generate({ ...config, apiKey: secret }, { prompt: 'a cat' });
+		} catch (error) {
+			caught = error;
+		}
+		expect(caught).toBeInstanceOf(Error);
+		const message = (caught as Error).message;
+		expect(message).toMatch(/Invalid API key/);
+		expect(message).not.toContain(secret);
+	});
+
 	it('testConnection returns CORS hint on network failure', async () => {
 		const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 		const client = createLmStudioClient({ fetch: fetchMock });

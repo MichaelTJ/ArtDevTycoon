@@ -81,6 +81,8 @@ Without that allowlist entry, the browser blocks the game.
 - Never echo API keys in errors or logs.
 - No `+server.ts` in this game — the client talks to the provider directly.
 - Runtime failures still fall back to `mock` via `EngineManager`.
+- Refresh-models may use temporary placeholder model/key fields; Connect requires a full
+  validated config. A1111 connection tests `/sd-models` then `/options`, then critique.
 
 ## Tests
 

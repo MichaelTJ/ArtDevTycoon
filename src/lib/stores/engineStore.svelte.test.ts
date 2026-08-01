@@ -292,4 +292,70 @@ describe('EngineStore My PC remote setup', () => {
 		expect(store.remoteTestState).toBe('error');
 		expect(store.remoteTestError).toMatch(/Test the connection/i);
 	});
+
+	it('setRemoteProvider applies default base URL and resets test state', () => {
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteTestState = 'success';
+		store.remoteTestError = 'stale';
+		store.remoteAvailableModels = ['old'];
+		store.setRemoteProvider('ollama');
+		expect(store.remoteProvider).toBe('ollama');
+		expect(store.remoteBaseUrl).toBe('http://localhost:11434');
+		expect(store.remoteTestState).toBe('idle');
+		expect(store.remoteTestError).toBeNull();
+		expect(store.remoteAvailableModels).toEqual([]);
+	});
+
+	it('refreshRemoteModels works before model fields are filled', async () => {
+		const listModels = vi.fn().mockResolvedValue(['flux', 'llava']);
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn(),
+			listModels,
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({}));
+		store.remoteProvider = 'ollama';
+		store.remoteBaseUrl = 'http://localhost:11434';
+		store.remoteGenerateModel = '';
+		store.remoteCritiqueModel = '';
+
+		await store.refreshRemoteModels();
+
+		expect(listModels).toHaveBeenCalledOnce();
+		expect(store.remoteAvailableModels).toEqual(['flux', 'llava']);
+	});
+
+	it('connectRemote saves ollama config with split models', async () => {
+		const select = vi.fn(async (id: EngineId) => {
+			void id;
+		});
+		vi.mocked(getRemoteProviderClient).mockReturnValue({
+			testConnection: vi.fn().mockResolvedValue({ ok: true }),
+			listModels: vi.fn().mockResolvedValue([]),
+			generate: vi.fn(),
+			understand: vi.fn()
+		});
+
+		const store = new EngineStore(createFakeManager({ select }));
+		store.remoteProvider = 'ollama';
+		store.remoteBaseUrl = 'http://localhost:11434/';
+		store.remoteApiKey = '';
+		store.remoteGenerateModel = 'flux';
+		store.remoteCritiqueModel = 'llava';
+		store.remoteTestState = 'success';
+		store.showRemoteSetup = true;
+
+		await store.connectRemote();
+
+		expect(select).toHaveBeenCalledWith('remote', expect.any(Function));
+		expect(loadRemoteConfig()).toEqual({
+			provider: 'ollama',
+			baseUrl: 'http://localhost:11434',
+			apiKey: '',
+			generateModel: 'flux',
+			critiqueModel: 'llava'
+		});
+	});
 });

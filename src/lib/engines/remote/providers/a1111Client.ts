@@ -75,6 +75,23 @@ export function createA1111Client(deps: A1111ClientDeps = {}): RemoteProviderCli
 		return parsed.data.map((m) => m.title ?? m.model_name ?? '').filter((name) => name.length > 0);
 	}
 
+	async function pingA1111(config: RemoteEngineConfig, signal: AbortSignal): Promise<void> {
+		try {
+			await listModels(config, signal);
+			return;
+		} catch {
+			/* fall through to /options — some hosts expose options before sd-models */
+		}
+		const response = await fetchImpl(`${config.baseUrl}/sdapi/v1/options`, {
+			method: 'GET',
+			signal
+		});
+		if (!response.ok) {
+			const data = await parseJson(response);
+			throw new Error(errorMessageFromBody(data, response.status));
+		}
+	}
+
 	return {
 		async testConnection(config, signal) {
 			if (!isA1111Config(config)) {
@@ -83,7 +100,7 @@ export function createA1111Client(deps: A1111ClientDeps = {}): RemoteProviderCli
 			const timeout = AbortSignal.timeout(CONNECTION_TEST_TIMEOUT_MS);
 			const combined = signal !== undefined ? AbortSignal.any([signal, timeout]) : timeout;
 			try {
-				await listModels(config, combined);
+				await pingA1111(config, combined);
 			} catch {
 				return {
 					ok: false,

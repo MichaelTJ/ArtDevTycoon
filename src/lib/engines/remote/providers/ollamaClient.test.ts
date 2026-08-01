@@ -33,6 +33,31 @@ describe('ollamaClient', () => {
 		expect(result.images[0]?.base64).toBe(TINY_PNG_B64);
 	});
 
+	it('generate includes options.seed when seed is provided', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify({ images: [TINY_PNG_B64] }), { status: 200 }));
+		const client = createOllamaClient({ fetch: fetchMock });
+		await client.generate(config, { prompt: 'a cat', seed: 42 });
+		const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+		expect(JSON.parse(String(init.body))).toMatchObject({
+			model: 'flux',
+			prompt: 'a cat',
+			stream: false,
+			options: { seed: 42 }
+		});
+	});
+
+	it('generate accepts long base64 in response field', async () => {
+		const padded = TINY_PNG_B64 + 'A'.repeat(300);
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify({ response: padded }), { status: 200 }));
+		const client = createOllamaClient({ fetch: fetchMock });
+		const result = await client.generate(config, { prompt: 'a cat' });
+		expect(result.images[0]?.base64).toBe(padded);
+	});
+
 	it('generate throws when only short text is returned', async () => {
 		const fetchMock = vi
 			.fn()

@@ -59,4 +59,73 @@ describe('a1111Client', () => {
 			critiqueModel: 'llava'
 		});
 	});
+
+	it('generate sends override_settings when generateModel is set', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify({ images: [TINY_PNG_B64] }), { status: 200 }));
+		const client = createA1111Client({
+			fetch: fetchMock,
+			ollama: {
+				testConnection: vi.fn(),
+				understand: vi.fn(),
+				generate: vi.fn()
+			} as unknown as RemoteProviderClient
+		});
+		await client.generate(
+			{ ...config, generateModel: 'sdxl.safetensors' },
+			{ prompt: 'a cat', seed: 7 }
+		);
+		const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+		expect(JSON.parse(String(init.body))).toMatchObject({
+			prompt: 'a cat',
+			seed: 7,
+			override_settings: { sd_model_checkpoint: 'sdxl.safetensors' }
+		});
+	});
+
+	it('testConnection falls back to /options when sd-models fails', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(new Response('missing', { status: 404 }))
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ sd_model_checkpoint: 'a' }), { status: 200 })
+			);
+		const testConnection = vi.fn().mockResolvedValue({ ok: true, device: 'ollama' });
+		const client = createA1111Client({
+			fetch: fetchMock,
+			ollama: {
+				testConnection,
+				understand: vi.fn(),
+				generate: vi.fn()
+			} as unknown as RemoteProviderClient
+		});
+		const result = await client.testConnection(config);
+		expect(result).toEqual({ ok: true, device: 'automatic1111' });
+		expect(fetchMock.mock.calls[0]?.[0]).toBe('http://127.0.0.1:7860/sdapi/v1/sd-models');
+		expect(fetchMock.mock.calls[1]?.[0]).toBe('http://127.0.0.1:7860/sdapi/v1/options');
+		expect(testConnection).toHaveBeenCalledOnce();
+	});
+
+	it('testConnection returns critique failure reason', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify([{ title: 'sdxl' }]), { status: 200 }));
+		const client = createA1111Client({
+			fetch: fetchMock,
+			ollama: {
+				testConnection: vi.fn().mockResolvedValue({
+					ok: false,
+					reason: 'Could not reach http://localhost:11434. Is Ollama running?'
+				}),
+				understand: vi.fn(),
+				generate: vi.fn()
+			} as unknown as RemoteProviderClient
+		});
+		const result = await client.testConnection(config);
+		expect(result.ok).toBe(false);
+		if (!result.ok) {
+			expect(result.reason).toMatch(/Ollama/);
+		}
+	});
 });

@@ -977,6 +977,33 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 - Manual playtest of touch D-pad / easel thumbnails under real WebGL not re-run here.
 - Player anims still not true 4-direction sheets (asset limitation; intentional).
 
+## 2026-08-01 — Spec 08 gap review (local providers)
+
+**Zone:** `src/lib/engines/remote/**` (providers + config + RemoteEngine), `MyPcSetup*`, `engineStore*`, READMEs, Spec 08 DoD, agent-log
+
+**Built:** Gap audit against Spec 08 after the large initial landing (+ Spec 09 coexistence). Core provider framework was already present. Closed remaining quality gaps:
+
+- `refreshRemoteModels` works before model fields are filled (placeholder injection for Zod).
+- A1111 `testConnection` falls back to `/sdapi/v1/options` when `/sd-models` fails, then still probes critique.
+- Spec 08 test table gaps: Ollama seed + response-base64 path; LM Studio 401 without key leak; A1111 override_settings / options fallback / critique failure; factory unknown provider; store setRemoteProvider + ollama connect + early refresh; MyPcSetup A1111 critique fields.
+- Spec 08 Definition of done ticked (with note that Spec 09 enabled OpenRouter/OpenAI).
+
+**Public surface:** Unchanged — `getRemoteProviderClient`, local clients, discriminated `remoteEngineConfigSchema`, `EngineStore` remote fields, `MyPcSetup` bindables.
+
+**Tests:** Owned Spec 08 paths covered via `src/lib/engines/remote/**`, `engineStore.svelte.test.ts`, `MyPcSetup.svelte.test.ts`. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run`.
+
+**Decisions:**
+
+- Left Spec 09 OpenRouter/OpenAI clients, config arms, and UI tabs intact.
+- Placeholders for list-models are store-only; Connect/Test still require a real valid config.
+
+**Requests:** None (registry description / architecture remote-tier wording remain orchestrator-owned if still stale).
+
+**Known gaps:**
+
+- Manual E2E against live Ollama/LM Studio/A1111 not run in this session.
+- ComfyUI still Coming soon (intentional).
+
 ## 2026-08-01 — Spec 18 gap review (abstract prompts)
 
 **Zone:** Spec 18 D1+D2 paths (`kitchenBriefs*`, `briefs*`, `abstractCritique*`, `scoring*`, engines critique wiring, `AbstractBriefHint*`, `StudioHudOverlay` mount, READMEs, architecture §1 already present, task DoD, agent-log)
