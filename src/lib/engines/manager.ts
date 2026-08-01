@@ -181,6 +181,7 @@ export class EngineManager {
 		prompt: string;
 		seed?: number;
 		signal?: AbortSignal;
+		sketchImage?: Blob;
 	}): Promise<Artwork> {
 		this.ensureInitialized();
 		try {

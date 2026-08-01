@@ -266,6 +266,11 @@ export interface ArtEngine {
 		prompt: string;
 		seed?: number;
 		signal?: AbortSignal;
+		/**
+		 * Optional player sketch (PNG). Engines that support image edit (BAGEL via
+		 * JanusLink `/api/janus/edit`) refine it; others MAY ignore it.
+		 */
+		sketchImage?: Blob;
 	}): Promise<Artwork>;
 
 	critique(input: {
