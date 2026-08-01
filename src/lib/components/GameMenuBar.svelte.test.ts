@@ -1,5 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
+import { studioAudio } from '$lib/audio';
 import { game } from '$lib/stores/gameState.svelte';
 import GameMenuBar from './GameMenuBar.svelte';
 
@@ -66,6 +67,18 @@ test('progress button opens the Progress dialog', async () => {
 	await screen.getByRole('button', { name: 'Progress' }).click();
 	await expect.element(screen.getByRole('dialog', { name: 'Progress' })).toBeVisible();
 	await expect.element(screen.getByText('Craft skills')).toBeVisible();
+});
+
+test('Audio button opens the Audio dialog; mute fires prefs change', async () => {
+	game.reset();
+	studioAudio.setPrefs({ muted: false });
+	const screen = render(GameMenuBar, defaultProps);
+	await screen.getByRole('button', { name: 'Audio' }).click();
+	await expect.element(screen.getByRole('dialog', { name: 'Audio' })).toBeVisible();
+	await expect.element(screen.getByRole('heading', { name: 'Audio' })).toBeVisible();
+	await screen.getByRole('checkbox', { name: 'Mute all' }).click();
+	await expect.element(screen.getByRole('checkbox', { name: 'Mute all' })).toBeChecked();
+	studioAudio.setPrefs({ muted: false });
 });
 
 test('saves button opens the Save slots dialog', async () => {

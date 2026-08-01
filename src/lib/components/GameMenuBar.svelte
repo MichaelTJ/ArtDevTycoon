@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { studioAudio } from '$lib/audio';
 	import { ATMOSPHERE_ITEMS } from '$lib/data/galleryAtmosphere';
 	import { GALLERY_LAYOUTS } from '$lib/data/galleryLayouts';
 	import { GALLERY_VENUES } from '$lib/data/galleryVenues';
@@ -8,6 +9,7 @@
 	import { buildLevel1Prompt } from '$lib/game';
 	import { clearDevLatch, persistDevLatch, type DevModeReason } from '$lib/dev/devMode';
 	import { game } from '$lib/stores/gameState.svelte';
+	import AudioSettingsPanel from './AudioSettingsPanel.svelte';
 	import DevPanel from './DevPanel.svelte';
 	import GalleryUpgradeShop from './GalleryUpgradeShop.svelte';
 	import HudBar from './HudBar.svelte';
@@ -62,6 +64,7 @@
 	let showStaffOffice = $state(false);
 	let showProgress = $state(false);
 	let showSaves = $state(false);
+	let showAudio = $state(false);
 	let showDev = $state(false);
 	let lastToolkitNonce = 0;
 
@@ -176,6 +179,17 @@
 				}}
 			>
 				📈 Progress
+			</button>
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="Audio"
+				onclick={() => {
+					studioAudio.unlock();
+					showAudio = true;
+				}}
+			>
+				Audio
 			</button>
 			<button
 				type="button"
@@ -303,6 +317,19 @@
 		skills={game.skillProgressList}
 		onclose={() => {
 			showProgress = false;
+		}}
+	/>
+{/if}
+
+{#if showAudio}
+	<AudioSettingsPanel
+		prefs={studioAudio.prefs}
+		onchange={(patch) => {
+			studioAudio.unlock();
+			studioAudio.setPrefs(patch);
+		}}
+		onclose={() => {
+			showAudio = false;
 		}}
 	/>
 {/if}

@@ -4,6 +4,7 @@ export { default as ScoreBadge } from './ScoreBadge.svelte';
 export { default as HudBar } from './HudBar.svelte';
 export { default as ProgressMeter } from './ProgressMeter.svelte';
 export { default as ProgressPanel } from './ProgressPanel.svelte';
+export { default as AudioSettingsPanel } from './AudioSettingsPanel.svelte';
 export { default as SaveSlotsPanel } from './SaveSlotsPanel.svelte';
 export { default as DevPanel } from './DevPanel.svelte';
 export { default as WorkGainToast } from './WorkGainToast.svelte';

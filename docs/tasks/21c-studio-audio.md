@@ -548,21 +548,21 @@ reopen the player internals.
 
 ## 9. Definition of done
 
-- [ ] `audioPrefsSchema` + load/persist defaults/clamp tests green.
-- [ ] `musicBedForVenue` + effective gain + level-up helpers tested with literals above.
-- [ ] Controller: no audio until `unlock()`; after unlock, music stays silent at
+- [x] `audioPrefsSchema` + load/persist defaults/clamp tests green.
+- [x] `musicBedForVenue` + effective gain + level-up helpers tested with literals above.
+- [x] Controller: no audio until `unlock()`; after unlock, music stays silent at
       default `musicVolume: 0`.
-- [ ] Phase `generating` / `critiquing` starts the correct work loop; other phases stop it.
-- [ ] Collect Cash plays cash stinger; skill level-up (detectable) plays level-up stinger.
-- [ ] Missing / broken clip URLs never throw into commission flow (unit-tested with
+- [x] Phase `generating` / `critiquing` starts the correct work loop; other phases stop it.
+- [x] Collect Cash plays cash stinger; skill level-up (detectable) plays level-up stinger.
+- [x] Missing / broken clip URLs never throw into commission flow (unit-tested with
       rejecting `play()` stubs).
-- [ ] `AudioSettingsPanel` + GameMenuBar Audio entry with component tests.
-- [ ] Prefs persist under `adt.audio.v1` and reload after remount.
-- [ ] Assets under `static/studio/audio/**` + CREDITS lines.
-- [ ] `src/lib/audio/README.md` documents public surface + unlock invariant.
-- [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
-- [ ] Handoff appended to `docs/agent-log.md` (template in `best-practices.md` §6.3).
-- [ ] No edits outside the ownership zone; no `package.json` / `contracts.ts` /
+- [x] `AudioSettingsPanel` + GameMenuBar Audio entry with component tests.
+- [x] Prefs persist under `adt.audio.v1` and reload after remount.
+- [x] Assets under `static/studio/audio/**` + CREDITS lines.
+- [x] `src/lib/audio/README.md` documents public surface + unlock invariant.
+- [x] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
+- [x] Handoff appended to `docs/agent-log.md` (template in `best-practices.md` §6.3).
+- [x] No edits outside the ownership zone; no `package.json` / `contracts.ts` /
       `StudioScene` rewrites.
 
 ---
