@@ -1855,3 +1855,31 @@ marked fixed. Spec 16 idle income and Mum kitchen loop unchanged.
 - Manual playthrough not run (headless/component tests only).
 - B4 artist floor desks, C4 parallel jobs, D5 continuity deferred.
 - Full major-project beat loop to payout requires playing through all beats in UI (no dev skip).
+
+## 2026-08-01 — Playtest 2 fix P13 (keep drawing; AI below canvas)
+
+**Zone:** `StudioHudOverlay*`, `SketchCanvas*` (unchanged), `gameState*` (unchanged), component/store READMEs, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P13 fix — when `pendingSubmitChoice` becomes true after generate completes, `SketchCanvas` no longer moves into `sr-only` (which hid the drawing and blocked painting). Canvas stays mounted and interactive on top; `ArtworkFrame` AI preview stacks below with submit-choice buttons. Copy updated to “keep painting or choose what to submit”. P6 `confirmSubmitChoice`, P7 Mum praise, and Spec 24 menu wiring unchanged.
+
+**Public surface:** No API changes — layout-only fix in `StudioHudOverlay` generating branch.
+
+**Tests:** `StudioHudOverlay.svelte.test.ts` — submit-choice case now asserts sketch canvas visible, AI image follows canvas in DOM, and buttons still fire `onconfirmsubmit`. Commands:
+
+```powershell
+npm run check
+npm run lint
+npm run test:unit -- --run src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/components/SketchCanvas.svelte.test.ts src/lib/stores/gameState.svelte.test.ts
+```
+
+**Decisions:**
+
+- Removed `sr-only` / `aria-hidden` wrapper instead of toggling visibility — canvas must remain visually interactive, not merely mounted for export.
+- No `gameState` changes; `pendingSubmitChoice` sub-state on `generating` unchanged.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (component tests only).
+- P6 handoff note “canvas kept mounted (visually hidden)” superseded by this fix.

@@ -136,9 +136,7 @@
 		{#if currentClient}
 			<ClientCard brief={currentClient} />
 		{/if}
-		<div class={pendingSubmitChoice ? 'sr-only' : ''} aria-hidden={pendingSubmitChoice}>
-			<SketchCanvas bind:hasStrokes={sketchHasStrokes} onexportready={onsketchexportready} />
-		</div>
+		<SketchCanvas bind:hasStrokes={sketchHasStrokes} onexportready={onsketchexportready} />
 		{#if pendingSubmitChoice && aiGeneratedImageUrl}
 			<ArtworkFrame
 				imageUrl={aiGeneratedImageUrl}
@@ -147,7 +145,7 @@
 				size="full"
 			/>
 			<p class="text-sm text-stone-700">
-				Generation finished — choose what to submit for critique.
+				Generation finished — keep painting or choose what to submit for critique.
 			</p>
 			<div class="flex flex-col gap-2">
 				<button
