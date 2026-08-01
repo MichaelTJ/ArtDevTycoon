@@ -384,22 +384,22 @@ Do **not** construct a real `Phaser.Game` in unit tests (studio README invariant
 
 ## 8. Definition of done
 
-- [ ] `vfx.ts` exports caps + helpers; `vfx.test.ts` green with the table above.
-- [ ] `StudioSnapshot.reducedVfx` exists; bridge fixture default `false`.
-- [ ] `+page.svelte` listens to `prefers-reduced-motion` via `matchMedia` and passes
+- [x] `vfx.ts` exports caps + helpers; `vfx.test.ts` green with the table above.
+- [x] `StudioSnapshot.reducedVfx` exists; bridge fixture default `false`.
+- [x] `+page.svelte` listens to `prefers-reduced-motion` via `matchMedia` and passes
       `reducedVfx` on every `syncStudio()`.
-- [ ] Desk work particles run only for `generating` / `critiquing` and only when
+- [x] Desk work particles run only for `generating` / `critiquing` and only when
       `reducedVfx === false`; capped at **12** alive / **≥90 ms** frequency.
-- [ ] Cash confetti fires once on Collect Cash phase edge (`results` → `idle` /
+- [x] Cash confetti fires once on Collect Cash phase edge (`results` → `idle` /
       `levelComplete`) when `reducedVfx === false`; burst count **≤ 18**, lifespan
       **≤ 700 ms**.
-- [ ] When `reducedVfx === true`, zero work/cash particles; HudBar cash tween
+- [x] When `reducedVfx === true`, zero work/cash particles; HudBar cash tween
       behaviour unchanged.
-- [ ] Emitters destroyed on scene shutdown / floor teardown; no new npm deps.
-- [ ] Studio README updated; CREDITS updated only if assets added.
-- [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned
+- [x] Emitters destroyed on scene shutdown / floor teardown; no new npm deps.
+- [x] Studio README updated; CREDITS updated only if assets added.
+- [x] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned
       files.
-- [ ] Handoff appended to `docs/agent-log.md`.
+- [x] Handoff appended to `docs/agent-log.md`.
 
 ---
 

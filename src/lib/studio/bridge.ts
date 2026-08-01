@@ -61,6 +61,12 @@ export interface StudioSnapshot {
 	 * Phaser shows floor NPCs for a subset (§5). Default [].
 	 */
 	hiredRoleIds: readonly string[];
+	/**
+	 * Spec 21d. When true, Phaser must not start desk work particles or cash
+	 * confetti. Default false for older callers; Svelte MUST set from
+	 * prefers-reduced-motion.
+	 */
+	reducedVfx: boolean;
 }
 
 export type StudioListener = (event: StudioOutboundEvent) => void;

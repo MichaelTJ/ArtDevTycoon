@@ -29,6 +29,16 @@ import {
 	type FloorStaffRoleId
 } from '../staffPresence';
 import { getRoomForVenue } from '../venueRooms';
+import {
+	CASH_BURST_COUNT,
+	CASH_BURST_LIFESPAN_MS,
+	WORK_PARTICLE_FREQUENCY_MS,
+	WORK_PARTICLE_MAX,
+	clampCashBurstCount,
+	shouldBurstCashConfetti,
+	shouldEmitWorkParticles,
+	shouldTriggerCashBurst
+} from '../vfx';
 import { DEFAULT_WORK_ESTIMATE_MS, workBarProgress } from '../workProgress';
 
 /** Warm tint so Mum reads apart from door visitors when using the clients sheet. */
@@ -99,6 +109,11 @@ export class StudioScene extends Phaser.Scene {
 	#workBarBg!: Phaser.GameObjects.Rectangle;
 	#workBarFill!: Phaser.GameObjects.Rectangle;
 	#touchPadBuilt = false;
+	/** Spec 21d — desk pencil-dust emitter (continuous while working). */
+	#workEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+	/** Spec 21d — one-shot cash confetti emitter. */
+	#cashEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+	#prevPhase: string | null = null;
 	/** Phaser texture keys for floor thumbnails — unloaded when entries leave display. */
 	#artTextureKeys = new Set<string>();
 	#artLoadGeneration = 0;
@@ -131,11 +146,13 @@ export class StudioScene extends Phaser.Scene {
 			.setDepth(21)
 			.setVisible(false);
 		this.#createWorkBar();
+		this.#createVfxEmitters();
 
 		this.#bridge.setCommandHandler((cmd) => this.#onCommand(cmd));
 		this.#bridge.emit({ type: 'ready' });
 
 		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			this.#destroyVfx();
 			this.#bridge.setCommandHandler(null);
 		});
 	}
@@ -159,6 +176,7 @@ export class StudioScene extends Phaser.Scene {
 		this.#updateMumWander(delta / 1000);
 		this.#updateStaffWander(delta / 1000);
 		this.#updateWorkBar();
+		this.#syncWorkParticles();
 		this.#updateInteractPrompt();
 		if (!this.#working && this.#consumeInteract()) {
 			this.#tryInteract();
@@ -206,6 +224,8 @@ export class StudioScene extends Phaser.Scene {
 		this.#tilemap?.destroy();
 		this.#tilemap = null;
 
+		this.#destroyVfx();
+
 		if (this.#player) {
 			this.#player.destroy();
 		}
@@ -232,6 +252,8 @@ export class StudioScene extends Phaser.Scene {
 		}
 		this.#rebuildEasels();
 		this.#syncStaff();
+		this.#createVfxEmitters();
+		this.#syncWorkParticles();
 	}
 
 	#resizeToRoom(): void {
@@ -773,11 +795,102 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#snapPlayerToDesk(): void {
+		const desk = this.#deskWorldPos();
+		this.#player.setPosition(desk.x, desk.y);
+	}
+
+	#deskWorldPos(): { x: number; y: number } {
 		const { desk } = this.#room;
-		this.#player.setPosition(
-			desk.tx * TILE_SIZE + TILE_SIZE / 2,
-			desk.ty * TILE_SIZE + TILE_SIZE / 2
-		);
+		return {
+			x: desk.tx * TILE_SIZE + TILE_SIZE / 2,
+			y: desk.ty * TILE_SIZE + TILE_SIZE / 2
+		};
+	}
+
+	#ensureVfxTextures(): void {
+		if (this.textures.exists('vfx-dot')) return;
+		this.textures.generate('vfx-dot', {
+			data: ['1'],
+			pixelWidth: 3
+		});
+	}
+
+	#createVfxEmitters(): void {
+		if (this.#workEmitter) return;
+		this.#ensureVfxTextures();
+		const desk = this.#deskWorldPos();
+
+		this.#workEmitter = this.add.particles(desk.x, desk.y - 6, 'vfx-dot', {
+			speed: { min: 8, max: 22 },
+			angle: { min: 250, max: 290 },
+			scale: { start: 0.45, end: 0.12 },
+			alpha: { start: 0.5, end: 0 },
+			lifespan: { min: 400, max: 800 },
+			frequency: WORK_PARTICLE_FREQUENCY_MS,
+			quantity: 1,
+			maxAliveParticles: WORK_PARTICLE_MAX,
+			tint: [0xf5f0e6, 0xa8a29e],
+			emitting: false
+		});
+		this.#workEmitter.setDepth(22);
+
+		this.#cashEmitter = this.add.particles(desk.x, desk.y, 'vfx-dot', {
+			speed: { min: 40, max: 95 },
+			angle: { min: 0, max: 360 },
+			scale: { start: 0.55, end: 0.1 },
+			alpha: { start: 0.9, end: 0 },
+			lifespan: CASH_BURST_LIFESPAN_MS,
+			gravityY: 140,
+			quantity: 0,
+			emitting: false,
+			tint: [0xf59e0b, 0xfbbf24, 0xf5f0e6]
+		});
+		this.#cashEmitter.setDepth(23);
+	}
+
+	#syncWorkParticles(): void {
+		if (!this.#workEmitter) {
+			this.#createVfxEmitters();
+		}
+		const work = this.#workEmitter;
+		if (!work) return;
+		const phase = this.#snapshot?.phase ?? 'idle';
+		const reduced = this.#snapshot?.reducedVfx ?? false;
+		if (shouldEmitWorkParticles(phase, reduced)) {
+			const desk = this.#deskWorldPos();
+			work.setPosition(desk.x, desk.y - 6);
+			if (!work.emitting) {
+				work.start();
+			}
+		} else {
+			work.stop();
+		}
+	}
+
+	#tryCashBurst(): void {
+		const next = this.#snapshot?.phase ?? 'idle';
+		const reduced = this.#snapshot?.reducedVfx ?? false;
+		if (!shouldTriggerCashBurst(this.#prevPhase, next) || !shouldBurstCashConfetti(reduced)) {
+			return;
+		}
+		if (!this.#cashEmitter) {
+			this.#createVfxEmitters();
+		}
+		const cash = this.#cashEmitter;
+		if (!cash) return;
+		const desk = this.#deskWorldPos();
+		const x = this.#player?.x ?? desk.x;
+		const y = this.#player?.y ?? desk.y;
+		cash.explode(clampCashBurstCount(CASH_BURST_COUNT), x, y);
+	}
+
+	#destroyVfx(): void {
+		this.#workEmitter?.stop();
+		this.#workEmitter?.destroy();
+		this.#workEmitter = null;
+		this.#cashEmitter?.stop();
+		this.#cashEmitter?.destroy();
+		this.#cashEmitter = null;
 	}
 
 	#hasMumResident(): boolean {
@@ -787,6 +900,7 @@ export class StudioScene extends Phaser.Scene {
 	#onCommand(cmd: StudioInboundCommand): void {
 		if (cmd.type === 'sync') {
 			const prevVenue = this.#builtVenueId;
+			this.#prevPhase = this.#snapshot?.phase ?? null;
 			this.#snapshot = cmd.snapshot;
 			if (cmd.snapshot.activeVenueId !== prevVenue) {
 				this.#rebuildForVenue(cmd.snapshot.activeVenueId);
@@ -797,6 +911,8 @@ export class StudioScene extends Phaser.Scene {
 			if (this.#client) {
 				this.#applyClientLook(this.#client);
 			}
+			this.#syncWorkParticles();
+			this.#tryCashBurst();
 			return;
 		}
 		if (cmd.type === 'summon-client') {
