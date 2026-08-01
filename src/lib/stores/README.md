@@ -18,15 +18,15 @@ Import from:
 
 ## State machine
 
-| Phase           | UI                                                                                                                                                      | Entry                           |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `idle`          | {@link IdlePanel}                                                                                                                                       | start / after collect           |
-| `briefing`      | {@link ClientCard} + {@link PromptComposer}                                                                                                             | `inviteClient()`                |
-| `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting) + {@link GeneratingPanel}; after generate, submit-choice UI until `confirmSubmitChoice` | `createArt()` then player picks |
-| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                     | after submit choice             |
-| `results`       | {@link ResultsPanel}                                                                                                                                    | after critique                  |
-| `failed`        | {@link ErrorPanel} + composer                                                                                                                           | engine error                    |
-| `levelComplete` | {@link LevelCompleteOverlay}                                                                                                                            | 5 commissions and $500          |
+| Phase           | UI                                                                                                                                                                        | Entry                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `idle`          | {@link IdlePanel}                                                                                                                                                         | start / after collect           |
+| `briefing`      | {@link ClientCard} + {@link PromptComposer}                                                                                                                               | `inviteClient()`                |
+| `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting; stays interactive after AI arrives) + AI preview below canvas + submit-choice until `confirmSubmitChoice` | `createArt()` then player picks |
+| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                                       | after submit choice             |
+| `results`       | {@link ResultsPanel}                                                                                                                                                      | after critique                  |
+| `failed`        | {@link ErrorPanel} + composer                                                                                                                                             | engine error                    |
+| `levelComplete` | {@link LevelCompleteOverlay}                                                                                                                                              | 5 commissions and $500          |
 
 Every store method guards on the current phase. `collectCash()` is async and idempotent —
 calling it twice does not pay twice. Blob image URLs are converted to durable `data:` URLs

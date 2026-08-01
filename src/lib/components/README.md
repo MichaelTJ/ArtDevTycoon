@@ -55,7 +55,7 @@ Import everything from `$lib/components` (barrel `index.ts`):
 
 ### Sketch pad (spec 11 + playtest P6)
 
-`SketchCanvas` is a presentational 384×384 paint surface. **P6:** shown during **`generating`** so the player can paint while the engine works; after generate, `StudioHudOverlay` offers **Submit AI image** vs **Submit your drawing** (disabled when blank). Parent registers the PNG exporter via `onsketchexportready` and calls `game.confirmSubmitChoice` with the blob when the player picks their drawing. Briefing is prompt-only. Undo stack depth is 20; clear wipes to white and clears `hasStrokes`.
+`SketchCanvas` is a presentational 384×384 paint surface. **P6:** shown during **`generating`** so the player can paint while the engine works; after generate (`pendingSubmitChoice`), the canvas **stays mounted and interactive on top** while the AI preview appears **below** it — player can keep painting until they pick **Submit AI image** vs **Submit your drawing** (disabled when blank). Parent registers the PNG exporter via `onsketchexportready` and calls `game.confirmSubmitChoice` with the blob when the player picks their drawing. Briefing is prompt-only. Undo stack depth is 20; clear wipes to white and clears `hasStrokes`.
 
 ### Studio floor (spec 17)
 

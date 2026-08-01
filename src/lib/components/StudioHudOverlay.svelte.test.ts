@@ -76,7 +76,7 @@ test('generating shows sketch pad while waiting', async () => {
 	await expect.element(screen.getByText(/Paint on the canvas while you wait/)).toBeVisible();
 });
 
-test('generating submit choice shows AI preview and both buttons', async () => {
+test('generating submit choice keeps sketch pad visible with AI preview below', async () => {
 	const onconfirmsubmit = vi.fn();
 	const screen = render(StudioHudOverlay, {
 		...base,
@@ -86,6 +86,15 @@ test('generating submit choice shows AI preview and both buttons', async () => {
 		aiGeneratedImageUrl: artwork.imageUrl,
 		onconfirmsubmit
 	});
+	const sketchCanvas = screen.getByLabelText('Sketch canvas');
+	const aiImage = screen.getByAltText('Generated art from your prompt');
+	await expect.element(sketchCanvas).toBeVisible();
+	await expect.element(aiImage).toBeVisible();
+	expect(
+		sketchCanvas.element().compareDocumentPosition(aiImage.element()) &
+			Node.DOCUMENT_POSITION_FOLLOWING
+	).toBeTruthy();
+	await expect.element(screen.getByText(/keep painting or choose what to submit/)).toBeVisible();
 	await expect.element(screen.getByRole('button', { name: 'Submit AI image' })).toBeVisible();
 	const drawingBtn = screen.getByRole('button', { name: 'Submit your drawing' });
 	await expect.element(drawingBtn).toBeVisible();
