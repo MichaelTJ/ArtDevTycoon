@@ -1117,3 +1117,31 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 
 - None material for Spec 20 acceptance criteria.
 - Skill trees / Phaser desk XP bars remain deliberately out of scope.
+
+## 2026-08-01 — Spec 21a gap review (Living NPCs)
+
+**Zone:** `staffPresence*`, `clientLooks*`, `bridge.ts` (+ test), `BootScene.ts`, `StudioScene.ts`, `README.md`, `static/studio/CREDITS.md`, `mum.png` / `staff.png`, `+page.svelte`, `docs/tasks/21a-living-npcs.md` (DoD), `docs/agent-log.md`
+
+**Built:** Gap audit found Spec 21a unimplemented on this branch (prior impl lived only on `agent/living-npcs`). Ported and closed DoD: `hiredRoleIds` + `client.tier` on snapshot / `+page` sync; BootScene loads optional `mum`/`staff` sheets while preserving Spec 19 `studioBootFailed` for required assets; floor staff (apprentice / marketing-director / curator; never print-shop); curator patrol; `clientLookForTier` door looks. Shipped CC0 `mum.png` / `staff.png` (Kenney strips derived from `clients.png`). Dedicated mum/staff idle anims so Phaser does not swap textures back to `clients`; staff idle keeps role frames.
+
+**Public surface:**
+
+- `StudioSnapshot.hiredRoleIds: readonly string[]` (default `[]`)
+- `StudioSnapshot.client.tier: string` when client ≠ null
+- `floorStaffFromHired` / `staffAnchorForRole` / `curatorPatrol` / `staffLookForRole`
+- `clientLookForTier(tier) → { frame, tint }`
+
+**Tests:** `staffPresence.test.ts`, `clientLooks.test.ts`, bridge fixture `hiredRoleIds: []`. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run src/lib/studio`.
+
+**Decisions:**
+
+- Kept Spec 19 boot-failure gate; only `mum`/`staff` 404s are ignored (prior 21a branch dropped `studioBootFailed`).
+- Shipped mum/staff sheets (preferred §4.3) rather than tint-only fallback.
+- Did not edit 21b–21f, contracts, game/data, or sibling worktrees.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- A4–A8 (pedestrians, rival, critic ghost, pet, museum crowd) remain out of scope.
+- Mum/staff sheets are the same Kenney strip as clients for now — distinct art can replace them later without code changes.

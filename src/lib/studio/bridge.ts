@@ -19,8 +19,15 @@ export type StudioInboundCommand =
 
 export interface StudioSnapshot {
 	phase: GamePhase;
-	/** Null when idle / levelComplete with no active brief. */
-	client: Pick<ClientBrief, 'id' | 'clientName' | 'avatarUrl'> | null;
+	/**
+	 * Active brief target. `tier` is required when client is non-null so door
+	 * visitors can pick a look (A3). Use 'walk-in' when the store brief omits it.
+	 */
+	client:
+		| (Pick<ClientBrief, 'id' | 'clientName' | 'avatarUrl'> & {
+				tier: string;
+		  })
+		| null;
 	/** Pieces currently on display (same list as FridgeGallery). */
 	displayedEntries: GalleryEntry[];
 	activeVenueId: string;
@@ -39,6 +46,11 @@ export interface StudioSnapshot {
 	 * door visitor. Phaser shows “E — Talk” on Mum.
 	 */
 	residentClientArmed: boolean;
+	/**
+	 * Hired staff role ids from GameStore.hiredStaffIds (spec 16).
+	 * Phaser shows floor NPCs for a subset (§5). Default [].
+	 */
+	hiredRoleIds: readonly string[];
 }
 
 export type StudioListener = (event: StudioOutboundEvent) => void;

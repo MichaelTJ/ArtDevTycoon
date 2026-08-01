@@ -13,11 +13,14 @@ allowed. Attribution is not required; we credit the authors here anyway.
   - `tiles/furniture.png` — strip composed from Tiny Dungeon tile PNGs (chest, barrel, wood)
   - `characters/player.png` — Tiny Dungeon character tile + ADT-authored walk bob / work pencil frames
   - `characters/clients.png` — three Tiny Dungeon character tiles with idle/bob frames
+  - `characters/mum.png` — Kenney Tiny Dungeon character strip (same source as clients; dedicated Mum key)
+  - `characters/staff.png` — Kenney Tiny Dungeon character strip for hired floor staff
   - Ground indices used for venue palettes: `0` floor, `1` concrete, `2` museum stone,
     `12` wall, `48` wood floor, `49` carpet (storefront / foyer strip)
 
-Mum currently reuses `clients.png` frame 0 with an in-engine warm tint (`0xffc9a8`).
-A dedicated `characters/mum.png` sheet may be added later (same Kenney source / CC0).
+Mum / staff: BootScene loads `characters/mum.png` and `characters/staff.png` (Kenney /
+CC0). If either 404s, loaderror is ignored and StudioScene falls back to `clients.png`
+(Mum with warm tint `0xffc9a8`; staff with role tints from `staffLookForRole`).
 
 ## Art Dev Tycoon originals (CC0)
 
