@@ -18,7 +18,7 @@ import {
 	type BarkAnnounceHandler
 } from '../barkPresenter';
 import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../bridge';
-import { cameraZoomToFitRoom } from '../cameraFit';
+import { cameraLetterboxBounds, cameraRoomCenter, cameraZoomToFitRoom } from '../cameraFit';
 import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
 import { applyDomEditableKeyboardGate } from '../domInputKeyboardGate';
@@ -320,9 +320,12 @@ export class StudioScene extends Phaser.Scene {
 		const h = this.#room.height * TILE_SIZE;
 		this.physics.world.setBounds(0, 0, w, h);
 		const cam = this.cameras.main;
-		cam.setBounds(0, 0, w, h);
 		const zoom = cameraZoomToFitRoom(w, h, cam.width, cam.height, TILE_SIZE * 0.5);
 		cam.setZoom(zoom);
+		const bounds = cameraLetterboxBounds(w, h, cam.width, cam.height, zoom);
+		cam.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+		const center = cameraRoomCenter(w, h);
+		cam.centerOn(center.x, center.y);
 	}
 
 	#createWorkBar(): void {

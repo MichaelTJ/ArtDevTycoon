@@ -50,7 +50,7 @@ Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
 | #   | Kind   | Note                                                                                                                                                                        | Primary task(s) / commits                                                                | Notes / secondary                                                                   |
 | --- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | P11 | Bug    | Still **cannot type** in the SvelteKit prompt box — Phaser may still intercept keys (or another focus/capture bug)                                                          | **17** `domInputFocus` / `StudioScene` (**P5** regression) + **04** PromptComposer focus | **Fixed** — `disableGlobalCapture` + canvas blur on focus-in (2026-08-01)           |
-| P12 | Bug    | Kitchen view better but room sits **top-left** with lots of blank Phaser space — **zoom in ×4**                                                                             | **17** `cameraFit.ts` / `#applyRoomViewport` (follow-up to **P2/P3** `f09efd7`)          | Center room + raise zoom (user: ×4)                                                 |
+| P12 | Bug    | Kitchen view better but room sits **top-left** with lots of blank Phaser space — **zoom in ×4**                                                                             | **17** `cameraFit.ts` / `#applyRoomViewport` (follow-up to **P2/P3** `f09efd7`)          | **Fixed** — 4× max zoom + letterbox bounds center room (2026-08-01)                 |
 | P13 | Bug    | P6 loop: when prompt image finishes, **drawing disappears** — keep canvas; show **AI image below** drawing; player must finish painting                                     | **11** / **P6** (`7caf51e` `confirmSubmitChoice` / `StudioHudOverlay`)                   | **Fixed** — canvas stays visible/interactive; AI preview stacked below (2026-08-01) |
 | P14 | Design | Replace “Waiting for the commissioner” with **medium-relevant stall** lines (“Ironing out the paper”, “Framing it up”, “Putting pencils away”, …) — art not handed over yet | **03** UI + **13** mediums — `StudioHudOverlay` critiquing `stageLabel` / message pools  | Tie copy to `activeMediumTierId`                                                    |
 | P15 | Bug    | Image / critique **titles often cut too short**                                                                                                                             | **03** `ResultsPanel` / artwork title display (+ maybe engine title length)              | CSS truncate vs generator max length                                                |
@@ -62,7 +62,7 @@ Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
 
 1. ~~**P11** — typing broken again (blocks prompt loop)~~ **done**
 2. ~~**P13** — paint + AI layout (blocks new loop fantasy)~~ **done**
-3. **P12** — kitchen zoom ×4 / centering
+3. ~~**P12** — kitchen zoom ×4 / centering~~ **done**
 4. **P14** — stall copy by medium
 5. **P15** — title truncation
 6. **P18** — decline commission

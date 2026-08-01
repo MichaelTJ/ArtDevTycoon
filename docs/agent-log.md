@@ -1921,3 +1921,40 @@ visible, AI image follows canvas in DOM, and buttons still fire `onconfirmsubmit
 
 - Manual playthrough not run (component tests only).
 - P6 handoff note “canvas kept mounted (visually hidden)” superseded by this fix.
+
+## 2026-08-01 — Playtest 2 fix P12 (kitchen zoom ×4 / centering)
+
+**Zone:** `src/lib/studio/**`, `StudioFloor.svelte`, `StudioFloor.svelte.test.ts`,
+`src/lib/studio/README.md`, `docs/agent-log.md`, `docs/playtest-notes.md`
+
+**Built:** Playtest P12 — kitchen no longer sits in the top-left corner with empty void.
+Raised `CAMERA_ZOOM_MAX` to **4** so the 6×6 floor magnifies up to user-requested ×4;
+added `cameraLetterboxBounds` + `cameraRoomCenter` so `#applyRoomViewport` expands camera
+bounds and centers on the room midpoint (physics bounds stay room-sized). P11 DOM keyboard
+gate unchanged.
+
+**Public surface:**
+
+- `CAMERA_ZOOM_MAX` — `4`
+- `cameraZoomToFitRoom(...)` — fit zoom capped at 4×
+- `cameraRoomCenter(roomW, roomH)` — world midpoint for centering
+- `cameraLetterboxBounds(roomW, roomH, viewportW, viewportH, zoom)` — symmetric scroll bounds
+
+**Tests:** `cameraFit.test.ts` (kitchen 4× zoom, letterbox bounds, large-room zoom-out,
+room center); existing studio suite + `StudioFloor.svelte.test.ts`. Commands: `npm run check`,
+`npm run lint`, `npm run test:unit -- --run src/lib/studio
+src/lib/components/StudioFloor.svelte.test.ts`.
+
+**Decisions:**
+
+- Top-left bias was camera bounds clamped to room size — expanded bounds allow negative
+  scroll offset for letterbox centering without moving tile content.
+- Still no `scale.resize(roomPx)` — P2 growth loop remains fixed.
+- Half-tile padding retained; viewport recomputed on `Scale.Events.RESIZE`.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual Phaser walkthrough (kitchen vs garage vs museum camera) not run headless.
+- Touch-pad positions still fixed at first build on resize (pre-existing).
