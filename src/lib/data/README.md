@@ -16,6 +16,7 @@ validated at module load.
 | `galleryAtmosphere.ts` | `ATMOSPHERE_ITEMS`, `AtmosphereItem`, `getAtmosphereItem`, `totalAtmosphereBonus`                                   |
 | `staffRoles.ts`        | `STAFF_ROLES`, `StaffRole`, `getStaffRole`, `canHireStaff`, `totalIncomePerSecond`                                  |
 | `clientTiers.ts`       | `CLIENT_TIER_INFO`, `ClientTierInfo`, `getClientTierInfo`, `unlockedClientTiers`                                    |
+| `barks.ts`             | `BARK_POOL`, `BarkLine`, `BarkSpeakerId`, `linesForSpeaker`, `barkSpeakerLabel` (ambient comedy; no LLM)            |
 
 Import briefs directly from `$lib/data/briefs` or re-export through a future data barrel
 if one is added.
@@ -47,6 +48,13 @@ Independent, stackable hires (Apprentice, Print Shop, Marketing Director, Curato
 roles contribute `incomePerSecond` for idle accrual; Marketing Director speeds auto-invite;
 Curator reorders gallery display by score and picks the best owned layout multiplier
 without mutating the player's `activeLayoutId`. Persisted as `hiredStaffIds`.
+
+## Ambient barks (`barks.ts`)
+
+Static one-line comedy pools for Mum and floor staff (spec 21e). Presentation-only —
+never touch cash, briefs, or unlocks. Soft cap 42 characters; `print-shop` is not a
+speaker. Optional `cueId` strings are reserved for later audio consumers; this module
+does not play sound. Phaser picks lines via `$lib/studio/barkPicker`.
 
 ## Not done yet
 

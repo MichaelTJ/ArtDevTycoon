@@ -1,4 +1,22 @@
 import Phaser from 'phaser';
+import type { BarkSpeakerId } from '$lib/data/barks';
+import { barkSpeakerLabel } from '$lib/data/barks';
+import {
+	DEFAULT_BARK_SCHEDULE,
+	barksAllowedForPhase,
+	eligibleBarkSpeakers,
+	nextBarkDelayMs,
+	pickBark
+} from '../barkPicker';
+import {
+	BARK_DEPTH,
+	BARK_FADE_MS,
+	BARK_OFFSET_Y,
+	BARK_PROMPT_RETRY_MS,
+	barkLifetimeMs,
+	shouldShowBark,
+	type BarkAnnounceHandler
+} from '../barkPresenter';
 import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../bridge';
 import { clientLookForTier } from '../clientLooks';
 import {
@@ -114,6 +132,12 @@ export class StudioScene extends Phaser.Scene {
 	/** Spec 21d — one-shot cash confetti emitter. */
 	#cashEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 	#prevPhase: string | null = null;
+	/** Spec 21e — ambient bark bubble. */
+	#barkText: Phaser.GameObjects.Text | null = null;
+	#barkSpeakerSprite: Phaser.GameObjects.Sprite | null = null;
+	#barkExpiresAt: number | null = null;
+	#nextBarkAt: number | null = null;
+	#lastBarkId: string | null = null;
 	/** Phaser texture keys for floor thumbnails — unloaded when entries leave display. */
 	#artTextureKeys = new Set<string>();
 	#artLoadGeneration = 0;
@@ -152,6 +176,7 @@ export class StudioScene extends Phaser.Scene {
 		this.#bridge.emit({ type: 'ready' });
 
 		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			this.#hideBark(true);
 			this.#destroyVfx();
 			this.#bridge.setCommandHandler(null);
 		});
@@ -178,6 +203,7 @@ export class StudioScene extends Phaser.Scene {
 		this.#updateWorkBar();
 		this.#syncWorkParticles();
 		this.#updateInteractPrompt();
+		this.#updateBarks();
 		if (!this.#working && this.#consumeInteract()) {
 			this.#tryInteract();
 		}
@@ -193,6 +219,9 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#teardownFloor(keepMum: boolean): void {
+		this.#hideBark(true);
+		this.#nextBarkAt = null;
+
 		for (const view of this.#easels) {
 			view.stand.destroy();
 			view.art?.destroy();
@@ -1213,5 +1242,164 @@ export class StudioScene extends Phaser.Scene {
 			return;
 		}
 		this.#bridge.emit({ type: 'open-gallery-entry', entryId: target.entryId });
+	}
+
+	/** Spec 21e — registry callback set by StudioFloor after createPhaserGame. */
+	#barkAnnounceHandler(): BarkAnnounceHandler | null {
+		return (this.game.registry.get('onBark') as BarkAnnounceHandler | undefined) ?? null;
+	}
+
+	#spriteForSpeaker(speaker: BarkSpeakerId): Phaser.GameObjects.Sprite | null {
+		if (speaker === 'mum') return this.#mum;
+		if (speaker === 'visitor') return null;
+		return this.#staff.get(speaker)?.sprite ?? null;
+	}
+
+	#promptVisibleOnSpeaker(speaker: BarkSpeakerId): boolean {
+		if (!this.#promptLabel?.visible) return false;
+		const target = this.#nearestTarget();
+		if (!target || (target.kind !== 'talk' && target.kind !== 'deliver')) return false;
+		const npc = this.#commissionNpc();
+		if (!npc) return false;
+		const sprite = this.#spriteForSpeaker(speaker);
+		return sprite != null && sprite === npc;
+	}
+
+	#updateBarks(): void {
+		const phase = this.#snapshot?.phase ?? 'idle';
+		if (!barksAllowedForPhase(phase)) {
+			this.#hideBark(true);
+			this.#nextBarkAt = null;
+			return;
+		}
+
+		if (this.#barkText?.visible && this.#barkSpeakerSprite) {
+			this.#barkText.setPosition(
+				this.#barkSpeakerSprite.x,
+				this.#barkSpeakerSprite.y - BARK_OFFSET_Y
+			);
+			// Hide-while-prompt: never cover the E interact label on that NPC.
+			for (const speaker of ['mum', 'apprentice', 'curator', 'marketing-director'] as const) {
+				if (
+					this.#spriteForSpeaker(speaker) === this.#barkSpeakerSprite &&
+					this.#promptVisibleOnSpeaker(speaker)
+				) {
+					this.#hideBark(true);
+					break;
+				}
+			}
+		}
+
+		const now = this.time.now;
+		if (this.#barkExpiresAt != null && now >= this.#barkExpiresAt) {
+			this.#hideBark(true);
+		}
+
+		if (this.#nextBarkAt == null) {
+			this.#nextBarkAt = now + nextBarkDelayMs(DEFAULT_BARK_SCHEDULE);
+		}
+
+		if (this.#barkText?.visible) return;
+		if (now < this.#nextBarkAt) return;
+
+		this.#tryShowBark();
+	}
+
+	#tryShowBark(): void {
+		const phase = this.#snapshot?.phase ?? 'idle';
+		const presentStaffIds = [...this.#staff.keys()];
+		const eligible = eligibleBarkSpeakers({
+			hasMum: this.#mum != null,
+			hiredRoleIds: this.#snapshot?.hiredRoleIds ?? [],
+			presentStaffIds
+		});
+		const pick = pickBark({
+			eligibleSpeakers: eligible,
+			lastBarkId: this.#lastBarkId
+		});
+		if (!pick) {
+			this.#nextBarkAt = this.time.now + nextBarkDelayMs(DEFAULT_BARK_SCHEDULE);
+			return;
+		}
+
+		const sprite = this.#spriteForSpeaker(pick.speaker);
+		if (!sprite) {
+			this.#nextBarkAt = this.time.now + nextBarkDelayMs(DEFAULT_BARK_SCHEDULE);
+			return;
+		}
+
+		const promptVisible = this.#promptVisibleOnSpeaker(pick.speaker);
+		if (!shouldShowBark({ phase, promptVisible })) {
+			this.#nextBarkAt = this.time.now + BARK_PROMPT_RETRY_MS;
+			return;
+		}
+
+		this.#showBark(pick.speaker, pick.line.text, sprite, pick.line.cueId);
+		this.#lastBarkId = pick.line.id;
+		this.#nextBarkAt = this.time.now + nextBarkDelayMs(DEFAULT_BARK_SCHEDULE);
+	}
+
+	#showBark(
+		speaker: BarkSpeakerId,
+		text: string,
+		sprite: Phaser.GameObjects.Sprite,
+		cueId?: string
+	): void {
+		this.#hideBark(false);
+		const reduced = this.#snapshot?.reducedVfx ?? false;
+		const label = barkSpeakerLabel(speaker);
+
+		if (!this.#barkText) {
+			this.#barkText = this.add
+				.text(0, 0, '', {
+					fontFamily: 'monospace',
+					fontSize: '8px',
+					color: '#1c1917',
+					backgroundColor: '#fafaf9',
+					padding: { x: 3, y: 2 },
+					align: 'center'
+				})
+				.setOrigin(0.5, 1)
+				.setDepth(BARK_DEPTH)
+				.setVisible(false);
+		}
+
+		this.#barkSpeakerSprite = sprite;
+		this.#barkText
+			.setText(text)
+			.setPosition(sprite.x, sprite.y - BARK_OFFSET_Y)
+			.setVisible(true);
+
+		if (reduced) {
+			this.#barkText.setAlpha(1);
+		} else {
+			this.#barkText.setAlpha(0);
+			this.tweens.add({
+				targets: this.#barkText,
+				alpha: 1,
+				duration: BARK_FADE_MS
+			});
+		}
+
+		this.#barkExpiresAt = this.time.now + barkLifetimeMs(reduced);
+
+		this.#barkAnnounceHandler()?.({
+			speakerId: speaker,
+			speakerLabel: label,
+			text,
+			...(cueId ? { cueId } : {})
+		});
+	}
+
+	#hideBark(clearLive: boolean): void {
+		if (this.#barkText) {
+			this.tweens.killTweensOf(this.#barkText);
+			this.#barkText.setVisible(false).setAlpha(1).setText('');
+		}
+		this.#barkSpeakerSprite = null;
+		this.#barkExpiresAt = null;
+		if (clearLive) {
+			this.#barkAnnounceHandler()?.(null);
+		}
 	}
 }

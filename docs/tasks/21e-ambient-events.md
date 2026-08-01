@@ -496,19 +496,19 @@ exposes `shouldShowBark({ phase, promptVisible })`, unit-test:
 
 ## 8. Definition of done
 
-- [ ] Mum shows ambient one-line bubbles during `idle` from `BARK_POOL` (no LLM).
-- [ ] When 21a staff sprites + `hiredRoleIds` are present, those speakers also bark;
+- [x] Mum shows ambient one-line bubbles during `idle` from `BARK_POOL` (no LLM).
+- [x] When 21a staff sprites + `hiredRoleIds` are present, those speakers also bark;
       when absent, Mum-only still works.
-- [ ] Barks pause / clear for `briefing`, `generating`, `critiquing`, `results`,
+- [x] Barks pause / clear for `briefing`, `generating`, `critiquing`, `results`,
       `failed`, and `levelComplete`.
-- [ ] At most one bubble at a time; schedule uses injected/seeded random in tests.
-- [ ] `BarkLiveRegion` announces `Speaker: line` via `aria-live="polite"`.
-- [ ] Unit tests cover pool invariants, picker tables, schedule delays, phase gate.
-- [ ] Component test covers live region.
-- [ ] Optional `cueId` may be forwarded; **no** audio decode/playback in this zone.
-- [ ] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
-- [ ] Data + studio READMEs updated; `docs/agent-log.md` handoff appended.
-- [ ] No edits outside the ownership zone; no `contracts.ts` / economy changes.
+- [x] At most one bubble at a time; schedule uses injected/seeded random in tests.
+- [x] `BarkLiveRegion` announces `Speaker: line` via `aria-live="polite"`.
+- [x] Unit tests cover pool invariants, picker tables, schedule delays, phase gate.
+- [x] Component test covers live region.
+- [x] Optional `cueId` may be forwarded; **no** audio decode/playback in this zone.
+- [x] `npm run check`, `npm run lint`, `npm run test:unit -- --run` green for owned files.
+- [x] Data + studio READMEs updated; `docs/agent-log.md` handoff appended.
+- [x] No edits outside the ownership zone; no `contracts.ts` / economy changes.
 
 ---
 

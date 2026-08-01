@@ -1419,3 +1419,52 @@ gate also run.
 - C2 / C5 / C6 / C7 catalog extras remain out of scope (seams via `playSfx`).
 - Richer CC0 beds can replace stubs without code changes.
 - Bridge `audioEnabled` sync waits on orchestrator freeze.
+
+## 2026-08-01 — Spec 21e gap review (Ambient events / barks)
+
+**Zone:** `src/lib/data/barks*`, `src/lib/studio/barkPicker*`, `barkPresenter*`,
+`scenes/StudioScene.ts` (bark timer + bubbles only), `BarkLiveRegion.svelte` (+ test),
+`StudioFloor.svelte` (+ test), `components/index.ts`, data + studio READMEs,
+`docs/tasks/21e-ambient-events.md` (DoD ticks), `docs/agent-log.md`
+
+**Built:** Gap audit found Spec 21e entirely missing on `agent/gap-ambient` (prior
+impl lived only on `agent/studio-ambient` @ `4876966`; HEAD already had 21a–21d via
+gap merges). Ported E1 without touching interact/VFX/audio assets: static
+`BARK_POOL`, seeded picker/schedule/phase gate, Phaser Text bubble during `idle`
+only, `BarkLiveRegion` via registry `onBark`. Mum-only when no staff; staff speakers
+when `hiredRoleIds` + sprites present. Leaving idle (incl. generating/critiquing)
+hides bubble and clears the live region; countdown resets.
+
+**Public surface:**
+
+- `BARK_POOL` / `linesForSpeaker` / `barkSpeakerLabel` (`$lib/data/barks`)
+- `pickBark` / `nextBarkDelayMs` / `barksAllowedForPhase` / `eligibleBarkSpeakers` /
+  `DEFAULT_BARK_SCHEDULE`
+- `shouldShowBark` / `barkLifetimeMs` / `BarkAnnounceHandler` (`barkPresenter`)
+- `BarkLiveRegion` — props `speakerLabel`, `line`
+- Registry callback `onBark` (set by `StudioFloor` after `createPhaserGame`) —
+  payload or `null` to clear; optional `cueId` forwarded, never played
+
+**Tests:** `barks.test.ts`, `barkPicker.test.ts`, `barkPresenter.test.ts`,
+`BarkLiveRegion.svelte.test.ts`, `StudioFloor.svelte.test.ts` (live region +
+`onBark` registry). Commands: `npm run check`; `npm run lint`; scoped
+`npm run test:unit -- --run` on owned files.
+
+**Decisions:**
+
+- Did **not** add `audioEnabled` / `npc-bark` to bridge (boss binding; prefer registry
+  so `createGame.ts` stays untouched outside zone).
+- Kept StudioFloor boot loading/error/timeout path from this branch; layered bark
+  live region beside the canvas.
+- Hide-while-prompt + phase pause for generating/critiquing and all non-idle phases.
+- Repeat avoidance redraws excluding `lastBarkId` so constant RNG still yields a
+  different id.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- E2–E7 catalog extras out of scope.
+- Manual Phaser idle timing / bubble follow not exercised headless.
+- Spec 21f pathfinding not on this branch (sibling worktree); bark attach still
+  follows existing Mum/staff sprites.
