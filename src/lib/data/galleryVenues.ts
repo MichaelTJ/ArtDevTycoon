@@ -29,7 +29,7 @@ export const GALLERY_VENUES: readonly GalleryVenue[] = [
 		name: 'Garage Wall',
 		tagline: 'You cleared out the car.',
 		capacity: 8,
-		unlockCost: 400,
+		unlockCost: 30,
 		requiredReputation: 4,
 		icon: '🚪'
 	},
@@ -38,7 +38,7 @@ export const GALLERY_VENUES: readonly GalleryVenue[] = [
 		name: 'Storefront Window',
 		tagline: 'Foot traffic finally sees your work.',
 		capacity: 16,
-		unlockCost: 1000,
+		unlockCost: 80,
 		requiredReputation: 8,
 		icon: '🏪'
 	},
@@ -47,7 +47,7 @@ export const GALLERY_VENUES: readonly GalleryVenue[] = [
 		name: 'Downtown Gallery Hall',
 		tagline: 'Real walls, real spotlights.',
 		capacity: 32,
-		unlockCost: 2500,
+		unlockCost: 200,
 		requiredReputation: 14,
 		icon: '🏛️'
 	},
@@ -56,7 +56,7 @@ export const GALLERY_VENUES: readonly GalleryVenue[] = [
 		name: 'Mega-Museum Wing',
 		tagline: 'Your name is on the building.',
 		capacity: 9999,
-		unlockCost: 6000,
+		unlockCost: 500,
 		requiredReputation: 22,
 		icon: '🏟️'
 	}

@@ -13,7 +13,7 @@ describe('scorePrompt', () => {
 			prompt: 'cat',
 			accuracy: 10,
 			creativity: 1,
-			payout: 73,
+			payout: 4,
 			galleryScore: 5.5,
 			reputation: 1
 		},
@@ -22,7 +22,7 @@ describe('scorePrompt', () => {
 			prompt: 'dog',
 			accuracy: 1,
 			creativity: 1,
-			payout: 10,
+			payout: 1,
 			galleryScore: 1,
 			reputation: 0
 		},
@@ -31,7 +31,7 @@ describe('scorePrompt', () => {
 			prompt: 'a nice cup of tea on the kitchen table with steam rising softly',
 			accuracy: 10,
 			creativity: 4,
-			payout: 90,
+			payout: 4,
 			galleryScore: 7,
 			reputation: 2
 		},
@@ -40,7 +40,7 @@ describe('scorePrompt', () => {
 			prompt: '',
 			accuracy: 1,
 			creativity: 1,
-			payout: 10,
+			payout: 1,
 			galleryScore: 1,
 			reputation: 0
 		}
@@ -123,7 +123,11 @@ describe('calculatePayout', () => {
 	});
 
 	it('uses 0.5/0.5 weights for abstract briefs', () => {
-		expect(calculatePayout(c6, 10, 10, 1)).toBe(130);
-		expect(calculatePayout(c6, 1, 10, 1)).toBe(72);
+		expect(calculatePayout(c6, 10, 10, 1)).toBe(6);
+		expect(calculatePayout(c6, 1, 10, 1)).toBe(3);
+	});
+
+	it('awards about $5 for a perfect Mum kitchen commission', () => {
+		expect(calculatePayout(c1, 10, 10, 1)).toBe(5);
 	});
 });

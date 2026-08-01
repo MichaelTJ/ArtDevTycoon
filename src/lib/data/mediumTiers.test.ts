@@ -46,14 +46,14 @@ describe('canUnlockMediumTier', () => {
 	const pencil = getMediumTier('pencil');
 
 	it('is true at the inclusive cash and reputation boundary', () => {
-		expect(canUnlockMediumTier(pencil, { cash: 250, reputation: 3 })).toBe(true);
+		expect(canUnlockMediumTier(pencil, { cash: 15, reputation: 3 })).toBe(true);
 	});
 
 	it('is false when cash is one below the cost', () => {
-		expect(canUnlockMediumTier(pencil, { cash: 249, reputation: 3 })).toBe(false);
+		expect(canUnlockMediumTier(pencil, { cash: 14, reputation: 3 })).toBe(false);
 	});
 
 	it('is false when reputation is one below the requirement', () => {
-		expect(canUnlockMediumTier(pencil, { cash: 250, reputation: 2 })).toBe(false);
+		expect(canUnlockMediumTier(pencil, { cash: 15, reputation: 2 })).toBe(false);
 	});
 });

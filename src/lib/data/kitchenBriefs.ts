@@ -12,7 +12,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Paint me a cat.',
-		budget: 100,
+		budget: 5,
 		preferredKeywords: ['cat'],
 		abstractness: 0 as const
 	},
@@ -21,7 +21,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Can you draw a nice cup of tea for the fridge?',
-		budget: 110,
+		budget: 5,
 		preferredKeywords: ['tea', 'cup'],
 		abstractness: 0 as const
 	},
@@ -30,7 +30,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Paint me a sunny flower. Something cheerful.',
-		budget: 120,
+		budget: 6,
 		preferredKeywords: ['flower', 'sun'],
 		abstractness: 0 as const
 	},
@@ -39,7 +39,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Draw a little bird on the windowsill.',
-		budget: 100,
+		budget: 5,
 		preferredKeywords: ['bird', 'window'],
 		abstractness: 0 as const
 	},
@@ -49,7 +49,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Neighbour June',
 		avatarUrl: '/avatars/c5.svg',
 		requestText: 'Something warm from when you were little.',
-		budget: 130,
+		budget: 6,
 		preferredKeywords: ['warm', 'little'],
 		abstractness: 1 as const,
 		interpretationClusters: [
@@ -70,7 +70,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Uncle Ray',
 		avatarUrl: '/avatars/c6.svg',
 		requestText: 'Make it feel like a rainy afternoon indoors.',
-		budget: 140,
+		budget: 7,
 		preferredKeywords: ['rain', 'afternoon'],
 		abstractness: 1 as const,
 		interpretationClusters: [
@@ -91,7 +91,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Cousin Priya',
 		avatarUrl: '/avatars/c1.svg',
 		requestText: 'I want the feeling of coming home after a long trip.',
-		budget: 150,
+		budget: 7,
 		preferredKeywords: ['home', 'trip'],
 		abstractness: 1 as const,
 		interpretationClusters: [
@@ -113,7 +113,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c2.svg',
 		requestText: 'I miss the old days.',
-		budget: 130,
+		budget: 6,
 		preferredKeywords: ['miss', 'old'],
 		abstractness: 2 as const,
 		interpretationClusters: [
@@ -139,7 +139,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Quiet Regular',
 		avatarUrl: '/avatars/c3.svg',
 		requestText: 'It used to be simpler.',
-		budget: 120,
+		budget: 8,
 		preferredKeywords: ['simple', 'used'],
 		abstractness: 2 as const,
 		interpretationClusters: [
@@ -160,7 +160,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Night-Shift Nurse',
 		avatarUrl: '/avatars/c4.svg',
 		requestText: 'Paint whatever peace looks like.',
-		budget: 160,
+		budget: 8,
 		preferredKeywords: ['peace', 'looks'],
 		abstractness: 2 as const,
 		interpretationClusters: [
@@ -181,7 +181,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Bookshop Owner',
 		avatarUrl: '/avatars/c5.svg',
 		requestText: "Something that feels like a memory you can't quite place.",
-		budget: 140,
+		budget: 8,
 		preferredKeywords: ['memory', 'place'],
 		abstractness: 2 as const,
 		interpretationClusters: [
@@ -202,7 +202,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c6.svg',
 		requestText: 'Just… something that feels like home.',
-		budget: 110,
+		budget: 5,
 		preferredKeywords: ['home', 'feels'],
 		abstractness: 2 as const,
 		interpretationClusters: [

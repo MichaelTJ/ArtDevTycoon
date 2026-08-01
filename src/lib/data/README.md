@@ -28,6 +28,10 @@ if one is added.
 - Walk-in briefs escalate abstractness with `commissionsCompleted` (0 → concrete Mum
   asks; ≥2 evocative; ≥4 pure mood). First invite at 0 commissions is forced to Mum
   band-0 openers `{c1,c2,c3,c7}`.
+- **Early economy (playtest P4):** Mum kitchen briefs cap at **$5–6 budget** so a strong
+  commission pays about **$5** via `calculatePayout` (no formula change). Pencil unlock
+  is **$15** (~3 Mum jobs); garage wall is **$30**. Later walk-ins and prestige tiers
+  keep higher budgets — only the kitchen ladder was rebased.
 - Abstract kitchen briefs carry `interpretationClusters`; prestige pools omit them and
   keep legacy keyword scoring.
 - `pickBrief` accepts optional `commissionsCompleted` and injected `random` for

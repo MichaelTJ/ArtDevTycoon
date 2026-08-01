@@ -1691,3 +1691,40 @@ src/lib/components/GameMenuBar.svelte.test.ts`.
 
 - Manual playtest not run in this session (headless tests only).
 - Very long unlock names still truncate with `title` tooltip; full name visible in Progress panel.
+
+## 2026-08-01 — Playtest fix P4 (early economy rebalance)
+
+**Zone:** `src/lib/data/kitchenBriefs.ts`, `kitchenBriefs.test.ts`, `mediumTiers.ts`,
+`mediumTiers.test.ts`, `galleryVenues.ts`, `galleryVenues.test.ts`,
+`src/lib/game/scoring.test.ts`, `src/lib/data/README.md`, `docs/agent-log.md`,
+`docs/playtest-notes.md`
+
+**Built:** Playtest P4 — Mum kitchen commissions no longer shower the player with cash.
+Kitchen walk-in `budget` values rebased to **$5–8** (Mum openers at **$5–6**) so
+`calculatePayout` yields **~$5** on a perfect score without changing the formula.
+Early unlocks retuned: pencil **$15** (~3 Mum jobs), garage wall **$30**; mid/late medium
+and venue tiers scaled down proportionally while keeping reputation gates and multiplier
+ladder order intact.
+
+**Public surface:** Unchanged exports and signatures. Data-only changes to
+`KITCHEN_BRIEFS`, `MEDIUM_TIERS`, `GALLERY_VENUES` field values.
+
+**Tests:** `kitchenBriefs.test.ts` (Mum budget band), `mediumTiers.test.ts`,
+`galleryVenues.test.ts`, `scoring.test.ts` (literal payout rows + perfect-Mum $5 case).
+Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run src/lib/data
+src/lib/game/scoring.test.ts`.
+
+**Decisions:**
+
+- Left `calculatePayout` untouched — `brief.budget` is the sole kitchen payout knob.
+- Budget ≈ max payout by design; sibling agent may force 10/10 Mum scores (P7), so caps
+  stay tight rather than relying on average scores.
+- Prestige brief pools (corporate/billionaire/auction) unchanged — out of P4 scope.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playtest not run in this session (headless tests only).
+- `LEVEL_1.targetCash` and gallery layout/atmosphere costs may still feel high relative
+  to the rebased kitchen ladder — tune in a follow-up if progression HUD still misleads.

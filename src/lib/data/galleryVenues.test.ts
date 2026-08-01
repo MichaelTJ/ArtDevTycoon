@@ -36,15 +36,15 @@ describe('canUnlockVenue', () => {
 	const garage = getVenue('garage');
 
 	it('returns true when cash and reputation meet thresholds', () => {
-		expect(canUnlockVenue(garage, { cash: 400, reputation: 4 })).toBe(true);
+		expect(canUnlockVenue(garage, { cash: 30, reputation: 4 })).toBe(true);
 	});
 
 	it('returns false when cash is short', () => {
-		expect(canUnlockVenue(garage, { cash: 399, reputation: 4 })).toBe(false);
+		expect(canUnlockVenue(garage, { cash: 29, reputation: 4 })).toBe(false);
 	});
 
 	it('returns false when reputation is short', () => {
-		expect(canUnlockVenue(garage, { cash: 400, reputation: 3 })).toBe(false);
+		expect(canUnlockVenue(garage, { cash: 30, reputation: 3 })).toBe(false);
 	});
 
 	it('allows the free fridge at zero resources', () => {
