@@ -12,6 +12,7 @@ describe('rooms', () => {
 		expect(room.zones).toEqual([]);
 		expect(room.residents).toHaveLength(1);
 		expect(room.residents[0]?.clientName).toBe('Mum');
+		expect(room.residents[0]?.spriteKey).toBe('mum');
 		expect(room.residents[0]!.patrol.length).toBeGreaterThanOrEqual(2);
 
 		expect(markerWalkable(room, room.door)).toBe(true);
@@ -30,10 +31,6 @@ describe('rooms', () => {
 		expect(garage.palette).toBe('garage');
 		expect(garage.zones).toHaveLength(0);
 		expect(garage.residents).toHaveLength(0);
-		expect(markerWalkable(garage, garage.desk)).toBe(true);
-		expect(markerWalkable(garage, garage.door)).toBe(true);
-		expect(markerWalkable(garage, garage.clientWait)).toBe(true);
-		expect(markerWalkable(garage, garage.playerSpawn)).toBe(true);
 
 		const studio = ROOMS.studio;
 		expect(studio.width).toBe(18);
@@ -55,20 +52,39 @@ describe('rooms', () => {
 		expect(mega.palette).toBe('museum');
 		expect(mega.zones.length).toBeGreaterThanOrEqual(3);
 		expect(mega.residents).toHaveLength(0);
+
+		for (const room of [garage, studio, hall, mega]) {
+			expect(markerWalkable(room, room.desk)).toBe(true);
+			expect(markerWalkable(room, room.door)).toBe(true);
+			expect(markerWalkable(room, room.clientWait)).toBe(true);
+			expect(markerWalkable(room, room.playerSpawn)).toBe(true);
+		}
 	});
 
-	it('multi-zone rooms have a walkable doorway on the divider', () => {
+	it('multi-zone rooms have a walkable doorway on each vertical divider', () => {
+		/** Columns that are mostly solid walls with ≥1 gap = authored dividers. */
+		function verticalDividerGaps(room: (typeof ROOMS)['studio']): number {
+			let dividersWithGap = 0;
+			const interiorH = room.height - 2;
+			for (let tx = 1; tx < room.width - 1; tx++) {
+				let wallCount = 0;
+				let gapCount = 0;
+				for (let ty = 1; ty < room.height - 1; ty++) {
+					if (room.collision[ty * room.width + tx] === 1) wallCount += 1;
+					else gapCount += 1;
+				}
+				if (wallCount >= interiorH - 2 && gapCount >= 1) dividersWithGap += 1;
+			}
+			return dividersWithGap;
+		}
+
+		expect(verticalDividerGaps(ROOMS.studio)).toBeGreaterThanOrEqual(1);
+		expect(verticalDividerGaps(ROOMS.gallery)).toBeGreaterThanOrEqual(1);
+		// Atelier | gallery | foyer needs a gap on both dividers.
+		expect(verticalDividerGaps(ROOMS['mega-museum'])).toBeGreaterThanOrEqual(2);
+
 		for (const id of ['studio', 'gallery', 'mega-museum'] as const) {
 			const room = ROOMS[id];
-			const walkableInterior = [];
-			for (let ty = 1; ty < room.height - 1; ty++) {
-				for (let tx = 1; tx < room.width - 1; tx++) {
-					if (room.collision[ty * room.width + tx] === 0) {
-						walkableInterior.push({ tx, ty });
-					}
-				}
-			}
-			expect(walkableInterior.length).toBeGreaterThan(10);
 			expect(markerWalkable(room, room.door)).toBe(true);
 			expect(markerWalkable(room, room.desk)).toBe(true);
 		}

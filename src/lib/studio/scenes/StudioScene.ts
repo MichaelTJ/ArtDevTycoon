@@ -347,6 +347,7 @@ export class StudioScene extends Phaser.Scene {
 		if (this.#mum) return;
 
 		this.#mumDef = mum;
+		// `mum.spriteKey` is `'mum'` per Spec 19; fall back to tinted clients until shipped.
 		const useMumSheet = this.textures.exists('mum');
 		const key = useMumSheet ? 'mum' : 'clients';
 		this.#mum = this.physics.add.sprite(

@@ -26,7 +26,8 @@ export class BootScene extends Phaser.Scene {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		// Optional `mum.png` is not shipped yet — StudioScene tints `clients` frame 0.
+		// Optional `mum.png` is not shipped yet — do not queue a 404. When added, load
+		// the `mum` spritesheet here; StudioScene already prefers that key when present.
 		this.load.image('prompt-e', '/studio/ui/prompt-e.png');
 	}
 

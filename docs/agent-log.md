@@ -1032,3 +1032,32 @@ for snippet-based tests). E2e updated for `Home Kitchen` display name.
 
 - None material for Spec 18 acceptance criteria.
 - Pre-existing out-of-zone client flake (`ResultsPanel`) may still appear under full-suite load.
+
+## 2026-08-01 — Spec 19 gap review (office spaces / Mum)
+
+**Zone:** `src/lib/studio/**`, `+page.svelte` summon wiring (read-only audit), `StudioFloor.svelte.test.ts` only if needed, Wave E / architecture §3.1 / agent-log
+
+**Built:** Gap audit of Spec 19 DoD vs code. Core venue plans, Mum resident patrol, `residentClientArmed` / `spawn-visitor`, venue rebuild, and `+page` kitchen wiring were already shipped (specs 17–19 + Spec 20 summon glue). Closed remaining quality gaps:
+
+- Storefront / gallery-hall / mega-museum easel slots are easels-only (no fridge magnets) via `magnetCountForVenue` — matches Spec 17 §6.5 / studio README.
+- `rooms.test` now asserts walkable desk/door/wait/spawn on every higher venue and real vertical-divider doorway gaps (≥1 storefront/hall, ≥2 mega).
+- Mum `spriteKey` aligned to `'mum'` (StudioScene still tints `clients` until `mum.png` ships).
+- Kept existing studio hardening already on the tree: `isSafeStudioImageUrl` for easel loads, BootScene `studioBootFailed`, StudioFloor loading/error UX (component file owned elsewhere).
+
+**Public surface:** Unchanged — `getRoomForVenue`, `npcWander`, `residentClientArmed`, `spawn-visitor`, `inspect-zone`.
+
+**Tests:** `npm run check` (0 errors); `npm run lint` green; `npm run test:unit -- --run` → 91 files / 545 passed. Scoped studio: `src/lib/studio` green.
+
+**Decisions:**
+
+- Did not queue a missing `mum.png` load (would 404 every boot); tint fallback remains Spec 19 §5 acceptable path.
+- Did not edit dirty architecture / tasks README rows outside Wave E §3.1 (21.x catalog prep left for orchestrator).
+- Did not touch sibling Spec 20 / 08 worktrees or out-of-zone dirty files.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Optional dedicated `mum.png` spritesheet (Spec 21a).
+- Mum waypoint slide has no furniture pathfinding (explicitly out of scope).
+
