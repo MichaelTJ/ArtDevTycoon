@@ -472,6 +472,7 @@
 					idleMessage={environment.idleMessage}
 					loadingMessages={environment.loadingMessages}
 					critiqueMessages={environment.critiqueMessages}
+					activeMediumTierId={game.activeMediumTierId}
 					currentClient={game.currentClient}
 					currentArtwork={game.currentArtwork}
 					currentCritique={game.currentCritique}
@@ -525,6 +526,7 @@
 						idleMessage={environment.idleMessage}
 						loadingMessages={environment.loadingMessages}
 						critiqueMessages={environment.critiqueMessages}
+						activeMediumTierId={game.activeMediumTierId}
 						currentClient={game.currentClient}
 						currentArtwork={game.currentArtwork}
 						currentCritique={game.currentCritique}

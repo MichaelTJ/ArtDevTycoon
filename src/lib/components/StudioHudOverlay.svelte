@@ -3,6 +3,8 @@
 	import type { AuctionResult } from '$lib/game/auction';
 	import { reputationGain, type SkillGainPreview } from '$lib/game';
 	import type { MumRealCritique } from '$lib/game/mumCritiquePresentation';
+	import { DEFAULT_MEDIUM_TIER_ID } from '$lib/data/mediumTiers';
+	import { getStallStageLabel, stallMessagesForArtwork } from '$lib/data/stallMessages';
 	import type { Artwork, ClientBrief, Critique, GamePhase } from '$lib/types/contracts';
 	import AbstractBriefHint from './AbstractBriefHint.svelte';
 	import ArtworkFrame from './ArtworkFrame.svelte';
@@ -22,6 +24,8 @@
 		idleMessage: string;
 		loadingMessages: string[];
 		critiqueMessages: string[];
+		/** Active art medium — drives critiquing stall copy (playtest P14). */
+		activeMediumTierId?: string;
 		currentClient: ClientBrief | null;
 		currentArtwork: Artwork | null;
 		currentCritique: Critique | null;
@@ -65,6 +69,7 @@
 		idleMessage,
 		loadingMessages,
 		critiqueMessages,
+		activeMediumTierId = DEFAULT_MEDIUM_TIER_ID,
 		currentClient,
 		currentArtwork,
 		currentCritique,
@@ -98,6 +103,13 @@
 			? reputationGain(currentCritique.accuracyScore, currentCritique.creativityScore)
 			: 0
 	);
+
+	const critiquingStallMessages = $derived(
+		currentArtwork
+			? stallMessagesForArtwork(activeMediumTierId, currentArtwork.id)
+			: critiqueMessages
+	);
+	const critiquingStageLabel = $derived(getStallStageLabel(activeMediumTierId));
 </script>
 
 <aside
@@ -197,8 +209,8 @@
 		/>
 		<GeneratingPanel
 			progress={generationProgress}
-			stageLabel="Waiting for the commissioner"
-			messages={critiqueMessages}
+			stageLabel={critiquingStageLabel}
+			messages={critiquingStallMessages}
 		/>
 	{:else if phase === 'results' && currentArtwork && currentCritique && currentClient}
 		{#if floorInteract}

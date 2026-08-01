@@ -2031,3 +2031,39 @@ src/lib/components/StudioHudOverlay.svelte.test.ts`.
 
 - Manual playthrough not run (component + unit tests only).
 - Assign-artist modal stays open only if parent forgets to close — `+page` closes it on decline.
+
+## 2026-08-01 — Playtest 2 fix P14 (medium stall copy)
+
+**Zone:** `src/lib/data/stallMessages*`, `StudioHudOverlay*`, `+page.svelte` (prop pass-through),
+`src/lib/data/README.md`, `src/lib/components/README.md`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P14 — critiquing no longer shows sole “Waiting for the commissioner” copy.
+New `$lib/data/stallMessages` pools ≥4 lines per medium tier (crayon through oil) plus a
+fallback; `StudioHudOverlay` derives `stageLabel` (“Finishing up”) and rotating stall lines
+from `activeMediumTierId` + artwork id seed. `+page` passes `game.activeMediumTierId`.
+P13 stacked canvas/AI and P15 title wrapping unchanged.
+
+**Public surface:**
+
+- `STALL_COPY_BY_MEDIUM`, `FALLBACK_STALL_COPY`
+- `getStallCopy(mediumTierId)`, `getStallStageLabel(mediumTierId)`
+- `stallSeedFromArtworkId(artworkId)`, `rotateStallMessages(messages, seed)`
+- `stallMessagesForArtwork(mediumTierId, artworkId): string[]`
+- `StudioHudOverlay` prop `activeMediumTierId?: string` (defaults to crayon)
+
+**Tests:** `stallMessages.test.ts`; critiquing stall case in `StudioHudOverlay.svelte.test.ts`.
+Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run src/lib/data/stallMessages.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts`.
+
+**Decisions:**
+
+- Kept `critiqueMessages` prop for API stability; critiquing branch ignores environment pool.
+- `environments.critiqueMessages` left in place (orchestrator may prune later).
+- Seeded rotation reuses artwork-id hash pattern from Mum praise selection.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (component + unit tests only).
+- Generating-phase loading copy still uses environment `loadingMessages`, not medium stall pools.
