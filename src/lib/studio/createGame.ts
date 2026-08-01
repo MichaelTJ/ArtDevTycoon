@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
 import type { StudioBridge } from './bridge';
-import { TILE_SIZE } from './config';
+import { studioViewportSize } from './cameraFit';
 import { BootScene } from './scenes/BootScene';
 import { StudioScene } from './scenes/StudioScene';
-import { getRoomForVenue } from './venueRooms';
 
 export interface CreatePhaserGameOptions {
 	initialVenueId?: string;
@@ -18,9 +17,7 @@ export function createPhaserGame(
 	options: CreatePhaserGameOptions = {}
 ): Phaser.Game {
 	const initialVenueId = options.initialVenueId ?? 'fridge';
-	const room = getRoomForVenue(initialVenueId);
-	const width = room.width * TILE_SIZE;
-	const height = room.height * TILE_SIZE;
+	const { width, height } = studioViewportSize(parent);
 
 	const game = new Phaser.Game({
 		type: Phaser.AUTO,
@@ -37,8 +34,10 @@ export function createPhaserGame(
 			}
 		},
 		scale: {
-			mode: Phaser.Scale.FIT,
-			autoCenter: Phaser.Scale.CENTER_BOTH
+			mode: Phaser.Scale.RESIZE,
+			autoCenter: Phaser.Scale.CENTER_BOTH,
+			width,
+			height
 		},
 		scene: [BootScene, StudioScene],
 		callbacks: {

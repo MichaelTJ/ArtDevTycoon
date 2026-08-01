@@ -1619,3 +1619,40 @@ src/lib/components/StudioFloor.svelte.test.ts`.
 
 - Manual Phaser walkthrough with live prompt field not run headless.
 - Shadow-DOM-only focus edge cases rely on `document.activeElement` (unlikely in HUD).
+
+## 2026-08-01 — Playtest fix P2 + P3 (Phaser camera / zoom)
+
+**Zone:** `src/lib/studio/**`, `StudioFloor.svelte`, `StudioFloor.svelte.test.ts`,
+`src/lib/studio/README.md`, `docs/agent-log.md`, `docs/playtest-notes.md`
+
+**Built:** Playtest bugs P2 and P3 — the Phaser canvas no longer grows after boot and the
+kitchen shows the full 6×6 floor at 1× with letterbox margins instead of a ~3×3 crop.
+Replaced room-sized `scale.resize` + hard `setZoom(2)` with a fixed 420px host,
+`Scale.RESIZE` booted from parent size, and `cameraZoomToFitRoom` (cap 1×, zoom out only
+when a room exceeds the viewport). P5 DOM keyboard gate unchanged.
+
+**Public surface:**
+
+- `cameraZoomToFitRoom(roomW, roomH, viewportW, viewportH, paddingPx?)` — fit zoom ≤1
+- `studioViewportSize(parent)` / `STUDIO_VIEWPORT_DEFAULT_*` — boot viewport from host
+- `CAMERA_ZOOM_MAX` — `1` (never magnify small rooms to fill canvas)
+
+**Tests:** `cameraFit.test.ts` (kitchen letterbox, large-room zoom-out, viewport boot);
+existing `StudioFloor.svelte.test.ts` + studio suite unchanged. Commands: `npm run check`
+(0 errors); `npm run lint` green; `npm run test:unit -- --run src/lib/studio
+src/lib/components/StudioFloor.svelte.test.ts` → 18 files / 84 passed.
+
+**Decisions:**
+
+- `Scale.RESIZE` + fixed `h-[420px]` host stops FIT/responsive layout feedback loops (P2).
+- Zoom capped at 1× per playtest preference; larger venues still fit at 1:1 or zoom out.
+- Half-tile padding in `#applyRoomViewport`; recomputed on `Scale.Events.RESIZE`.
+- Removed `scale.resize(roomPx)` entirely — world bounds only.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual Phaser walkthrough (kitchen vs garage vs museum camera) not run headless.
+- Touch-pad positions are fixed at first build; window resize after boot does not
+  reposition pads (pre-existing; coarse-pointer only).

@@ -127,7 +127,7 @@
 	<div
 		bind:this={containerEl}
 		data-testid="studio-floor"
-		class="studio-floor relative min-h-[420px] w-full overflow-hidden rounded-xl border border-stone-400 bg-stone-900"
+		class="studio-floor relative h-[420px] w-full overflow-hidden rounded-xl border border-stone-400 bg-stone-900"
 		aria-label="Studio floor"
 		aria-busy={bootState === 'loading'}
 	>

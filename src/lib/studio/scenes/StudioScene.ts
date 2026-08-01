@@ -18,6 +18,7 @@ import {
 	type BarkAnnounceHandler
 } from '../barkPresenter';
 import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../bridge';
+import { cameraZoomToFitRoom } from '../cameraFit';
 import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
 import {
@@ -189,7 +190,10 @@ export class StudioScene extends Phaser.Scene {
 		this.#bridge.setCommandHandler((cmd) => this.#onCommand(cmd));
 		this.#bridge.emit({ type: 'ready' });
 
+		this.scale.on(Phaser.Scale.Events.RESIZE, this.#applyRoomViewport, this);
+
 		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			this.scale.off(Phaser.Scale.Events.RESIZE, this.#applyRoomViewport, this);
 			this.#hideBark(true);
 			this.#destroyVfx();
 			this.#bridge.setCommandHandler(null);
@@ -226,7 +230,7 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#buildFloor(): void {
-		this.#resizeToRoom();
+		this.#applyRoomViewport();
 		this.#buildTilemap();
 		this.#placeFurniture();
 		this.#spawnPlayer();
@@ -282,7 +286,7 @@ export class StudioScene extends Phaser.Scene {
 		this.#teardownFloor(keepMum);
 		this.#room = next;
 		this.#builtVenueId = venueId;
-		this.#resizeToRoom();
+		this.#applyRoomViewport();
 		this.#buildTilemap();
 		this.#placeFurniture();
 		this.#spawnPlayer();
@@ -301,12 +305,14 @@ export class StudioScene extends Phaser.Scene {
 		this.#syncWorkParticles();
 	}
 
-	#resizeToRoom(): void {
+	#applyRoomViewport(): void {
 		const w = this.#room.width * TILE_SIZE;
 		const h = this.#room.height * TILE_SIZE;
-		this.scale.resize(w, h);
 		this.physics.world.setBounds(0, 0, w, h);
-		this.cameras.main.setBounds(0, 0, w, h);
+		const cam = this.cameras.main;
+		cam.setBounds(0, 0, w, h);
+		const zoom = cameraZoomToFitRoom(w, h, cam.width, cam.height, TILE_SIZE * 0.5);
+		cam.setZoom(zoom);
 	}
 
 	#createWorkBar(): void {
@@ -451,7 +457,6 @@ export class StudioScene extends Phaser.Scene {
 
 		this.#tilemap = map;
 		this.#groundLayer = layer;
-		this.cameras.main.setZoom(2);
 		this.registry.set('groundLayer', layer);
 	}
 
