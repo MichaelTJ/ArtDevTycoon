@@ -88,6 +88,32 @@ test('generating shows sketch pad while waiting', async () => {
 	});
 	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
 	await expect.element(screen.getByText(/Paint on the canvas while you wait/)).toBeVisible();
+	await expect.element(screen.getByRole('group', { name: 'Painting medium' })).toBeVisible();
+});
+
+test('generating medium picker selects unlocked tier', async () => {
+	const onselectmedium = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		activeMediumTierId: 'crayon',
+		unlockedMediumTierIds: ['crayon', 'pencil'],
+		onselectmedium
+	});
+	await screen.getByRole('button', { name: /Pencil & Sketchbook/i }).click();
+	expect(onselectmedium).toHaveBeenCalledWith('pencil');
+});
+
+test('generating medium picker disables locked tiers', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		unlockedMediumTierIds: ['crayon']
+	});
+	const inkBtn = screen.getByRole('button', { name: /Ink & Charcoal — Need/i });
+	await expect.element(inkBtn).toBeDisabled();
 });
 
 test('generating submit choice keeps sketch pad visible with AI preview below', async () => {

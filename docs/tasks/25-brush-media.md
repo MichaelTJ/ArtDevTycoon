@@ -1,11 +1,10 @@
 # Spec 25 — Brush types & painting medium feel
 
-**Status:** Outline / design — **not ready to implement** until formulas and canvas
-pipeline are locked (promote to implementable slice or 25a/25b later).
-**Worktree (when ready):** `git worktree add -b agent/brush-media ../adt-wt-brush-media main`
+**Status:** MVP shipped — **25a** medium picker + **25b** crayon/pencil/ink/watercolour brush
+profiles on `SketchCanvas`. Polish slice **25c** deferred.
+**Worktree:** `../adt-wt-brush-media` branch `agent/brush-media`
 **Depends on:** Spec **11** (`SketchCanvas`), Spec **13** (medium tiers / Toolkit),
-playtest **P6** paint-while-waiting loop. Does **not** require AI engines 05–09 for
-local brush feel (crayon/watercolour are canvas rendering).
+playtest **P6** paint-while-waiting loop.
 
 ## Mission
 
@@ -27,31 +26,32 @@ hand, not just in the prompt suffix.
 | -------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | Outline brush types; draw in crayons when crayons selected; same for watercolours; choose medium in painting section | Playtest 2 **P16** |
 
-## Catalog (outline)
+## Catalog
 
 ### A. Medium picker in painting UI — slice **25a**
 
-| ID  | Feature                         | Player fantasy                                                                   | Size | Priority |
-| --- | ------------------------------- | -------------------------------------------------------------------------------- | ---- | -------- |
-| A1  | **Painting medium selector**    | While sketching / paint-while-wait, pick an unlocked medium                      | M    | MVP      |
-| A2  | Sync with Toolkit active medium | Default selection = `activeMediumTierId`; changing here MAY update active medium | S    | MVP      |
-| A3  | Locked mediums greyed           | Show next unlock tease (rep/cash) without opening full Toolkit                   | S    | Later    |
+| ID  | Feature                         | Player fantasy                                                                   | Size | Priority | Status   |
+| --- | ------------------------------- | -------------------------------------------------------------------------------- | ---- | -------- | -------- |
+| A1  | **Painting medium selector**    | While sketching / paint-while-wait, pick an unlocked medium                      | M    | MVP      | **Done** |
+| A2  | Sync with Toolkit active medium | Default selection = `activeMediumTierId`; changing here MAY update active medium | S    | MVP      | **Done** |
+| A3  | Locked mediums greyed           | Show next unlock tease (rep/cash) without opening full Toolkit                   | S    | MVP      | **Done** |
 
 ### B. Brush / stroke engines — slice **25b**
 
-| ID  | Medium (Spec 13 id) | Feel (outline)                                            | Size | Priority |
-| --- | ------------------- | --------------------------------------------------------- | ---- | -------- |
-| B1  | `crayon`            | Thick, slightly translucent, grain/noise stamp; soft edge | M    | MVP      |
-| B2  | `pencil`            | Thin hard lines; light pressure variance; no fill bloom   | M    | MVP      |
-| B3  | `ink`               | High contrast, slight bleed on pause; no opacity stack    | M    | MVP      |
-| B4  | `watercolour`       | Wet wash, colour bloom, lighter opacity layers            | L    | MVP      |
-| B5  | Oil / later tiers   | Impasto / slow dry (optional)                             | L    | Deferred |
+| ID  | Medium (Spec 13 id) | Feel (outline)                                            | Size | Priority | Status   |
+| --- | ------------------- | --------------------------------------------------------- | ---- | -------- | -------- |
+| B1  | `crayon`            | Thick, slightly translucent, grain/noise stamp; soft edge | M    | MVP      | **Done** |
+| B2  | `pencil`            | Thin hard lines; light pressure variance; no fill bloom   | M    | MVP      | **Done** |
+| B3  | `ink`               | High contrast, slight bleed on pause; no opacity stack    | M    | MVP      | **Done** |
+| B4  | `watercolor`        | Wet wash, colour bloom, lighter opacity layers            | L    | MVP      | **Done** |
+| B5  | Oil / later tiers   | Impasto / slow dry (optional)                             | L    | Deferred | —        |
 
-Implementation sketch (not locked):
+Implementation (MVP):
 
-- Extend `SketchCanvas` with a `brushProfile` (size, opacity, blend, texture overlay).
-- Optional offscreen “wet map” for watercolour.
-- Export PNG still works for P6 submit-choice / BAGEL sketch path.
+- `brushProfiles.ts` — stamp parameters per medium tier id.
+- `brushStroke.ts` — pure helpers: `applyBrushStrokeStyle`, crayon grain, ink bleed.
+- `SketchCanvas` accepts `mediumTierId`; export PNG unchanged for P6.
+- `StudioHudOverlay` medium picker during `generating`; `+page` wires `setActiveMediumTier`.
 
 ### C. Polish — slice **25c**
 
@@ -61,40 +61,29 @@ Implementation sketch (not locked):
 | C2  | Undo / eraser per medium | Kneaded eraser vs water lift              | Later    |
 | C3  | Audio ticks (optional)   | Soft crayon scratch — coordinate with 21c | Deferred |
 
-## Proposed ownership (when implementing)
+## Ownership
 
 ```
 New:
   src/lib/data/brushProfiles.ts (+ tests)
-  src/lib/game/brushStroke.ts (+ tests)   ← pure stamp/blend helpers if extracted
+  src/lib/game/brushStroke.ts (+ tests)
 Edit:
   src/lib/components/SketchCanvas.svelte (+ tests)
-  src/lib/components/StudioHudOverlay.svelte  ← medium picker near canvas
-  src/lib/data/mediumTiers.ts                 ← optional brushProfileId link
-  src/lib/stores/gameState.svelte.ts          ← only if painting medium ≠ toolkit active
+  src/lib/components/StudioHudOverlay.svelte (+ tests)
+  src/routes/+page.svelte (wiring)
 ```
 
-**MUST NOT:** replace Spec 13 economy tables; require WebGPU for brushes; edit
-`contracts.ts` without orchestrator.
+## Definition of done (MVP)
 
-## Suggested slice order
+- [x] A1 — Medium picker on painting UI
+- [x] A2 — Sync with Toolkit active medium
+- [x] A3 — Locked mediums greyed with reason
+- [x] B1–B4 — Distinct crayon/pencil/ink/watercolour feel
+- [x] Tests + check + lint green
+- [x] playtest-notes P16 + agent-log + spec status
 
-```
-25a  Medium picker in painting UI
-25b  Crayon + pencil + ink + watercolour stroke profiles
-25c  Polish (cursor, eraser, optional SFX)
-```
+## Open decisions (resolved for MVP)
 
-## Definition of done (parent — outline only)
-
-- [ ] Catalog covers picker + per-medium brush feel + polish.
-- [ ] Linked from `docs/tasks/README.md` and playtest notes P16.
-- [ ] Implementable 25a/25b specs (or this file) with locked stamp parameters + tests.
-- [ ] No “shipped” claim until MVP A1–A2 + B1–B4 land on tip.
-
-## Open decisions
-
-1. Does painting medium always equal Toolkit `activeMediumTierId`, or can they diverge
-   for one commission?
-2. Canvas resolution / DPI for grain textures on mobile.
-3. Does watercolour need a real wet sim, or a cheap dual-layer hack for MVP?
+1. Painting medium **equals** Toolkit `activeMediumTierId` — picker calls `setActiveMediumTier`.
+2. Canvas grain uses coordinate-seeded dots (no texture assets); DPR capped at 2 as today.
+3. Watercolour uses low opacity + `shadowBlur` wash hack — no wet sim.

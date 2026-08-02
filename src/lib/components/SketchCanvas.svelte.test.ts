@@ -21,7 +21,12 @@ test('registers export callback via onexportready', async () => {
 
 test('help copy mentions paint tools', async () => {
 	const screen = render(SketchCanvas, {});
-	await expect.element(screen.getByText(/Brush, eraser, size, and colour/i)).toBeVisible();
+	await expect.element(screen.getByText(/Brush feel follows your painting medium/i)).toBeVisible();
+});
+
+test('accepts mediumTierId for brush profile', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'pencil' });
+	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
 });
 
 test('colour and size controls have accessible names', async () => {

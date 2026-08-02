@@ -2108,3 +2108,44 @@ src/lib/components/GameMenuBar.svelte.test.ts`.
 
 - Manual playthrough not run (component + unit tests only).
 - Major projects panel has no affordability badge (no cash unlocks in that shop).
+
+## 2026-08-01 — Spec 25 MVP (brush types & painting medium — P16)
+
+**Zone:** `brushProfiles*`, `brushStroke*`, `SketchCanvas*`, `StudioHudOverlay*`, `+page.svelte`,
+`src/lib/data/README.md`, `src/lib/game/README.md`, `src/lib/components/README.md`,
+`docs/tasks/25-brush-media.md`, `docs/tasks/README.md`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P16 / Spec 25 MVP — painting medium picker during `generating` on
+`StudioHudOverlay` (emoji buttons, locked tiers disabled with cash/rep tease). Selection
+defaults to and syncs with `activeMediumTierId` via `setActiveMediumTier`. `SketchCanvas`
+accepts `mediumTierId` and applies distinct brush profiles for crayon (grain), pencil (thin),
+ink (bleed on lift), and watercolour (soft wash). Acrylic/oil use generic fallback profiles.
+PNG export unchanged for P6 submit choice.
+
+**Public surface:**
+
+- `$lib/data/brushProfiles` — `BrushProfile`, `getBrushProfile`, `MVP_BRUSH_MEDIUM_IDS`, `isMvpBrushMedium`
+- `$lib/game/brushStroke` — `applyBrushStrokeStyle`, `effectiveBrushSize`, `stampCrayonGrain`, `stampInkBleed`, `grainSeed`, `resetBrushContext`
+- `SketchCanvas` prop `mediumTierId?: string`
+- `StudioHudOverlay` props `unlockedMediumTierIds?`, `cash?`, `reputation?`, callback `onselectmedium?(id)`
+
+**Tests:** `brushProfiles.test.ts`, `brushStroke.test.ts`, `SketchCanvas.svelte.test.ts`,
+`StudioHudOverlay.svelte.test.ts` (picker select + locked disable). Commands: `npm run check`;
+`npm run lint`; `npm run test:unit -- --run src/lib/data/brushProfiles.test.ts
+src/lib/components/SketchCanvas.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts`.
+
+**Decisions:**
+
+- Painting medium always equals Toolkit active tier — picker calls `setActiveMediumTier` (no
+  divergent per-commission state).
+- Watercolour MVP = low opacity + `shadowBlur`; no wet-map sim.
+- Crayon grain = coordinate-seeded dot stamps (deterministic in tests).
+- A3 locked grey-out included in MVP per orchestrator prompt.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (component + unit tests only).
+- Spec 25c polish (cursor preview, medium-specific eraser, SFX) deferred.
+- B5 oil/acrylic use generic profiles until a later slice.

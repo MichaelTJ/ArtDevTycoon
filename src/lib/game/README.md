@@ -30,6 +30,7 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `submitChoice.ts`            | `SubmitChoice`, `artworkForSubmitChoice`, `blobToDataUrl` — P6 submit drawing vs AI before critique                                                             |
 | `sketchBlank.ts`             | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                                               |
 | `mumCritiquePresentation.ts` | `isMumCommission`, `captureMumRealCritique`, `MUM_DISPLAY_SCORE`, `pickMumPraiseLine`, `praiseSeedFromArtworkId`, `MumRealCritique`                             |
+| `brushStroke.ts`             | Spec 25 — `applyBrushStrokeStyle`, `effectiveBrushSize`, `stampCrayonGrain`, `stampInkBleed`, `grainSeed`, re-exports `getBrushProfile` / `BrushProfile`        |
 
 ## Invariants
 

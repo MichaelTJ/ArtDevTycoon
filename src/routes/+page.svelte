@@ -473,6 +473,10 @@
 					loadingMessages={environment.loadingMessages}
 					critiqueMessages={environment.critiqueMessages}
 					activeMediumTierId={game.activeMediumTierId}
+					unlockedMediumTierIds={game.unlockedMediumTierIds}
+					cash={game.cash}
+					reputation={game.reputation}
+					onselectmedium={(id) => game.setActiveMediumTier(id)}
 					currentClient={game.currentClient}
 					currentArtwork={game.currentArtwork}
 					currentCritique={game.currentCritique}
@@ -527,6 +531,10 @@
 						loadingMessages={environment.loadingMessages}
 						critiqueMessages={environment.critiqueMessages}
 						activeMediumTierId={game.activeMediumTierId}
+						unlockedMediumTierIds={game.unlockedMediumTierIds}
+						cash={game.cash}
+						reputation={game.reputation}
+						onselectmedium={(id) => game.setActiveMediumTier(id)}
 						currentClient={game.currentClient}
 						currentArtwork={game.currentArtwork}
 						currentCritique={game.currentCritique}
