@@ -4,12 +4,15 @@ Reactive Svelte 5 stores that wire the domain layer, engine manager, and UI toge
 
 ## Public surface
 
-| Export                     | Role                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------- |
-| `engines`                  | Singleton {@link EngineStore} — engine picker state and the one {@link EngineManager} |
-| `engines.manager`          | The engine instance {@link GameStore} calls for `generate` / `critique`               |
-| `engines.showCrayonNotice` | Derived — true when `activeId === 'mock'` and the Crayon banner was not dismissed     |
-| `game`                     | Singleton {@link GameStore} — commission loop state machine                           |
+| Export                      | Role                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `engines`                   | Singleton {@link EngineStore} — engine picker state and the one {@link EngineManager}                  |
+| `engines.manager`           | The engine instance {@link GameStore} calls for `generate` / `critique`                                |
+| `engines.activeDisplayName` | Player-facing label for {@link EngineStore.activeId}, even before {@link EngineStore.options} populate |
+| `engines.isBusy`            | Derived — true during probe/init or an in-flight engine switch                                         |
+| `displayNameForEngine(id)`  | Static fallback map (`ENGINE_DISPLAY_NAMES`) for menu labels during init                               |
+| `engines.showCrayonNotice`  | Derived — true when `activeId === 'mock'` and the Crayon banner was not dismissed                      |
+| `game`                      | Singleton {@link GameStore} — commission loop state machine                                            |
 
 Import from:
 

@@ -105,16 +105,18 @@
 		pendingEngineId ? engines.options.find((option) => option.id === pendingEngineId) : null
 	);
 
-	const activeEngineLabel = $derived(
-		engines.options.find((option) => option.id === engines.activeId)?.displayName ?? 'Crayon Mode'
-	);
+	const activeEngineLabel = $derived(engines.activeDisplayName);
 
 	const engineButtonLabel = $derived.by(() => {
-		if (engines.state === 'loading') {
-			return `Loading ${activeEngineLabel}ΓÇª`;
+		if (engines.isBusy) {
+			return `Loading ${activeEngineLabel}…`;
 		}
-		return `Art engine ┬╖ ${activeEngineLabel}`;
+		return `Art engine · ${activeEngineLabel}`;
 	});
+
+	const engineMenuLoadingLabel = $derived(
+		engines.isBusy ? `Loading ${activeEngineLabel}…` : 'Loading art engines…'
+	);
 
 	const loadStage = $derived.by((): 'downloading' | 'loading' | 'compiling' => {
 		const status = engines.loadProgress?.status;
@@ -579,6 +581,9 @@
 			<EnginePicker
 				options={engines.options}
 				activeId={engines.activeId}
+				loading={engines.isBusy}
+				loadingLabel={engineMenuLoadingLabel}
+				loadProgress={engines.loadProgress}
 				onselect={(id) => handleEngineSelect(id as EngineId)}
 				onconfigure={handleEngineConfigure}
 			/>
