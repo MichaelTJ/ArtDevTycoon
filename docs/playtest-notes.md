@@ -39,10 +39,7 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] P4 follow-up — `LEVEL_1.startingCash` 25 / `targetCash` 50 (orchestrator, contracts)
 - [x] P8 / P9 — Spec 24 MVP (receptionist talk + commission board)
 - [x] Playtest 2: P11–P18 (incl. Spec 25 MVP for P16)
-- [x] Playtest 3 P21 — career milestone (no cash/gallery wipe)
-- [ ] Playtest 3: P19, P20
-- [x] Playtest 3 P22 — ink/charcoal B&W palette + charcoal grain
-- [x] Playtest 3 P23 — Mum always max $5 + max progression gains
+- [x] Playtest 3: P19–P23 (engine load, no level wipe, Mum max, abstract ramp, ink brush)
 - [ ] Triaged into task specs / bugfix PRs
 
 ---
