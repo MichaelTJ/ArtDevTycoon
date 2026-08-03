@@ -2192,3 +2192,48 @@ src/lib/components/LevelCompleteOverlay.svelte.test.ts` (93 passed).
 - Manual playthrough not run (unit/component tests only).
 - `GamePhase` still includes `levelComplete` — rename to `careerMilestone` would need orchestrator
   on `contracts.ts` + studio vfx/bark zones.
+
+## 2026-08-04 — P19 engine load label / picker stall
+
+**Zone:** `src/routes/+page.svelte`, `src/lib/stores/engineStore.svelte.ts`,
+`src/lib/stores/engineStore.svelte.test.ts`, `src/lib/stores/README.md`,
+`src/lib/components/EnginePicker.svelte`, `src/lib/components/EnginePicker.svelte.test.ts`,
+`src/lib/components/README.md`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P19 fix — restoring a non-mock engine from `localStorage` no longer shows
+“Loading Crayon Mode” while Janus (or another real engine) probes/downloads. `EngineStore`
+exposes `activeDisplayName`, `isBusy`, and `displayNameForEngine()` via a static
+`ENGINE_DISPLAY_NAMES` map when `options` is still empty during init. The menu button uses
+`isBusy` (probing + loading). `EnginePicker` renders a loading placeholder with optional
+progress instead of an empty radiogroup while init runs; Close stays usable in the dialog shell.
+
+**Public surface:**
+
+- `ENGINE_DISPLAY_NAMES: Record<EngineId, string>`
+- `displayNameForEngine(id: EngineId): string`
+- `EngineStore.activeDisplayName` — label for `activeId` before/after options populate
+- `EngineStore.isBusy` — true during probe/init or in-flight switch
+- `EnginePicker` props `loading?`, `loadingLabel?`, `loadProgress?`
+
+**Tests:** `displayNameForEngine` map; stored Janus restore with empty options mid-init;
+`EnginePicker` loading placeholder + progress bar. Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run src/lib/stores/engineStore.svelte.test.ts
+src/lib/components/EnginePicker.svelte.test.ts
+src/lib/components/ModelDownloadGate.svelte.test.ts` (34 passed).
+
+**Decisions:**
+
+- Static display-name map lives in `EngineStore` (mirrors registry) rather than importing
+  `ENGINE_REGISTRY` from engines zone (read-only dependency is fine but map keeps store
+  self-contained for UI labels).
+- Loading placeholder only when `loading && options.length === 0` — mid-switch with populated
+  options still shows the radiogroup.
+- `ModelDownloadGate` unchanged; init load progress surfaces in menu button + picker.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (unit/component tests only).
+- Compile-phase stall (shader prep with frozen progress bar) still possible; picker shows
+  progress when worker emits it but cannot invent compile feedback beyond existing gate copy.

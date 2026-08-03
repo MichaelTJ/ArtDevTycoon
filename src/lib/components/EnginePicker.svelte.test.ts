@@ -131,3 +131,37 @@ test('group has an accessible name', async () => {
 		0
 	);
 });
+
+test('loading with empty options shows status instead of blank list', async () => {
+	const screen = render(EnginePicker, {
+		options: [],
+		activeId: 'janus-webgpu',
+		loading: true,
+		loadingLabel: 'Loading Janus Pro…',
+		onselect: vi.fn()
+	});
+	await expect.element(screen.getByRole('status')).toBeVisible();
+	await expect.element(screen.getByText('Loading Janus Pro…')).toBeVisible();
+	expect(screen.getByRole('radio').elements().length).toBe(0);
+});
+
+test('loading placeholder shows progress when loadProgress is set', async () => {
+	const screen = render(EnginePicker, {
+		options: [],
+		activeId: 'janus-webgpu',
+		loading: true,
+		loadingLabel: 'Loading Janus Pro…',
+		loadProgress: {
+			status: 'downloading',
+			file: 'weights.bin',
+			loadedBytes: 420,
+			totalBytes: 1000,
+			fraction: 0.42
+		},
+		onselect: vi.fn()
+	});
+	const bar = screen.getByRole('progressbar');
+	expect(bar.element()).toHaveProperty('value', 0.42);
+	await expect.element(screen.getByText('42%')).toBeVisible();
+	await expect.element(screen.getByText('weights.bin')).toBeVisible();
+});

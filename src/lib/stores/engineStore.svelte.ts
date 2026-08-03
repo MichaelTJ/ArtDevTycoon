@@ -32,6 +32,22 @@ function toOption(entry: EngineDescriptor & { availability: EngineAvailability }
 
 const STORAGE_KEY = 'adt.engine';
 
+/**
+ * Static labels for known engines when {@link EngineStore.options} is not populated yet
+ * (during probe/init). Mirrors `ENGINE_REGISTRY` display names.
+ */
+export const ENGINE_DISPLAY_NAMES: Record<EngineId, string> = {
+	mock: 'Crayon Mode',
+	'janus-webgpu': 'Janus Pro',
+	'sdturbo-webgpu': 'SD-Turbo',
+	remote: 'My PC'
+};
+
+/** Player-facing name for an engine id, even before probe finishes. */
+export function displayNameForEngine(id: EngineId): string {
+	return ENGINE_DISPLAY_NAMES[id];
+}
+
 function isPersistedEngineId(value: string | null): value is EngineId {
 	return (
 		value === 'mock' || value === 'janus-webgpu' || value === 'sdturbo-webgpu' || value === 'remote'
@@ -87,6 +103,19 @@ export class EngineStore {
 	ready = $state(false);
 
 	realAiSupported = $derived(this.options.some((o) => o.id !== 'mock' && o.available));
+
+	/** True while probing the device or loading/downloading an engine. */
+	isBusy = $derived(this.state === 'probing' || this.state === 'loading');
+
+	/**
+	 * Label for the active engine using {@link options} when available, otherwise
+	 * {@link displayNameForEngine} so restore-from-storage shows the real engine name
+	 * during init before options populate.
+	 */
+	activeDisplayName = $derived(
+		this.options.find((option) => option.id === this.activeId)?.displayName ??
+			displayNameForEngine(this.activeId)
+	);
 
 	/** True while the active engine is mock and the player has not dismissed the banner. */
 	showCrayonNotice = $derived(this.activeId === 'mock' && !this.noticeDismissed);

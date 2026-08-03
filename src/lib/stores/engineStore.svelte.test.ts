@@ -9,7 +9,7 @@ import type {
 	EngineState,
 	LoadProgress
 } from '$lib/types/contracts';
-import { EngineStore } from './engineStore.svelte';
+import { EngineStore, displayNameForEngine } from './engineStore.svelte';
 
 vi.mock('$lib/engines/remote/providers', () => ({
 	getRemoteProviderClient: vi.fn()
@@ -26,7 +26,7 @@ const capability: DeviceCapability = {
 
 function createFakeManager(
 	overrides: Partial<{
-		init: () => Promise<void>;
+		init: (onProgress?: (p: LoadProgress) => void) => Promise<void>;
 		select: (id: EngineId, onProgress?: (p: LoadProgress) => void) => Promise<void>;
 		options: Array<{
 			id: EngineId;
@@ -79,6 +79,81 @@ function createFakeManager(
 }
 
 describe('EngineStore', () => {
+	it('displayNameForEngine maps known ids before options populate', () => {
+		expect(displayNameForEngine('mock')).toBe('Crayon Mode');
+		expect(displayNameForEngine('janus-webgpu')).toBe('Janus Pro');
+		expect(displayNameForEngine('sdturbo-webgpu')).toBe('SD-Turbo');
+		expect(displayNameForEngine('remote')).toBe('My PC');
+	});
+
+	it('restores stored engine id and activeDisplayName before options populate', async () => {
+		const storeMap = new Map<string, string>([['adt.engine', 'janus-webgpu']]);
+		vi.stubGlobal('localStorage', {
+			getItem: (key: string) => storeMap.get(key) ?? null,
+			setItem: (key: string, value: string) => {
+				storeMap.set(key, value);
+			},
+			removeItem: (key: string) => {
+				storeMap.delete(key);
+			},
+			clear: () => {
+				storeMap.clear();
+			}
+		});
+
+		let finishInit: () => void = () => {};
+		const initGate = new Promise<void>((resolve) => {
+			finishInit = resolve;
+		});
+
+		const store = new EngineStore(
+			createFakeManager({
+				init: async (onProgress) => {
+					onProgress?.({
+						status: 'downloading',
+						file: 'model.bin',
+						loadedBytes: 10,
+						totalBytes: 100,
+						fraction: 0.1
+					});
+					await initGate;
+				},
+				options: [
+					{
+						id: 'mock',
+						displayName: 'Crayon Mode',
+						description: 'Instant',
+						requirements: { approxDownloadMb: 0 },
+						availability: { available: true, requiresDownload: false, approxDownloadMb: 0 }
+					},
+					{
+						id: 'janus-webgpu',
+						displayName: 'Janus Pro',
+						description: 'AI',
+						requirements: { approxDownloadMb: 1024 },
+						availability: { available: true, requiresDownload: true, approxDownloadMb: 1024 }
+					}
+				]
+			})
+		);
+
+		const initTask = store.init();
+
+		expect(store.activeId).toBe('janus-webgpu');
+		expect(store.activeDisplayName).toBe('Janus Pro');
+		expect(store.isBusy).toBe(true);
+		expect(store.options).toHaveLength(0);
+		expect(store.loadProgress?.fraction).toBe(0.1);
+
+		finishInit();
+		await initTask;
+
+		expect(store.options).toHaveLength(2);
+		expect(store.isBusy).toBe(false);
+
+		vi.unstubAllGlobals();
+	});
+
 	it('init() populates options and leaves activeId as mock', async () => {
 		const store = new EngineStore(
 			createFakeManager({
