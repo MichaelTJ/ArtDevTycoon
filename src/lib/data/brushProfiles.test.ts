@@ -14,8 +14,14 @@ describe('getBrushProfile', () => {
 		const watercolor = getBrushProfile('watercolor');
 
 		expect(crayon.grain).toBe(true);
+		expect(crayon.grainStyle).toBeUndefined();
 		expect(pencil.sizeMultiplier).toBeLessThan(1);
 		expect(ink.bleedOnLift).toBe(true);
+		expect(ink.grain).toBe(true);
+		expect(ink.grainStyle).toBe('charcoal');
+		expect(ink.label).toBe('Ink & Charcoal');
+		expect(ink.opacity).toBeLessThan(pencil.opacity);
+		expect(ink.softEdge).toBeGreaterThan(pencil.softEdge);
 		expect(watercolor.softEdge).toBeGreaterThan(0);
 		expect(watercolor.opacity).toBeLessThan(crayon.opacity);
 

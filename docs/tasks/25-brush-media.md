@@ -38,19 +38,19 @@ hand, not just in the prompt suffix.
 
 ### B. Brush / stroke engines — slice **25b**
 
-| ID  | Medium (Spec 13 id) | Feel (outline)                                            | Size | Priority | Status   |
-| --- | ------------------- | --------------------------------------------------------- | ---- | -------- | -------- |
-| B1  | `crayon`            | Thick, slightly translucent, grain/noise stamp; soft edge | M    | MVP      | **Done** |
-| B2  | `pencil`            | Thin hard lines; light pressure variance; no fill bloom   | M    | MVP      | **Done** |
-| B3  | `ink`               | High contrast, slight bleed on pause; no opacity stack    | M    | MVP      | **Done** |
-| B4  | `watercolor`        | Wet wash, colour bloom, lighter opacity layers            | L    | MVP      | **Done** |
-| B5  | Oil / later tiers   | Impasto / slow dry (optional)                             | L    | Deferred | —        |
+| ID  | Medium (Spec 13 id) | Feel (outline)                                             | Size | Priority | Status                |
+| --- | ------------------- | ---------------------------------------------------------- | ---- | -------- | --------------------- |
+| B1  | `crayon`            | Thick, slightly translucent, grain/noise stamp; soft edge  | M    | MVP      | **Done**              |
+| B2  | `pencil`            | Thin hard lines; light pressure variance; no fill bloom    | M    | MVP      | **Done**              |
+| B3  | `ink`               | Charcoal grain, B&W palette, bleed on lift; not a hard pen | M    | MVP      | **Done** (P22 polish) |
+| B4  | `watercolor`        | Wet wash, colour bloom, lighter opacity layers             | L    | MVP      | **Done**              |
+| B5  | Oil / later tiers   | Impasto / slow dry (optional)                              | L    | Deferred | —                     |
 
 Implementation (MVP):
 
-- `brushProfiles.ts` — stamp parameters per medium tier id.
-- `brushStroke.ts` — pure helpers: `applyBrushStrokeStyle`, crayon grain, ink bleed.
-- `SketchCanvas` accepts `mediumTierId`; export PNG unchanged for P6.
+- `brushProfiles.ts` — stamp parameters per medium tier id (`grainStyle: 'charcoal'` for ink).
+- `brushStroke.ts` — pure helpers: `applyBrushStrokeStyle`, crayon/charcoal grain, ink bleed.
+- `SketchCanvas` accepts `mediumTierId`; ink locks palette to B&W swatches only.
 - `StudioHudOverlay` medium picker during `generating`; `+page` wires `setActiveMediumTier`.
 
 ### C. Polish — slice **25c**
