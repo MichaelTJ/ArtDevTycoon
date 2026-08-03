@@ -52,13 +52,14 @@ function buildPool(
 	excludeIds: readonly string[],
 	unlockedTiers: readonly ClientTier[],
 	completedSeriesIds: readonly string[],
-	commissionsCompleted: number
+	commissionsCompleted: number,
+	reputation: number
 ): ClientBrief[] {
 	const tierSet = new Set(unlockedTiers);
 	return ALL_PRESTIGE_BRIEFS.filter((brief) => {
 		if (!tierSet.has(briefTier(brief))) return false;
 		if (excludeIds.includes(brief.id)) return false;
-		if (!isBriefEligibleForProgress(brief, commissionsCompleted)) return false;
+		if (!isBriefEligibleForProgress(brief, commissionsCompleted, reputation)) return false;
 		return isSeriesEligible(brief, excludeIds, completedSeriesIds);
 	});
 }
@@ -89,6 +90,8 @@ export function pickBrief(options?: {
 	 * (plus whatever prestige tiers they unlocked).
 	 */
 	commissionsCompleted?: number;
+	/** Career reputation — OR-unlocks abstractness bands with commission count (playtest P20). */
+	reputation?: number;
 	random?: () => number;
 }): ClientBrief {
 	const random = options?.random ?? Math.random;
@@ -96,6 +99,7 @@ export function pickBrief(options?: {
 	const unlockedTiers = options?.unlockedTiers ?? ['walk-in'];
 	const completedSeriesIds = options?.completedSeriesIds ?? [];
 	const commissionsCompleted = options?.commissionsCompleted ?? 0;
+	const reputation = options?.reputation ?? 0;
 
 	if (commissionsCompleted === 0 && unlockedTiers.includes('walk-in')) {
 		let openers = KITCHEN_BRIEFS.filter((b) => OPENER_IDS.has(b.id) && !excludeIds.includes(b.id));
@@ -107,9 +111,15 @@ export function pickBrief(options?: {
 		}
 	}
 
-	let pool = buildPool(excludeIds, unlockedTiers, completedSeriesIds, commissionsCompleted);
+	let pool = buildPool(
+		excludeIds,
+		unlockedTiers,
+		completedSeriesIds,
+		commissionsCompleted,
+		reputation
+	);
 	if (pool.length === 0) {
-		pool = buildPool([], unlockedTiers, completedSeriesIds, commissionsCompleted);
+		pool = buildPool([], unlockedTiers, completedSeriesIds, commissionsCompleted, reputation);
 	}
 	return pickFromPool(pool, random);
 }

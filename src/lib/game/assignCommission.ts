@@ -57,6 +57,8 @@ export function pickBoardOffers(options?: {
 		: never;
 	completedSeriesIds?: readonly string[];
 	commissionsCompleted?: number;
+	/** Career reputation — same walk-in abstractness OR-gate as `pickBrief` (P20). */
+	reputation?: number;
 	random?: () => number;
 	count?: number;
 }): ClientBrief[] {
@@ -72,6 +74,7 @@ export function pickBoardOffers(options?: {
 			unlockedTiers: options?.unlockedTiers,
 			completedSeriesIds: options?.completedSeriesIds,
 			commissionsCompleted: options?.commissionsCompleted,
+			reputation: options?.reputation,
 			random
 		});
 		offers.push(brief);

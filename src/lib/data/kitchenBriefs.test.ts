@@ -64,12 +64,24 @@ describe('KITCHEN_BRIEFS', () => {
 });
 
 describe('maxWalkInAbstractness / isBriefEligibleForProgress', () => {
-	it('gates bands at 0 / 2 / 4 commissions', () => {
-		expect(maxWalkInAbstractness(0)).toBe(0);
-		expect(maxWalkInAbstractness(1)).toBe(0);
-		expect(maxWalkInAbstractness(2)).toBe(1);
-		expect(maxWalkInAbstractness(3)).toBe(1);
-		expect(maxWalkInAbstractness(4)).toBe(2);
+	it('gates bands by reputation OR commission count (playtest P20)', () => {
+		const cases: Array<[number, number, number]> = [
+			[0, 0, 0],
+			[1, 0, 0],
+			[5, 0, 0],
+			[6, 0, 1],
+			[0, 4, 1],
+			[0, 3, 0],
+			[5, 4, 1],
+			[11, 0, 1],
+			[12, 0, 2],
+			[0, 10, 2],
+			[0, 9, 1],
+			[4, 10, 2]
+		];
+		for (const [commissions, reputation, expected] of cases) {
+			expect(maxWalkInAbstractness(commissions, reputation)).toBe(expected);
+		}
 	});
 
 	it('always allows prestige briefs', () => {
@@ -88,7 +100,12 @@ describe('maxWalkInAbstractness / isBriefEligibleForProgress', () => {
 
 	it('blocks abstract walk-ins before their unlock', () => {
 		const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
-		expect(isBriefEligibleForProgress(c6, 3)).toBe(false);
-		expect(isBriefEligibleForProgress(c6, 4)).toBe(true);
+		const c4 = KITCHEN_BRIEFS.find((b) => b.id === 'c4')!;
+		expect(isBriefEligibleForProgress(c4, 5, 0)).toBe(false);
+		expect(isBriefEligibleForProgress(c4, 6, 0)).toBe(true);
+		expect(isBriefEligibleForProgress(c4, 0, 4)).toBe(true);
+		expect(isBriefEligibleForProgress(c6, 11, 0)).toBe(false);
+		expect(isBriefEligibleForProgress(c6, 12, 0)).toBe(true);
+		expect(isBriefEligibleForProgress(c6, 0, 10)).toBe(true);
 	});
 });

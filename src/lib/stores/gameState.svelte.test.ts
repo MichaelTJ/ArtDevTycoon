@@ -169,13 +169,32 @@ describe('GameStore', () => {
 		}
 	});
 
-	it('inviteClient eventually yields abstractness 2 after four commissions', () => {
+	it('inviteClient eventually yields abstractness 2 after twelve commissions', () => {
+		let draw = 0;
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{ random: () => (draw++ % 80) / 80 }
+		);
+		store.commissionsCompleted = 12;
+
+		const levels = new Set<number>();
+		for (let i = 0; i < 80; i++) {
+			store.phase = 'idle';
+			store.galleryHistory = [];
+			store.inviteClient();
+			levels.add(store.currentClient!.abstractness ?? 0);
+		}
+		expect(levels.has(2)).toBe(true);
+	});
+
+	it('inviteClient yields abstractness 2 via reputation before commission threshold', () => {
 		let draw = 0;
 		const store = createStore(
 			{ generate: vi.fn(), critique: vi.fn() },
 			{ random: () => (draw++ % 80) / 80 }
 		);
 		store.commissionsCompleted = 4;
+		store.reputation = 10;
 
 		const levels = new Set<number>();
 		for (let i = 0; i < 80; i++) {

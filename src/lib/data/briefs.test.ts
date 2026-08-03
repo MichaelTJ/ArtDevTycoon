@@ -116,12 +116,25 @@ describe('pickBrief', () => {
 		}
 	});
 
-	it('unlocks abstractness 1 (not 2) at commissionsCompleted 2', () => {
+	it('never returns abstractness >= 1 at commissionsCompleted 5 with zero reputation', () => {
+		for (let i = 0; i < 80; i++) {
+			const brief = pickBrief({
+				unlockedTiers: ['walk-in'],
+				commissionsCompleted: 5,
+				reputation: 0,
+				random: () => i / 80
+			});
+			expect(brief.abstractness ?? 0).toBeLessThan(1);
+		}
+	});
+
+	it('unlocks abstractness 1 (not 2) at commissionsCompleted 6', () => {
 		const levels = new Set<number>();
 		for (let i = 0; i < 80; i++) {
 			const brief = pickBrief({
 				unlockedTiers: ['walk-in'],
-				commissionsCompleted: 2,
+				commissionsCompleted: 6,
+				reputation: 0,
 				random: () => i / 80
 			});
 			const level = brief.abstractness ?? 0;
@@ -131,13 +144,30 @@ describe('pickBrief', () => {
 		expect(levels.has(1)).toBe(true);
 	});
 
-	it('unlocks abstractness 2 including c6 at commissionsCompleted 4', () => {
+	it('unlocks abstractness 1 via reputation before commission threshold', () => {
+		const levels = new Set<number>();
+		for (let i = 0; i < 80; i++) {
+			const brief = pickBrief({
+				unlockedTiers: ['walk-in'],
+				commissionsCompleted: 2,
+				reputation: 4,
+				random: () => i / 80
+			});
+			const level = brief.abstractness ?? 0;
+			expect(level).toBeLessThan(2);
+			levels.add(level);
+		}
+		expect(levels.has(1)).toBe(true);
+	});
+
+	it('unlocks abstractness 2 including c6 at commissionsCompleted 12', () => {
 		const levels = new Set<number>();
 		const ids = new Set<string>();
 		for (let i = 0; i < 80; i++) {
 			const brief = pickBrief({
 				unlockedTiers: ['walk-in'],
-				commissionsCompleted: 4,
+				commissionsCompleted: 12,
+				reputation: 0,
 				random: () => i / 80
 			});
 			levels.add(brief.abstractness ?? 0);
@@ -145,6 +175,20 @@ describe('pickBrief', () => {
 		}
 		expect(levels.has(2)).toBe(true);
 		expect(ids.has('c6')).toBe(true);
+	});
+
+	it('unlocks abstractness 2 via reputation before commission threshold', () => {
+		const levels = new Set<number>();
+		for (let i = 0; i < 80; i++) {
+			const brief = pickBrief({
+				unlockedTiers: ['walk-in'],
+				commissionsCompleted: 4,
+				reputation: 10,
+				random: () => i / 80
+			});
+			levels.add(brief.abstractness ?? 0);
+		}
+		expect(levels.has(2)).toBe(true);
 	});
 
 	it('never returns abstractness 2 walk-ins when billionaire is unlocked at 0 commissions', () => {
