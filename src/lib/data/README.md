@@ -30,18 +30,19 @@ if one is added.
 
 - `KITCHEN_BRIEFS` / `LEVEL_1_BRIEFS` is validated once at import with `clientBriefSchema`;
   a typo fails fast rather than breaking a commission mid-run.
-- Walk-in briefs escalate abstractness with `commissionsCompleted` (0 → concrete Mum
-  asks; ≥2 evocative; ≥4 pure mood). First invite at 0 commissions is forced to Mum
-  band-0 openers `{c1,c2,c3,c7}`.
+- Walk-in briefs escalate abstractness with `commissionsCompleted` **or** `reputation`
+  (0 → concrete Mum asks; band 1 at rep ≥4 or ≥6 commissions; band 2 at rep ≥10 or
+  ≥12 commissions). First invite at 0 commissions is forced to Mum band-0 openers
+  `{c1,c2,c3,c7}` regardless of reputation.
 - **Early economy (playtest P4/P23):** All Mum kitchen briefs use **$5 budget** (UI
   matches payout). Mum commissions always pay exactly **$5** via `MUM_PAYOUT_CASH`, not
   `calculatePayout × presentationMultiplier`. Pencil unlock is **$15** (~3 Mum jobs);
   garage wall is **$30**. Later walk-ins and prestige tiers keep higher budgets.
 - Abstract kitchen briefs carry `interpretationClusters`; prestige pools omit them and
   keep legacy keyword scoring.
-- `pickBrief` accepts optional `commissionsCompleted` and injected `random` for
-  deterministic tests and replays; production callers omit `random` and receive
-  `Math.random`.
+- `pickBrief` accepts optional `commissionsCompleted`, `reputation`, and injected
+  `random` for deterministic tests and replays; production callers omit `random` and
+  receive `Math.random`. `GameStore.inviteClient` passes both progress counters.
 - When every brief id is excluded, the pool resets to the full list so long runs never
   run out of clients.
 

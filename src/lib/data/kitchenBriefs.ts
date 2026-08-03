@@ -225,19 +225,25 @@ export const KITCHEN_BRIEFS: readonly ClientBrief[] = z
 	.array(clientBriefSchema)
 	.parse(KITCHEN_BRIEF_DEFS);
 
-/** Highest abstractness a walk-in may have at this progress. */
-export function maxWalkInAbstractness(commissionsCompleted: number): AbstractnessLevel {
-	if (commissionsCompleted >= 4) return 2;
-	if (commissionsCompleted >= 2) return 1;
+/** Highest walk-in abstractness allowed at this career progress. */
+export function maxWalkInAbstractness(
+	commissionsCompleted: number,
+	reputation = 0
+): AbstractnessLevel {
+	// Band 2 — pure mood: after watercolour-tier reputation OR a long commission streak
+	if (reputation >= 10 || commissionsCompleted >= 12) return 2;
+	// Band 1 — evocative: after early standing (past pencil unlock rep) OR mid commission count
+	if (reputation >= 4 || commissionsCompleted >= 6) return 1;
 	return 0;
 }
 
 /** Prestige briefs always eligible; walk-ins gated by abstractness vs progress. */
 export function isBriefEligibleForProgress(
 	brief: ClientBrief,
-	commissionsCompleted: number
+	commissionsCompleted: number,
+	reputation = 0
 ): boolean {
 	const level = brief.abstractness ?? 0;
 	if ((brief.tier ?? 'walk-in') !== 'walk-in') return true;
-	return level <= maxWalkInAbstractness(commissionsCompleted);
+	return level <= maxWalkInAbstractness(commissionsCompleted, reputation);
 }

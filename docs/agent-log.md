@@ -2282,5 +2282,29 @@ src/lib/stores/gameState.svelte.test.ts`.
 **Known gaps:**
 
 - Manual playthrough not run (unit tests only).
-- Mum abstract briefs (c6, c12) still use interpretation scoring for engine critique;
-  only payout/rep/skills are guaranteed max on collect.
+
+## 2026-08-04 — Playtest P20 abstractness ramp retune
+
+**Zone:** `src/lib/data/kitchenBriefs*`, `briefs*`, `gameState.svelte*`, `docs/tasks/18-abstract-prompts.md` §2.1, `docs/playtest-notes.md`, `src/lib/data/README.md`
+
+**Built:** Retuned Spec 18 walk-in abstractness gating so bands unlock gradually via **reputation OR commissions** instead of only 2/4 jobs. Band 1 (evocative) at rep ≥4 or ≥6 commissions; band 2 (pure mood) at rep ≥10 or ≥12 commissions. First-invite Mum band-0 opener force unchanged. `GameStore.inviteClient` and reception `pickCommissionBoardOffers` / `pickBoardOffers` pass `reputation` into `pickBrief`.
+
+**Public surface:**
+
+- `maxWalkInAbstractness(commissionsCompleted, reputation = 0): AbstractnessLevel`
+- `isBriefEligibleForProgress(brief, commissionsCompleted, reputation = 0): boolean`
+- `pickBrief({ …, commissionsCompleted?, reputation?, random? })`
+- `pickBoardOffers({ …, reputation? })` — same OR-gate as auto-invite
+
+**Tests:** Table-driven gate literals in `kitchenBriefs.test.ts`; `pickBrief` band draws at new thresholds + rep OR paths in `briefs.test.ts`; `gameState.svelte.test.ts` abstractness-2 at 12 commissions and via rep 10. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run src/lib/data/kitchenBriefs.test.ts src/lib/data/briefs.test.ts src/lib/stores/gameState.svelte.test.ts`.
+
+**Decisions:**
+
+- OR-unlock on reputation lets standing matter even when commission count is low, while commission thresholds keep a slow floor for players who grind without much rep.
+- Orchestrator threaded `reputation` through `pickBoardOffers` so the reception desk matches kitchen auto-invite gating.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual kitchen playthrough not run (unit tests only).

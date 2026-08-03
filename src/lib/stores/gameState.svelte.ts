@@ -485,6 +485,7 @@ export class GameStore {
 			unlockedTiers: unlockedClientTiers(this.reputation),
 			completedSeriesIds: fullyCompletedSeriesIds(excludeIds, CORPORATE_BRIEFS),
 			commissionsCompleted: this.commissionsCompleted,
+			reputation: this.reputation,
 			random: this.#random
 		});
 		this.currentArtwork = null;
@@ -509,6 +510,7 @@ export class GameStore {
 				CORPORATE_BRIEFS
 			),
 			commissionsCompleted: this.commissionsCompleted,
+			reputation: this.reputation,
 			random: this.#random,
 			count
 		});

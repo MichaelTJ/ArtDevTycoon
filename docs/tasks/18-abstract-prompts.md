@@ -159,8 +159,8 @@ their own ids.
 | `abstractness` | When eligible                                                            | Voice                                  | Scoring path                        |
 | -------------- | ------------------------------------------------------------------------ | -------------------------------------- | ----------------------------------- |
 | `0`            | Always (and **forced** for first invite at `commissionsCompleted === 0`) | Mum, concrete "paint me a …"           | `preferredKeywords` only (today)    |
-| `1`            | `commissionsCompleted >= 2`                                              | Evocative / soft memory, still a hint  | Best `interpretationClusters` match |
-| `2`            | `commissionsCompleted >= 4`                                              | Pure mood / longing — no subject named | Best `interpretationClusters` match |
+| `1`            | `reputation >= 4` **or** `commissionsCompleted >= 6`                     | Evocative / soft memory, still a hint  | Best `interpretationClusters` match |
+| `2`            | `reputation >= 10` **or** `commissionsCompleted >= 12`                   | Pure mood / longing — no subject named | Best `interpretationClusters` match |
 
 ### 2.2 Required briefs (exact content)
 
