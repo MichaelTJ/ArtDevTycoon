@@ -217,6 +217,9 @@ export class GameStore {
 	/** One-shot pulse after collect; UI clears via `clearLastCollectedGains`. */
 	lastCollectedGains = $state<CollectedGains | null>(null);
 
+	/** One-time career milestone overlay dismissed — persisted; never re-shows on later collects. */
+	careerMilestoneAcknowledged = $state(false);
+
 	progress = $derived(
 		levelProgress({ cash: this.cash, commissionsCompleted: this.commissionsCompleted })
 	);
@@ -945,12 +948,11 @@ export class GameStore {
 			this.pendingSubmitChoice = false;
 			this.aiGeneratedImageUrl = null;
 
-			this.phase = isLevelComplete({
+			const targetsMet = isLevelComplete({
 				cash: this.cash,
 				commissionsCompleted: this.commissionsCompleted
-			})
-				? 'levelComplete'
-				: 'idle';
+			});
+			this.phase = targetsMet && !this.careerMilestoneAcknowledged ? 'levelComplete' : 'idle';
 
 			this.#persist();
 			if (this.phase === 'idle') {
@@ -1027,6 +1029,20 @@ export class GameStore {
 	/** Clears the post-collect XP/rep pulse once the HUD has animated it. */
 	clearLastCollectedGains(): void {
 		this.lastCollectedGains = null;
+	}
+
+	/**
+	 * Dismiss the one-time career milestone overlay. Keeps cash, gallery, reputation,
+	 * unlocks, and skills — unlike {@link reset} which wipes for a new game.
+	 */
+	acknowledgeCareerMilestone(): void {
+		if (this.phase !== 'levelComplete') {
+			return;
+		}
+		this.careerMilestoneAcknowledged = true;
+		this.phase = 'idle';
+		this.#persist();
+		this.#scheduleAutoInvite();
 	}
 
 	/**
@@ -1132,6 +1148,7 @@ export class GameStore {
 		this.skillXp = createEmptySkillXp();
 		this.pendingSkillGains = null;
 		this.lastCollectedGains = null;
+		this.careerMilestoneAcknowledged = false;
 		this.#slotsEpoch += 1;
 	}
 
@@ -1185,6 +1202,7 @@ export class GameStore {
 			hustle: save.skillXpHustle
 		};
 		this.lastIncomeTickAt = save.lastIncomeTickAt ?? this.#now();
+		this.careerMilestoneAcknowledged = save.careerMilestoneAcknowledged;
 	}
 
 	/**
@@ -1222,6 +1240,7 @@ export class GameStore {
 		data.skillXpPrompting = this.skillXp.prompting;
 		data.skillXpImagination = this.skillXp.imagination;
 		data.skillXpHustle = this.skillXp.hustle;
+		data.careerMilestoneAcknowledged = this.careerMilestoneAcknowledged;
 		return data;
 	}
 

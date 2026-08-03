@@ -45,6 +45,8 @@ Import from `$lib/game` via the barrel in `index.ts`.
   interpretation scoring applies. Always clamped to `[0, brief.budget]`; the floor of 1
   on both scores guarantees a non-zero payout on every commission.
 - Level 1 completion requires both `LEVEL_1.targetCommissions` and `LEVEL_1.targetCash`.
+  Meeting both triggers a one-time career milestone overlay (not a level wipe).
+  `careerMilestoneAcknowledged` on `SaveData` prevents re-showing after dismiss.
 - `buildLevel1Prompt` appends hidden modifiers from `LEVEL_1.promptModifiers`; the result
   must never be shown to the player.
 - Operational helpers read only shapes from `$lib/types/contracts.ts` and preserve

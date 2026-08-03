@@ -650,6 +650,66 @@ describe('GameStore', () => {
 		expect(store.cash).toBeGreaterThanOrEqual(LEVEL_1.targetCash);
 	});
 
+	it('acknowledgeCareerMilestone keeps cash, gallery, and unlocks', async () => {
+		const persistSave = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(async ({ playerPrompt }) => ({ ...fakeArtwork, playerPrompt })),
+				critique: vi.fn(async () => fakeDraft)
+			},
+			{ persistSave }
+		);
+		store.cash = LEVEL_1.targetCash;
+		store.reputation = 12;
+		store.unlockedMediumTierIds = ['crayon', 'pencil'];
+		store.activeMediumTierId = 'pencil';
+
+		for (let i = 0; i < LEVEL_1.targetCommissions; i++) {
+			store.inviteClient();
+			store.draftPrompt = 'a cozy coffee cup on a wooden table';
+			await store.createArt();
+			await store.confirmSubmitChoice('ai', null);
+			await store.collectCash();
+		}
+
+		const cashBefore = store.cash;
+		const galleryBefore = store.galleryHistory.length;
+		const repBefore = store.reputation;
+		const unlocksBefore = [...store.unlockedMediumTierIds];
+
+		store.acknowledgeCareerMilestone();
+
+		expect(store.phase).toBe('idle');
+		expect(store.careerMilestoneAcknowledged).toBe(true);
+		expect(store.cash).toBe(cashBefore);
+		expect(store.galleryHistory.length).toBe(galleryBefore);
+		expect(store.reputation).toBe(repBefore);
+		expect(store.unlockedMediumTierIds).toEqual(unlocksBefore);
+		expect(persistSave).toHaveBeenCalled();
+		const lastSave = persistSave.mock.calls.at(-1)?.[0] as SaveData;
+		expect(lastSave.careerMilestoneAcknowledged).toBe(true);
+	});
+
+	it('after milestone acknowledged, further collects stay idle without re-overlay', async () => {
+		const store = createStore({
+			generate: vi.fn(async ({ playerPrompt }) => ({ ...fakeArtwork, playerPrompt })),
+			critique: vi.fn(async () => fakeDraft)
+		});
+		store.cash = LEVEL_1.targetCash;
+		store.careerMilestoneAcknowledged = true;
+
+		for (let i = 0; i < LEVEL_1.targetCommissions; i++) {
+			store.inviteClient();
+			store.draftPrompt = 'a cozy coffee cup on a wooden table';
+			await store.createArt();
+			await store.confirmSubmitChoice('ai', null);
+			await store.collectCash();
+		}
+
+		expect(store.phase).toBe('idle');
+		expect(store.commissionsCompleted).toBe(5);
+	});
+
 	it('never surfaces a prestige client at reputation 0 across 50 draws', () => {
 		let draw = 0;
 		const seeded = createStore(

@@ -89,6 +89,12 @@ export const saveDataSchema = z.object({
 	/** Null when no major project is active. */
 	majorProjectProgress: majorProjectProgressSchema.nullable().default(null),
 
+	/**
+	 * True after the player dismisses the one-time career milestone overlay (first time
+	 * both LEVEL_1 cash and commission targets are met). Progress is never wiped on win.
+	 */
+	careerMilestoneAcknowledged: z.boolean().default(false),
+
 	/** Epoch ms this blob was written. Not shown to the player; useful for debugging. */
 	savedAt: z.number().int().nonnegative()
 });

@@ -8,20 +8,20 @@ test('renders cash and commission figures', async () => {
 		commissionsCompleted: 5,
 		oncontinue: vi.fn()
 	});
-	await expect.element(screen.getByText('Final cash')).toBeVisible();
+	await expect.element(screen.getByText('Studio cash')).toBeVisible();
 	await expect.element(screen.getByText('$520')).toBeVisible();
 	await expect.element(screen.getByText('Commissions completed')).toBeVisible();
 	await expect.element(screen.getByText('5', { exact: true })).toBeVisible();
 });
 
-test('Continue calls oncontinue', async () => {
+test('Keep going calls oncontinue', async () => {
 	const oncontinue = vi.fn();
 	const screen = render(LevelCompleteOverlay, {
 		cash: 50,
 		commissionsCompleted: 5,
 		oncontinue
 	});
-	await screen.getByRole('button', { name: 'Continue' }).click();
+	await screen.getByRole('button', { name: 'Keep going' }).click();
 	expect(oncontinue).toHaveBeenCalledTimes(1);
 });
 

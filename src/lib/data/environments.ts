@@ -42,7 +42,7 @@ export const ENVIRONMENTS: Record<EnvironmentId, EnvironmentConfig> = {
 			'Drafting something diplomatic to say…'
 		],
 		winMessage:
-			'Congratulations — the fridge is full and the kitchen is buzzing. The art room is coming next.'
+			'You hit your first career targets — the fridge is full and commissions are rolling in. Your cash and gallery stay put; keep unlocking mediums, venues, and staff.'
 	},
 	'art-room': {
 		id: 'art-room',

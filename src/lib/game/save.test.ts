@@ -93,6 +93,7 @@ describe('save', () => {
 			hiredArtists: [],
 			artistAssignment: null,
 			majorProjectProgress: null,
+			careerMilestoneAcknowledged: false,
 			savedAt: 1_700_000_000_000
 		};
 		persistSave(saved);
@@ -152,6 +153,7 @@ describe('save', () => {
 		expect(loaded.hiredArtists).toEqual([]);
 		expect(loaded.artistAssignment).toBeNull();
 		expect(loaded.majorProjectProgress).toBeNull();
+		expect(loaded.careerMilestoneAcknowledged).toBe(false);
 		expect(getActiveSlotId()).toBe('0');
 		expect(storage.getItem(SLOTS_STORAGE_KEY)).not.toBeNull();
 	});
@@ -216,6 +218,14 @@ describe('save', () => {
 		expect(loaded.cash).toBe(100);
 		expect(loaded.savedAt).toBe(7);
 		expect(loaded.lastIncomeTickAt).toBe(7);
+	});
+
+	it('round-trips careerMilestoneAcknowledged through the active slot', () => {
+		const data = createDefaultSave(100, () => 1);
+		data.careerMilestoneAcknowledged = true;
+		persistSave(data);
+
+		expect(loadSave(100, () => 0).careerMilestoneAcknowledged).toBe(true);
 	});
 
 	it('round-trips persistSave then loadSave through the active slot', () => {
