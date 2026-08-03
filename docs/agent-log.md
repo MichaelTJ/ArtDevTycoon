@@ -2149,3 +2149,46 @@ src/lib/components/SketchCanvas.svelte.test.ts src/lib/components/StudioHudOverl
 - Manual playthrough not run (component + unit tests only).
 - Spec 25c polish (cursor preview, medium-specific eraser, SFX) deferred.
 - B5 oil/acrylic use generic profiles until a later slice.
+
+## 2026-08-04 — P21 career milestone (no level wipe)
+
+**Zone:** `src/routes/+page.svelte`, `src/lib/stores/gameState.svelte.ts`,
+`src/lib/stores/gameState.svelte.test.ts`, `src/lib/stores/README.md`, `src/lib/game/save.ts`,
+`src/lib/game/save.test.ts`, `src/lib/game/README.md`, `src/lib/components/LevelCompleteOverlay.svelte`,
+`src/lib/components/LevelCompleteOverlay.svelte.test.ts`, `src/lib/components/README.md`,
+`src/lib/data/environments.ts`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P21 fix — first time both LEVEL_1 cash and commission targets are met, the
+game shows a one-time **Career milestone!** overlay instead of wiping progress. Persisted
+`careerMilestoneAcknowledged` on `SaveData` prevents re-showing; `collectCash` skips
+`levelComplete` when already acknowledged. `acknowledgeCareerMilestone()` sets the flag,
+returns to `idle`, and persists without clearing cash, gallery, reputation, unlocks, or skills.
+`reset()` unchanged for intentional new-game / slot wipe. Overlay copy retuned away from
+“Level Complete / Final cash” fantasy.
+
+**Public surface:**
+
+- `SaveData.careerMilestoneAcknowledged: boolean` (default `false` via Zod)
+- `GameStore.careerMilestoneAcknowledged` — reactive, hydrated from save
+- `GameStore.acknowledgeCareerMilestone(): void` — dismiss milestone overlay, keep all progress
+- `LevelCompleteOverlay` — title “Career milestone!”, button “Keep going”, “Studio cash” label
+
+**Tests:** First collect at targets → `levelComplete`; acknowledge keeps cash/gallery/rep/unlocks;
+subsequent collects with flag set stay `idle`; save round-trip for flag; overlay button wired.
+Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run
+src/lib/stores/gameState.svelte.test.ts src/lib/game/save.test.ts
+src/lib/components/LevelCompleteOverlay.svelte.test.ts` (93 passed).
+
+**Decisions:**
+
+- Kept `levelComplete` phase name and component filename to avoid cross-zone contract edits.
+- Flag lives on save schema (not frozen `contracts.ts`) per ownership rules.
+- `reset()` clears `careerMilestoneAcknowledged` so dev/new-game paths start fresh.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (unit/component tests only).
+- `GamePhase` still includes `levelComplete` — rename to `careerMilestone` would need orchestrator
+  on `contracts.ts` + studio vfx/bark zones.

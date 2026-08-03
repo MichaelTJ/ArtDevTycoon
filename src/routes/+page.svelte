@@ -636,7 +636,7 @@
 		cash={game.cash}
 		commissionsCompleted={game.commissionsCompleted}
 		message={environment.winMessage}
-		oncontinue={() => game.reset()}
+		oncontinue={() => game.acknowledgeCareerMilestone()}
 	/>
 {/if}
 

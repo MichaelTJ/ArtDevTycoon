@@ -18,15 +18,15 @@ Import from:
 
 ## State machine
 
-| Phase           | UI                                                                                                                                                                        | Entry                                   |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `idle`          | {@link IdlePanel}                                                                                                                                                         | start / after collect                   |
-| `briefing`      | {@link ClientCard} + {@link PromptComposer} + decline                                                                                                                     | `inviteClient()` / `acceptBoardBrief()` |
-| `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting; stays interactive after AI arrives) + AI preview below canvas + submit-choice until `confirmSubmitChoice` | `createArt()` then player picks         |
-| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                                       | after submit choice                     |
-| `results`       | {@link ResultsPanel}                                                                                                                                                      | after critique                          |
-| `failed`        | {@link ErrorPanel} + composer                                                                                                                                             | engine error                            |
-| `levelComplete` | {@link LevelCompleteOverlay}                                                                                                                                              | 5 commissions and $500                  |
+| Phase           | UI                                                                                                                                                                        | Entry                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `idle`          | {@link IdlePanel}                                                                                                                                                         | start / after collect                                         |
+| `briefing`      | {@link ClientCard} + {@link PromptComposer} + decline                                                                                                                     | `inviteClient()` / `acceptBoardBrief()`                       |
+| `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting; stays interactive after AI arrives) + AI preview below canvas + submit-choice until `confirmSubmitChoice` | `createArt()` then player picks                               |
+| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                                       | after submit choice                                           |
+| `results`       | {@link ResultsPanel}                                                                                                                                                      | after critique                                                |
+| `failed`        | {@link ErrorPanel} + composer                                                                                                                                             | engine error                                                  |
+| `levelComplete` | {@link LevelCompleteOverlay} — one-time career milestone; dismiss via `acknowledgeCareerMilestone()`                                                                      | First time both LEVEL_1 targets met (if not yet acknowledged) |
 
 Every store method guards on the current phase. `collectCash()` is async and idempotent —
 calling it twice does not pay twice. Blob image URLs are converted to durable `data:` URLs
@@ -43,6 +43,10 @@ before the gallery entry is persisted.
   `buildLevel1Prompt()`; the UI never displays the built prompt.
 - `GameState` does not persist across reloads (intentional for Level 1 testing). Engine
   choice persists via `EngineManager` / `localStorage`.
+- Career milestone overlay (`levelComplete` phase) shows at most once per save slot.
+  `acknowledgeCareerMilestone()` persists `careerMilestoneAcknowledged` and returns to
+  `idle` without wiping cash, gallery, or unlocks. `reset()` remains for new-game /
+  slot wipe only.
 
 ## Tests
 
