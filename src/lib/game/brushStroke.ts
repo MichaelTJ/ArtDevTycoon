@@ -63,6 +63,55 @@ export function stampCrayonGrain(
 	}
 }
 
+/**
+ * Deterministic charcoal dust — denser, smaller specks than crayon wax so ink reads as
+ * dry media rather than a hard vector pen.
+ */
+export function stampCharcoalGrain(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	size: number,
+	color: string,
+	seed: number
+): void {
+	const dots = 5 + (Math.abs(seed) % 4);
+	for (let i = 0; i < dots; i++) {
+		const angle = (seed + i * 23) * 0.23;
+		const radius = size * 0.22 * (((seed + i * 11) % 7) / 7 + 0.15);
+		const dx = Math.cos(angle) * radius;
+		const dy = Math.sin(angle) * radius;
+		const prevAlpha = ctx.globalAlpha;
+		ctx.globalAlpha = 0.18 + ((seed + i * 5) % 5) * 0.05;
+		ctx.fillStyle = color;
+		ctx.beginPath();
+		ctx.arc(x + dx, y + dy, Math.max(0.35, size * 0.045), 0, Math.PI * 2);
+		ctx.fill();
+		ctx.globalAlpha = prevAlpha;
+	}
+}
+
+/** Stamp profile-appropriate grain along a stroke segment. */
+export function stampBrushGrain(
+	ctx: CanvasRenderingContext2D,
+	profile: BrushProfile,
+	x: number,
+	y: number,
+	sliderSize: number,
+	color: string,
+	seed: number
+): void {
+	if (!profile.grain) {
+		return;
+	}
+	const size = effectiveBrushSize(sliderSize, profile);
+	if (profile.grainStyle === 'charcoal') {
+		stampCharcoalGrain(ctx, x, y, size, color, seed);
+	} else {
+		stampCrayonGrain(ctx, x, y, size, color, seed);
+	}
+}
+
 /** Ink bleed — slightly wider dot when the stroke ends. */
 export function stampInkBleed(
 	ctx: CanvasRenderingContext2D,

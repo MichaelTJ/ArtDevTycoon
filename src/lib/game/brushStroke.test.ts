@@ -5,6 +5,8 @@ import {
 	effectiveBrushSize,
 	grainSeed,
 	resetBrushContext,
+	stampBrushGrain,
+	stampCharcoalGrain,
 	stampCrayonGrain,
 	stampInkBleed
 } from './brushStroke';
@@ -66,6 +68,28 @@ describe('stamp helpers', () => {
 		stampCrayonGrain(ctx, 20, 30, 8, '#dc2626', grainSeed(20, 30));
 		expect(ctx.arc).toHaveBeenCalled();
 		expect(ctx.fill).toHaveBeenCalled();
+	});
+
+	it('stampCharcoalGrain is deterministic and denser than crayon', () => {
+		const ctxA = mockCtx();
+		const ctxB = mockCtx();
+		const seed = grainSeed(20, 30);
+		stampCharcoalGrain(ctxA, 20, 30, 8, '#0a0a0a', seed);
+		stampCharcoalGrain(ctxB, 20, 30, 8, '#0a0a0a', seed);
+		expect(vi.mocked(ctxA.arc).mock.calls).toEqual(vi.mocked(ctxB.arc).mock.calls);
+		const charcoalDots = vi.mocked(ctxA.arc).mock.calls.length;
+		expect(charcoalDots).toBeGreaterThan(3);
+
+		const crayonCtx = mockCtx();
+		stampCrayonGrain(crayonCtx, 20, 30, 8, '#dc2626', seed);
+		expect(charcoalDots).toBeGreaterThan(vi.mocked(crayonCtx.arc).mock.calls.length);
+	});
+
+	it('stampBrushGrain uses charcoal for ink profile', () => {
+		const ctx = mockCtx();
+		const ink = getBrushProfile('ink');
+		stampBrushGrain(ctx, ink, 40, 40, 8, '#0a0a0a', grainSeed(40, 40));
+		expect(ctx.arc).toHaveBeenCalled();
 	});
 
 	it('stampInkBleed uses save/restore and arc', () => {

@@ -2308,3 +2308,46 @@ src/lib/stores/gameState.svelte.test.ts`.
 **Known gaps:**
 
 - Manual kitchen playthrough not run (unit tests only).
+
+## 2026-08-04 — P22 ink/charcoal brush polish
+
+**Zone:** `src/lib/data/brushProfiles.ts`, `src/lib/data/brushProfiles.test.ts`,
+`src/lib/game/brushStroke.ts`, `src/lib/game/brushStroke.test.ts`, `src/lib/game/index.ts`,
+`src/lib/game/README.md`, `src/lib/data/README.md`, `src/lib/components/SketchCanvas.svelte`,
+`src/lib/components/SketchCanvas.svelte.test.ts`, `src/lib/components/README.md`,
+`docs/tasks/25-brush-media.md`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P22 fix — **Ink & Charcoal** (`ink`) now locks the painting palette to
+black/white swatches (`#0a0a0a`, `#fafaf9`) with no custom colour picker; chromatic picks
+snap to black via derived `color`. Ink profile retuned: charcoal `grainStyle`, lower opacity
+(0.82), tiny soft edge (0.75), bleed-on-lift retained. New `stampCharcoalGrain` /
+`stampBrushGrain` helpers stamp denser, smaller dry-media specks distinct from crayon wax.
+
+**Public surface:**
+
+- `BrushProfile.grainStyle?: 'crayon' | 'charcoal'`
+- `stampCharcoalGrain(ctx, x, y, size, color, seed)`
+- `stampBrushGrain(ctx, profile, x, y, sliderSize, color, seed)`
+- Ink profile label `"Ink & Charcoal"` with `grain: true`, `grainStyle: 'charcoal'`
+- `SketchCanvas` — ink medium hides custom colour input; B&W swatches only
+
+**Tests:** Ink profile grain/opacity/softEdge assertions; charcoal grain deterministic and
+denser than crayon; component tests for ink B&W palette vs crayon custom colour. Commands:
+`npm run check`; `npm run lint`; `npm run test:unit -- --run
+src/lib/data/brushProfiles.test.ts src/lib/game/brushStroke.test.ts
+src/lib/components/SketchCanvas.svelte.test.ts`.
+
+**Decisions:**
+
+- `$derived` effective colour from `selectedColor` instead of `$effect` snap — avoids
+  Svelte 5 effect-on-state warning while still drawing black when ink + chromatic pick.
+- Charcoal grain uses more, smaller dots at higher per-dot alpha than crayon — reads dry
+  without reusing the waxy crayon stamp verbatim.
+- Canvas-local palette lock (no type/route changes) per ownership constraints.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (unit/component tests only).
+- Undo/eraser behaviour unchanged from Spec 25 MVP (25c deferred).

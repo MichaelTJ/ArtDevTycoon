@@ -17,8 +17,10 @@ export interface BrushProfile {
 	opacity: number;
 	/** Canvas `shadowBlur` for soft edges (watercolour wash). */
 	softEdge: number;
-	/** Stamp semi-transparent grain dots along the stroke (crayon wax). */
+	/** Stamp semi-transparent grain dots along the stroke (crayon wax / charcoal dust). */
 	grain: boolean;
+	/** Grain stamp variant when `grain` is true; defaults to crayon wax. */
+	grainStyle?: 'crayon' | 'charcoal';
 	/** Draw a slightly wider dot when the pointer lifts (ink bleed). */
 	bleedOnLift: boolean;
 	/** Radius multiplier for the lift bleed dot. */
@@ -60,13 +62,14 @@ const PROFILES: Record<string, BrushProfile> = {
 	},
 	ink: {
 		id: 'ink',
-		label: 'Ink',
+		label: 'Ink & Charcoal',
 		sizeMultiplier: 1.08,
 		minSize: 2,
 		maxSize: 32,
-		opacity: 1,
-		softEdge: 0,
-		grain: false,
+		opacity: 0.82,
+		softEdge: 0.75,
+		grain: true,
+		grainStyle: 'charcoal',
 		bleedOnLift: true,
 		bleedMultiplier: 1.35,
 		compositeOperation: 'source-over'

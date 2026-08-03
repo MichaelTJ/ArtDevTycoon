@@ -38,6 +38,20 @@ test('colour and size controls have accessible names', async () => {
 	await expect.element(screen.getByRole('group', { name: 'Tool' })).toBeVisible();
 });
 
+test('ink medium shows only black and white swatches without custom colour', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'ink' });
+	await expect.element(screen.getByLabelText('Colour #0a0a0a')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #fafaf9')).toBeVisible();
+	expect(screen.getByLabelText('Custom colour').query()).toBeNull();
+	expect(screen.getByLabelText('Colour #dc2626').query()).toBeNull();
+});
+
+test('non-ink medium keeps full palette and custom colour input', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'crayon' });
+	await expect.element(screen.getByLabelText('Custom colour')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #dc2626')).toBeVisible();
+});
+
 test('clear resets hasStrokes after a stroke', async () => {
 	let hasStrokes = false;
 	const screen = render(SketchCanvas, {

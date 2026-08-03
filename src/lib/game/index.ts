@@ -28,6 +28,8 @@ export {
 	grainSeed,
 	resetBrushContext,
 	stampCrayonGrain,
+	stampCharcoalGrain,
+	stampBrushGrain,
 	stampInkBleed,
 	type BrushProfile
 } from './brushStroke';

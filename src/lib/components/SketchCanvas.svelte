@@ -5,7 +5,7 @@
 		applyBrushStrokeStyle,
 		grainSeed,
 		resetBrushContext,
-		stampCrayonGrain,
+		stampBrushGrain,
 		stampInkBleed
 	} from '$lib/game/brushStroke';
 
@@ -35,18 +35,32 @@
 		'#2563eb',
 		'#7c3aed'
 	] as const;
+	/** Ink & Charcoal — B&W only (playtest P22). */
+	const INK_PALETTE = ['#0a0a0a', '#fafaf9'] as const;
+	const INK_BLACK = INK_PALETTE[0];
+
+	function isInkAllowedColor(hex: string): boolean {
+		const normalized = hex.toLowerCase();
+		return (INK_PALETTE as readonly string[]).includes(normalized);
+	}
 
 	type Tool = 'brush' | 'eraser';
 
 	let canvasEl: HTMLCanvasElement | undefined = $state();
 	let tool = $state<Tool>('brush');
 	let brushSize = $state(8);
-	let color = $state('#1c1917');
+	let selectedColor = $state('#1c1917');
 	let drawing = $state(false);
 	let lastX = $state(0);
 	let lastY = $state(0);
 
 	const brushProfile = $derived(getBrushProfile(mediumTierId));
+	const isInkMedium = $derived(mediumTierId === 'ink');
+	const activePalette = $derived(isInkMedium ? INK_PALETTE : PALETTE);
+	/** Snap chromatic picks to black while ink is active (P22). */
+	const color = $derived(
+		isInkMedium && !isInkAllowedColor(selectedColor) ? INK_BLACK : selectedColor
+	);
 
 	const undoStack: ImageData[] = [];
 	const MAX_UNDO = 20;
@@ -128,7 +142,7 @@
 		ctx.lineTo(x, y);
 		ctx.stroke();
 		if (brushProfile.grain) {
-			stampCrayonGrain(ctx, x, y, brushSize, color, grainSeed(x, y));
+			stampBrushGrain(ctx, brushProfile, x, y, brushSize, color, grainSeed(x, y));
 		}
 		resetBrushContext(ctx);
 	}
@@ -158,7 +172,7 @@
 		ctx.lineTo(x + 0.01, y + 0.01);
 		ctx.stroke();
 		if (tool === 'brush' && brushProfile.grain) {
-			stampCrayonGrain(ctx, x, y, brushSize, color, grainSeed(x, y));
+			stampBrushGrain(ctx, brushProfile, x, y, brushSize, color, grainSeed(x, y));
 		}
 		resetBrushContext(ctx);
 	}
@@ -302,7 +316,7 @@
 	</div>
 
 	<div class="mb-3 flex flex-wrap items-center gap-2" aria-label="Colour">
-		{#each PALETTE as swatch (swatch)}
+		{#each activePalette as swatch (swatch)}
 			<button
 				type="button"
 				class="h-8 w-8 rounded-full border border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
@@ -311,24 +325,26 @@
 				aria-pressed={color === swatch}
 				{disabled}
 				onclick={() => {
-					color = swatch;
+					selectedColor = swatch;
 					tool = 'brush';
 				}}
 			></button>
 		{/each}
-		<label class="flex items-center gap-2 text-sm text-stone-700">
-			Custom
-			<input
-				type="color"
-				bind:value={color}
-				{disabled}
-				aria-label="Custom colour"
-				class="h-8 w-10 cursor-pointer rounded border border-stone-300 bg-white"
-				oninput={() => {
-					tool = 'brush';
-				}}
-			/>
-		</label>
+		{#if !isInkMedium}
+			<label class="flex items-center gap-2 text-sm text-stone-700">
+				Custom
+				<input
+					type="color"
+					bind:value={selectedColor}
+					{disabled}
+					aria-label="Custom colour"
+					class="h-8 w-10 cursor-pointer rounded border border-stone-300 bg-white"
+					oninput={() => {
+						tool = 'brush';
+					}}
+				/>
+			</label>
+		{/if}
 	</div>
 
 	<canvas

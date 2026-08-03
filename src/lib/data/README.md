@@ -5,23 +5,23 @@ validated at module load.
 
 ## Public surface
 
-| Module                 | Exports                                                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `kitchenBriefs.ts`     | `KITCHEN_BRIEFS`, `maxWalkInAbstractness`, `isBriefEligibleForProgress`                                                   |
-| `briefs.ts`            | `LEVEL_1_BRIEFS` (re-export of kitchen), `KITCHEN_BRIEFS`, `pickBrief`, band helpers                                      |
-| `environments.ts`      | `ENVIRONMENTS`, `getEnvironmentForLevel`                                                                                  |
-| `mediumTiers.ts`       | `MEDIUM_TIERS`, `MediumTier`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier`       |
-| `galleryVenues.ts`     | `GALLERY_VENUES`, `GalleryVenue`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue`                                        |
-| `galleryLayouts.ts`    | `GALLERY_LAYOUTS`, `GalleryLayout`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout`                                   |
-| `galleryAtmosphere.ts` | `ATMOSPHERE_ITEMS`, `AtmosphereItem`, `getAtmosphereItem`, `totalAtmosphereBonus`                                         |
-| `staffRoles.ts`        | `STAFF_ROLES`, `StaffRole`, `getStaffRole`, `canHireStaff`, `totalIncomePerSecond`                                        |
-| `artists.ts`           | Spec 24 — `ARTIST_CATALOG`, `receptionistUnlocked`, `canHireArtist` (parallel to staff roles)                             |
-| `majorProjects.ts`     | Spec 24 — comic/series defs, `canAcceptMajorProject`, payout/rep helpers                                                  |
-| `clientTiers.ts`       | `CLIENT_TIER_INFO`, `ClientTierInfo`, `getClientTierInfo`, `unlockedClientTiers`                                          |
-| `barks.ts`             | `BARK_POOL`, `BarkLine`, `BarkSpeakerId`, `linesForSpeaker`, `barkSpeakerLabel` (ambient comedy; no LLM)                  |
-| `mumPraise.ts`         | `MUM_PRAISE_POOL`, `MumPraiseLine`, `pickMumPraise` — toddler praise for Mum results (playtest P7)                        |
-| `stallMessages.ts`     | `STALL_COPY_BY_MEDIUM`, `getStallCopy`, `getStallStageLabel`, `stallMessagesForArtwork` — critiquing stall copy (P14)     |
-| `brushProfiles.ts`     | `BrushProfile`, `getBrushProfile`, `MVP_BRUSH_MEDIUM_IDS`, `isMvpBrushMedium` — canvas stroke params per medium (Spec 25) |
+| Module                 | Exports                                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kitchenBriefs.ts`     | `KITCHEN_BRIEFS`, `maxWalkInAbstractness`, `isBriefEligibleForProgress`                                                                                      |
+| `briefs.ts`            | `LEVEL_1_BRIEFS` (re-export of kitchen), `KITCHEN_BRIEFS`, `pickBrief`, band helpers                                                                         |
+| `environments.ts`      | `ENVIRONMENTS`, `getEnvironmentForLevel`                                                                                                                     |
+| `mediumTiers.ts`       | `MEDIUM_TIERS`, `MediumTier`, `DEFAULT_MEDIUM_TIER_ID`, `getMediumTier`, `getNextMediumTier`, `canUnlockMediumTier`                                          |
+| `galleryVenues.ts`     | `GALLERY_VENUES`, `GalleryVenue`, `DEFAULT_VENUE_ID`, `getVenue`, `canUnlockVenue`                                                                           |
+| `galleryLayouts.ts`    | `GALLERY_LAYOUTS`, `GalleryLayout`, `DEFAULT_LAYOUT_ID`, `getLayout`, `canUnlockLayout`                                                                      |
+| `galleryAtmosphere.ts` | `ATMOSPHERE_ITEMS`, `AtmosphereItem`, `getAtmosphereItem`, `totalAtmosphereBonus`                                                                            |
+| `staffRoles.ts`        | `STAFF_ROLES`, `StaffRole`, `getStaffRole`, `canHireStaff`, `totalIncomePerSecond`                                                                           |
+| `artists.ts`           | Spec 24 — `ARTIST_CATALOG`, `receptionistUnlocked`, `canHireArtist` (parallel to staff roles)                                                                |
+| `majorProjects.ts`     | Spec 24 — comic/series defs, `canAcceptMajorProject`, payout/rep helpers                                                                                     |
+| `clientTiers.ts`       | `CLIENT_TIER_INFO`, `ClientTierInfo`, `getClientTierInfo`, `unlockedClientTiers`                                                                             |
+| `barks.ts`             | `BARK_POOL`, `BarkLine`, `BarkSpeakerId`, `linesForSpeaker`, `barkSpeakerLabel` (ambient comedy; no LLM)                                                     |
+| `mumPraise.ts`         | `MUM_PRAISE_POOL`, `MumPraiseLine`, `pickMumPraise` — toddler praise for Mum results (playtest P7)                                                           |
+| `stallMessages.ts`     | `STALL_COPY_BY_MEDIUM`, `getStallCopy`, `getStallStageLabel`, `stallMessagesForArtwork` — critiquing stall copy (P14)                                        |
+| `brushProfiles.ts`     | `BrushProfile`, `getBrushProfile`, `MVP_BRUSH_MEDIUM_IDS`, `isMvpBrushMedium` — canvas stroke params per medium (Spec 25); ink uses `grainStyle: 'charcoal'` |
 
 Import briefs directly from `$lib/data/briefs` or re-export through a future data barrel
 if one is added.

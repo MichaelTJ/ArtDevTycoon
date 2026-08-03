@@ -40,7 +40,8 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] P8 / P9 — Spec 24 MVP (receptionist talk + commission board)
 - [x] Playtest 2: P11–P18 (incl. Spec 25 MVP for P16)
 - [x] Playtest 3 P21 — career milestone (no cash/gallery wipe)
-- [ ] Playtest 3: P19, P20, P22
+- [ ] Playtest 3: P19, P20
+- [x] Playtest 3 P22 — ink/charcoal B&W palette + charcoal grain
 - [x] Playtest 3 P23 — Mum always max $5 + max progression gains
 - [ ] Triaged into task specs / bugfix PRs
 
@@ -83,7 +84,7 @@ Third pass after Spec 25 merge. Match to tasks/commits; not fixed yet.
 | P19 | Bug/UX  | On open, UI says **“Loading Crayon Mode”** while **Janus** is actually loading from a previously selected engine. Engine menu half-opens (only **Close**), stalls ~5–10s, then options appear. Want a clearer **Janus loading** indicator. | **04** `+page` / `EngineStore` + **02** manager init + **03** `EnginePicker` / `ModelDownloadGate` (after **P10** `41b65f5`) | **Fixed** — `activeDisplayName` / `displayNameForEngine` during init; `EnginePicker` loading placeholder with progress (2026-08-04) |
 | P20 | Design  | Briefs jump from **“draw a house”** to **“what does peace look like”** too fast. Want **gradual** abstractness as reputation / commissions build.                                                                                          | **18** `maxWalkInAbstractness` / `kitchenBriefs` (`f8f1b63` / Spec 18)                                                       | **Fixed** — band 1 at rep ≥4 or ≥6 commissions; band 2 at rep ≥10 or ≥12; `pickBrief` threads reputation (2026-08-04)               |
 | P21 | Design  | Completing the first “level” **resets money and deletes paintings**. There shouldn’t really be levels — progress = unlocks. **Never wipe cash or gallery.**                                                                                | **01** `levelRules` / **04** `LevelCompleteOverlay` → `game.reset()` + **12/20** progression fantasy                         | **Fixed** — one-time `careerMilestoneAcknowledged` overlay; `acknowledgeCareerMilestone()` keeps progress (2026-08-04)              |
-| P22 | Design  | Watercolour brush feels great. **Ink & Charcoal** (`ink` tier) looks like plain pen — little/no distinct texture. Limit colours to **B&W**; give strokes a charcoal/ink texture.                                                           | **[25](./tasks/25-brush-media.md)** B3 / polish **25c** (`e81307d` / `b7927c3`)                                              | Medium id is `ink` (“Ink & Charcoal”). Today: opacity 1 + bleed-on-lift only; no grain / palette lock                               |
+| P22 | Design  | Watercolour brush feels great. **Ink & Charcoal** (`ink` tier) looks like plain pen — little/no distinct texture. Limit colours to **B&W**; give strokes a charcoal/ink texture.                                                           | **[25](./tasks/25-brush-media.md)** B3 / polish **25c** (`e81307d` / `b7927c3`)                                              | **Fixed** — B&W swatches only; charcoal grain + soft edge + bleed; chromatic snap to black (2026-08-04)                             |
 | P23 | Balance | **Mum** should always pay the **maximum (~$5)** and grant the **maximum** of other progression (rep / skill XP).                                                                                                                           | **01** `calculatePayout` / briefs + **P7** Mum path (`299bb2d`) + **20** `previewSkillGains` / `reputationGain`              | **Fixed** — `MUM_PAYOUT_CASH` $5, `mumSkillGains()` 10/10/20, `MUM_REPUTATION_GAIN` 3; all Mum brief budgets $5 (2026-08-04)        |
 
 ## Suggested fix order (playtest 3)
@@ -92,4 +93,4 @@ Third pass after Spec 25 merge. Match to tasks/commits; not fixed yet.
 2. ~~**P19** — engine load label / picker stall (first-impression confusion)~~ **done**
 3. ~~**P23** — Mum always max $5 + max progression gains (early economy)~~ **done**
 4. ~~**P20** — slower abstractness ramp (Spec 18 retune)~~ **done**
-5. **P22** — ink/charcoal brush feel + B&W palette (Spec 25 follow-up)
+5. ~~**P22** — ink/charcoal brush feel + B&W palette (Spec 25 follow-up)~~ **done**
