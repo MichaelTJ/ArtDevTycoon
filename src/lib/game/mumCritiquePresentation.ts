@@ -1,11 +1,24 @@
 import { pickMumPraise } from '$lib/data/mumPraise';
 import { LEVEL_1, type CritiqueDraft } from '$lib/types/contracts';
+import { reputationGain } from './scoring';
+import type { SkillGainPreview } from './skills';
 
 /** Display name for the kitchen resident client (matches briefs and studio NPC). */
 export const MUM_CLIENT_NAME = 'Mum';
 
 /** Player-facing Mum scores before "Ask for real critique". */
 export const MUM_DISPLAY_SCORE = LEVEL_1.maxScore;
+
+/** Fixed cash payout for every Mum commission (playtest P23). */
+export const MUM_PAYOUT_CASH = 5;
+
+/** Max reputation gain for Mum's guaranteed 10/10 display scores. */
+export const MUM_REPUTATION_GAIN = reputationGain(MUM_DISPLAY_SCORE, MUM_DISPLAY_SCORE);
+
+/** Max skill XP preview for Mum — upper clamps of `previewSkillGains`. */
+export function mumSkillGains(): SkillGainPreview {
+	return { prompting: 10, imagination: 10, hustle: 20 };
+}
 
 /** Engine verdict preserved for the optional reveal panel. */
 export interface MumRealCritique {

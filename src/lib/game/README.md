@@ -8,29 +8,29 @@ except where an injected `random` callback is passed through from callers.
 
 Import from `$lib/game` via the barrel in `index.ts`.
 
-| Module                       | Exports                                                                                                                                                         |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `text.ts`                    | `normalize`, `stem`, `STOPWORDS`                                                                                                                                |
-| `promptPipeline.ts`          | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                                                 |
-| `scoring.ts`                 | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `keywordMatches`, `ScoreBreakdown`                                                        |
-| `abstractCritique.ts`        | `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`                                                 |
-| `levelRules.ts`              | `isLevelComplete`, `levelProgress`                                                                                                                              |
-| `operations.ts`              | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types                           |
-| `save.ts`                    | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` (+ spec 24 artist fields) |
-| `artistTraining.ts`          | Spec 24 — artist level/XP curve, mock completion scores                                                                                                         |
-| `assignCommission.ts`        | Spec 24 — board offers, work timer, mock artist artwork URL                                                                                                     |
-| `majorProjectProgress.ts`    | Spec 24 — beat timers, project completion helpers                                                                                                               |
-| `saveSlots.ts`               | `SLOTS_STORAGE_KEY`, `ACTIVE_SLOT_KEY`, `SLOT_IDS`, migration + slot CRUD (`listSaveSlots`, `activateSlot`, `newGameInSlot`, …)                                 |
-| `idleIncome.ts`              | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                                               |
-| `auction.ts`                 | `resolveAuction`, `AuctionResult`                                                                                                                               |
-| `paletteSeries.ts`           | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                                               |
-| `skills.ts`                  | `SKILL_IDS`, `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, skill types                                                      |
-| `nextUnlock.ts`              | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                                             |
-| `affordabilityBadges.ts`     | `computeAffordabilityBadges`, per-menu helpers — P17 menu notification dots                                                                                     |
-| `submitChoice.ts`            | `SubmitChoice`, `artworkForSubmitChoice`, `blobToDataUrl` — P6 submit drawing vs AI before critique                                                             |
-| `sketchBlank.ts`             | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                                               |
-| `mumCritiquePresentation.ts` | `isMumCommission`, `captureMumRealCritique`, `MUM_DISPLAY_SCORE`, `pickMumPraiseLine`, `praiseSeedFromArtworkId`, `MumRealCritique`                             |
-| `brushStroke.ts`             | Spec 25 — `applyBrushStrokeStyle`, `effectiveBrushSize`, `stampCrayonGrain`, `stampInkBleed`, `grainSeed`, re-exports `getBrushProfile` / `BrushProfile`        |
+| Module                       | Exports                                                                                                                                                                                        |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text.ts`                    | `normalize`, `stem`, `STOPWORDS`                                                                                                                                                               |
+| `promptPipeline.ts`          | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                                                                                |
+| `scoring.ts`                 | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `keywordMatches`, `ScoreBreakdown`                                                                                       |
+| `abstractCritique.ts`        | `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`                                                                                |
+| `levelRules.ts`              | `isLevelComplete`, `levelProgress`                                                                                                                                                             |
+| `operations.ts`              | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types                                                          |
+| `save.ts`                    | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` (+ spec 24 artist fields)                                |
+| `artistTraining.ts`          | Spec 24 — artist level/XP curve, mock completion scores                                                                                                                                        |
+| `assignCommission.ts`        | Spec 24 — board offers, work timer, mock artist artwork URL                                                                                                                                    |
+| `majorProjectProgress.ts`    | Spec 24 — beat timers, project completion helpers                                                                                                                                              |
+| `saveSlots.ts`               | `SLOTS_STORAGE_KEY`, `ACTIVE_SLOT_KEY`, `SLOT_IDS`, migration + slot CRUD (`listSaveSlots`, `activateSlot`, `newGameInSlot`, …)                                                                |
+| `idleIncome.ts`              | `MAX_IDLE_MS`, `BASE_AUTO_INVITE_DELAY_MS`, `computeIdleEarnings`                                                                                                                              |
+| `auction.ts`                 | `resolveAuction`, `AuctionResult`                                                                                                                                                              |
+| `paletteSeries.ts`           | `checkPaletteUsage`, `seriesCompletionBonus`, `SeriesCheckResult`                                                                                                                              |
+| `skills.ts`                  | `SKILL_IDS`, `skillProgress`, `previewSkillGains`, `applySkillGains`, `skillPayoutMultiplier`, skill types                                                                                     |
+| `nextUnlock.ts`              | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                                                                            |
+| `affordabilityBadges.ts`     | `computeAffordabilityBadges`, per-menu helpers — P17 menu notification dots                                                                                                                    |
+| `submitChoice.ts`            | `SubmitChoice`, `artworkForSubmitChoice`, `blobToDataUrl` — P6 submit drawing vs AI before critique                                                                                            |
+| `sketchBlank.ts`             | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                                                                              |
+| `mumCritiquePresentation.ts` | `isMumCommission`, `captureMumRealCritique`, `MUM_DISPLAY_SCORE`, `MUM_PAYOUT_CASH`, `MUM_REPUTATION_GAIN`, `mumSkillGains`, `pickMumPraiseLine`, `praiseSeedFromArtworkId`, `MumRealCritique` |
+| `brushStroke.ts`             | Spec 25 — `applyBrushStrokeStyle`, `effectiveBrushSize`, `stampCrayonGrain`, `stampInkBleed`, `grainSeed`, re-exports `getBrushProfile` / `BrushProfile`                                       |
 
 ## Invariants
 
@@ -43,7 +43,9 @@ Import from `$lib/game` via the barrel in `index.ts`.
 - Creativity ignores stopwords so filler like "please draw me" does not inflate scores.
 - Payout weights accuracy 70% / creativity 30% for concrete briefs, and 50% / 50% when
   interpretation scoring applies. Always clamped to `[0, brief.budget]`; the floor of 1
-  on both scores guarantees a non-zero payout on every commission.
+  on both scores guarantees a non-zero payout on every commission. **Mum** bypasses
+  `calculatePayout` — every Mum job pays exactly `MUM_PAYOUT_CASH` ($5) with max rep and
+  skill gains via `mumSkillGains()` (playtest P23).
 - Level 1 completion requires both `LEVEL_1.targetCommissions` and `LEVEL_1.targetCash`.
   Meeting both triggers a one-time career milestone overlay (not a level wipe).
   `careerMilestoneAcknowledged` on `SaveData` prevents re-showing after dismiss.
