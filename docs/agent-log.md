@@ -2237,3 +2237,50 @@ src/lib/components/ModelDownloadGate.svelte.test.ts` (34 passed).
 - Manual playthrough not run (unit/component tests only).
 - Compile-phase stall (shader prep with frozen progress bar) still possible; picker shows
   progress when worker emits it but cannot invent compile feedback beyond existing gate copy.
+
+## 2026-08-04 — P23 Mum max payout and progression
+
+**Zone:** `src/lib/game/mumCritiquePresentation.ts`, `src/lib/game/mumCritiquePresentation.test.ts`,
+`src/lib/game/skills.ts`, `src/lib/game/skills.test.ts`, `src/lib/game/index.ts`,
+`src/lib/game/README.md`, `src/lib/data/kitchenBriefs.ts`, `src/lib/data/kitchenBriefs.test.ts`,
+`src/lib/data/README.md`, `src/lib/stores/gameState.svelte.ts`,
+`src/lib/stores/gameState.svelte.test.ts`, `src/lib/stores/README.md`, `docs/playtest-notes.md`,
+`docs/agent-log.md`
+
+**Built:** Playtest P23 fix — every Mum commission now pays exactly **$5** and grants max
+progression: reputation **3**, skill XP **10 / 10 / 20** (prompting / imagination / hustle).
+`MUM_PAYOUT_CASH`, `MUM_REPUTATION_GAIN`, and `mumSkillGains()` live in
+`mumCritiquePresentation.ts`. `GameStore.#applyCritiqueResult`, artist handoff, and
+`collectCash` use Mum-only branches; non-Mum economy unchanged. All Mum kitchen brief
+budgets aligned to **$5** (c3, c6 were $6).
+
+**Public surface:**
+
+- `MUM_PAYOUT_CASH = 5`
+- `MUM_REPUTATION_GAIN = 3` (via `reputationGain(10, 10)`)
+- `mumSkillGains(): SkillGainPreview` — `{ prompting: 10, imagination: 10, hustle: 20 }`
+- Barrel re-exports from `$lib/game`
+
+**Tests:** Literal Mum payout/rep/skill assertions in `mumCritiquePresentation.test.ts`;
+`mumSkillGains` cross-check in `skills.test.ts`; all Mum brief budgets $5;
+`gameState.svelte.test.ts` Mum critique + collectCash paths. Commands: `npm run check`;
+`npm run lint`; `npm run test:unit -- --run src/lib/game/mumCritiquePresentation.test.ts
+src/lib/game/skills.test.ts src/lib/data/kitchenBriefs.test.ts
+src/lib/stores/gameState.svelte.test.ts`.
+
+**Decisions:**
+
+- Fixed payout constant rather than `calculatePayout(brief, 10, 10, multiplier)` so
+  presentation multiplier cannot reduce Mum cash below $5.
+- Hustle max (20) via dedicated helper instead of inflating `finalPayout` — keeps gallery
+  payout honest at $5 while granting “max feel” skill gains.
+- Reputation uses explicit `MUM_REPUTATION_GAIN` at collect time for clarity even though
+  display scores are already 10/10.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (unit tests only).
+- Mum abstract briefs (c6, c12) still use interpretation scoring for engine critique;
+  only payout/rep/skills are guaranteed max on collect.

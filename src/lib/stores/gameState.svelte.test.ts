@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { KITCHEN_BRIEFS } from '$lib/data/kitchenBriefs';
 import { getMediumTier } from '$lib/data/mediumTiers';
 import { EngineError } from '$lib/engines/errors';
+import {
+	MUM_PAYOUT_CASH,
+	MUM_REPUTATION_GAIN,
+	mumSkillGains
+} from '$lib/game/mumCritiquePresentation';
 import {
 	calculatePayout,
 	createDefaultSave,
@@ -87,6 +93,15 @@ function createStore(
 async function submitAi(store: GameStore): Promise<void> {
 	await store.createArt();
 	await store.confirmSubmitChoice('ai', null);
+}
+
+/** Neighbour June — non-Mum walk-in for payout/skill formula tests. */
+function startNonMumBriefing(store: GameStore): void {
+	const client = KITCHEN_BRIEFS.find((b) => b.id === 'c4');
+	if (!client) throw new Error('Expected Neighbour June brief c4');
+	store.phase = 'idle';
+	store.currentClient = client;
+	store.phase = 'briefing';
 }
 
 describe('GameStore', () => {
@@ -346,7 +361,7 @@ describe('GameStore', () => {
 		expect(store.currentCritique).not.toBeNull();
 	});
 
-	it('Mum commissions store real critique but payout uses 10/10', async () => {
+	it('Mum commissions store real critique, pay $5, and preview max gains', async () => {
 		const harshDraft: CritiqueDraft = {
 			title: 'Wobbly Cup',
 			accuracyScore: 2,
@@ -369,9 +384,34 @@ describe('GameStore', () => {
 		});
 		expect(store.currentCritique?.accuracyScore).toBe(10);
 		expect(store.currentCritique?.creativityScore).toBe(10);
-		expect(store.currentCritique?.finalPayout).toBe(
-			calculatePayout(store.currentClient!, 10, 10, store.presentationMultiplier)
-		);
+		expect(store.currentCritique?.finalPayout).toBe(MUM_PAYOUT_CASH);
+		expect(store.pendingSkillGains).toEqual(mumSkillGains());
+	});
+
+	it('Mum collectCash applies $5 cash, max rep, and max skill XP', async () => {
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique: vi.fn(async () => fakeDraft)
+		});
+		const cashBefore = store.cash;
+		const repBefore = store.reputation;
+		const skillsBefore = { ...store.skillXp };
+
+		store.inviteClient();
+		store.draftPrompt = 'a cozy coffee cup on a wooden table';
+		await submitAi(store);
+		await store.collectCash();
+
+		expect(store.cash).toBe(cashBefore + MUM_PAYOUT_CASH);
+		expect(store.reputation).toBe(repBefore + MUM_REPUTATION_GAIN);
+		expect(store.skillXp.prompting).toBe(skillsBefore.prompting + 10);
+		expect(store.skillXp.imagination).toBe(skillsBefore.imagination + 10);
+		expect(store.skillXp.hustle).toBe(skillsBefore.hustle + 20);
+		expect(store.lastCollectedGains).toEqual({
+			skills: mumSkillGains(),
+			reputation: MUM_REPUTATION_GAIN,
+			cash: MUM_PAYOUT_CASH
+		});
 	});
 
 	it('passes built prompt to the engine while keeping playerPrompt clean', async () => {
@@ -1159,13 +1199,18 @@ describe('GameStore', () => {
 		});
 		store.cash = 300;
 		store.unlockLayout('tidy-rows');
-		store.inviteClient();
+		startNonMumBriefing(store);
 		store.draftPrompt = 'a cozy coffee cup on a wooden table';
 
 		await submitAi(store);
 
 		expect(store.currentCritique?.finalPayout).toBe(
-			calculatePayout(store.currentClient!, 10, 10, store.presentationMultiplier)
+			calculatePayout(
+				store.currentClient!,
+				store.currentCritique!.accuracyScore,
+				store.currentCritique!.creativityScore,
+				store.presentationMultiplier
+			)
 		);
 	});
 
@@ -1396,7 +1441,7 @@ describe('GameStore', () => {
 				criticReview: 'Solid.'
 			}))
 		});
-		store.inviteClient();
+		startNonMumBriefing(store);
 		store.draftPrompt = 'a cozy coffee cup on a wooden table with warm light steam';
 		await submitAi(store);
 

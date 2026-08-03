@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { mumSkillGains } from './mumCritiquePresentation';
 import {
 	applySkillGains,
 	createEmptySkillXp,
@@ -48,6 +49,10 @@ describe('skills', () => {
 		expect(
 			previewSkillGains({ accuracyScore: 5, creativityScore: 5, finalPayout: 900 }).hustle
 		).toBe(20);
+	});
+
+	it('mumSkillGains uses upper clamps independent of payout', () => {
+		expect(mumSkillGains()).toEqual({ prompting: 10, imagination: 10, hustle: 20 });
 	});
 
 	it('applies gains onto existing XP', () => {

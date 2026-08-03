@@ -30,7 +30,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
 		requestText: 'Paint me a sunny flower. Something cheerful.',
-		budget: 6,
+		budget: 5,
 		preferredKeywords: ['flower', 'sun'],
 		abstractness: 0 as const
 	},
@@ -113,7 +113,7 @@ const KITCHEN_BRIEF_DEFS = [
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c2.svg',
 		requestText: 'I miss the old days.',
-		budget: 6,
+		budget: 5,
 		preferredKeywords: ['miss', 'old'],
 		abstractness: 2 as const,
 		interpretationClusters: [

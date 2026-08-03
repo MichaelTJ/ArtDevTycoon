@@ -55,13 +55,11 @@ describe('KITCHEN_BRIEFS', () => {
 		expect(c6.requestText).toBe('I miss the old days.');
 	});
 
-	it('keeps Mum band-0 budgets in the $4–6 early-economy band', () => {
-		const mumOpeners = KITCHEN_BRIEFS.filter((b) => ['c1', 'c2', 'c3', 'c7'].includes(b.id));
-		for (const brief of mumOpeners) {
-			expect(brief.budget).toBeGreaterThanOrEqual(4);
-			expect(brief.budget).toBeLessThanOrEqual(6);
+	it('keeps all Mum brief budgets at $5', () => {
+		const mumIds = ['c1', 'c2', 'c3', 'c6', 'c7', 'c12'];
+		for (const id of mumIds) {
+			expect(KITCHEN_BRIEFS.find((b) => b.id === id)?.budget).toBe(5);
 		}
-		expect(mumOpeners.find((b) => b.id === 'c1')?.budget).toBe(5);
 	});
 });
 

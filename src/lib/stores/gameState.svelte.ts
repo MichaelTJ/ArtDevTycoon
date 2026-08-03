@@ -102,6 +102,9 @@ import {
 	captureMumRealCritique,
 	isMumCommission,
 	MUM_DISPLAY_SCORE,
+	MUM_PAYOUT_CASH,
+	MUM_REPUTATION_GAIN,
+	mumSkillGains,
 	type MumRealCritique
 } from '$lib/game/mumCritiquePresentation';
 import { artworkForSubmitChoice, blobToDataUrl, type SubmitChoice } from '$lib/game/submitChoice';
@@ -811,6 +814,8 @@ export class GameStore {
 				this.#random
 			);
 			finalPayout = auctionResult.winningBid;
+		} else if (isMum) {
+			finalPayout = MUM_PAYOUT_CASH;
 		} else {
 			finalPayout = calculatePayout(
 				client,
@@ -840,11 +845,13 @@ export class GameStore {
 
 		this.currentCritique = critique;
 		this.currentAuctionResult = auctionResult;
-		this.pendingSkillGains = previewSkillGains({
-			accuracyScore: critique.accuracyScore,
-			creativityScore: critique.creativityScore,
-			finalPayout: critique.finalPayout
-		});
+		this.pendingSkillGains = isMum
+			? mumSkillGains()
+			: previewSkillGains({
+					accuracyScore: critique.accuracyScore,
+					creativityScore: critique.creativityScore,
+					finalPayout: critique.finalPayout
+				});
 		const started = this.workStartedAt ?? this.#now();
 		this.lastWorkDurationMs = Math.max(250, this.#now() - started);
 		this.phase = 'results';
@@ -907,14 +914,19 @@ export class GameStore {
 
 			const imageUrl = await ensureDurableImageUrl(artwork.imageUrl);
 
+			const isMum = isMumCommission(client.clientName);
 			const gains =
 				this.pendingSkillGains ??
-				previewSkillGains({
-					accuracyScore: critique.accuracyScore,
-					creativityScore: critique.creativityScore,
-					finalPayout: critique.finalPayout
-				});
-			const repGain = reputationGain(critique.accuracyScore, critique.creativityScore);
+				(isMum
+					? mumSkillGains()
+					: previewSkillGains({
+							accuracyScore: critique.accuracyScore,
+							creativityScore: critique.creativityScore,
+							finalPayout: critique.finalPayout
+						}));
+			const repGain = isMum
+				? MUM_REPUTATION_GAIN
+				: reputationGain(critique.accuracyScore, critique.creativityScore);
 
 			this.cash += critique.finalPayout;
 			this.reputation += repGain;
@@ -1299,12 +1311,9 @@ export class GameStore {
 		};
 
 		const isMum = isMumCommission(client.clientName);
-		const finalPayout = calculatePayout(
-			client,
-			scores.accuracy,
-			scores.creativity,
-			this.presentationMultiplier
-		);
+		const finalPayout = isMum
+			? MUM_PAYOUT_CASH
+			: calculatePayout(client, scores.accuracy, scores.creativity, this.presentationMultiplier);
 
 		const critique = critiqueSchema.parse({
 			title: `${catalog?.name ?? 'Artist'} — ${client.clientName}`,
@@ -1321,11 +1330,13 @@ export class GameStore {
 		this.currentArtwork = artwork;
 		this.currentCritique = critique;
 		this.currentAuctionResult = null;
-		this.pendingSkillGains = previewSkillGains({
-			accuracyScore: critique.accuracyScore,
-			creativityScore: critique.creativityScore,
-			finalPayout: critique.finalPayout
-		});
+		this.pendingSkillGains = isMum
+			? mumSkillGains()
+			: previewSkillGains({
+					accuracyScore: critique.accuracyScore,
+					creativityScore: critique.creativityScore,
+					finalPayout: critique.finalPayout
+				});
 		this.artistAssignment = null;
 		this.lastWorkDurationMs = assignment.durationMs;
 		this.phase = 'results';

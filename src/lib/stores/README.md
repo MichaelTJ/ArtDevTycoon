@@ -50,6 +50,10 @@ before the gallery entry is persisted.
   `acknowledgeCareerMilestone()` persists `careerMilestoneAcknowledged` and returns to
   `idle` without wiping cash, gallery, or unlocks. `reset()` remains for new-game /
   slot wipe only.
+- Playtest P23: Mum commissions bypass `calculatePayout` — `#applyCritiqueResult` and
+  artist handoff set `finalPayout` to `MUM_PAYOUT_CASH` ($5), `pendingSkillGains` to
+  `mumSkillGains()` (10/10/20), and `collectCash` applies `MUM_REPUTATION_GAIN` (3).
+  Non-Mum clients unchanged.
 
 ## Tests
 

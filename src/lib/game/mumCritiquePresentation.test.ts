@@ -3,6 +3,9 @@ import {
 	captureMumRealCritique,
 	isMumCommission,
 	MUM_DISPLAY_SCORE,
+	MUM_PAYOUT_CASH,
+	MUM_REPUTATION_GAIN,
+	mumSkillGains,
 	pickMumPraiseLine,
 	praiseSeedFromArtworkId
 } from './mumCritiquePresentation';
@@ -32,6 +35,18 @@ describe('mumCritiquePresentation', () => {
 
 	it('uses max score constant for Mum display', () => {
 		expect(MUM_DISPLAY_SCORE).toBe(10);
+	});
+
+	it('fixes Mum cash payout at $5', () => {
+		expect(MUM_PAYOUT_CASH).toBe(5);
+	});
+
+	it('grants max reputation for 10/10 Mum scores', () => {
+		expect(MUM_REPUTATION_GAIN).toBe(3);
+	});
+
+	it('grants max skill XP clamps for Mum', () => {
+		expect(mumSkillGains()).toEqual({ prompting: 10, imagination: 10, hustle: 20 });
 	});
 
 	it('praiseSeedFromArtworkId is stable for the same id', () => {
