@@ -39,29 +39,9 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] P4 follow-up — `LEVEL_1.startingCash` 25 / `targetCash` 50 (orchestrator, contracts)
 - [x] P8 / P9 — Spec 24 MVP (receptionist talk + commission board)
 - [x] Playtest 2: P11–P18 (incl. Spec 25 MVP for P16)
+- [x] Playtest 3 P21 — career milestone (no cash/gallery wipe)
+- [ ] Playtest 3: P19, P20, P22, P23
 - [ ] Triaged into task specs / bugfix PRs
-
----
-
-# Playtest notes 3 (2026-08-04)
-
-Third pass after Spec 25 merge. Match to tasks/commits; not fixed yet.
-
-| #   | Kind    | Note                                                                                                                                                                                                                                       | Primary task(s) / commits                                                                                                    | Notes / secondary                                                                                                                                                      |
-| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P19 | Bug/UX  | On open, UI says **“Loading Crayon Mode”** while **Janus** is actually loading from a previously selected engine. Engine menu half-opens (only **Close**), stalls ~5–10s, then options appear. Want a clearer **Janus loading** indicator. | **04** `+page` / `EngineStore` + **02** manager init + **03** `EnginePicker` / `ModelDownloadGate` (after **P10** `41b65f5`) | `activeEngineLabel` falls back to `"Crayon Mode"` when `options` empty during init; `select()` sets `state: 'loading'` and can leave picker empty until probe finishes |
-| P20 | Design  | Briefs jump from **“draw a house”** to **“what does peace look like”** too fast. Want **gradual** abstractness as reputation / commissions build.                                                                                          | **18** `maxWalkInAbstractness` / `kitchenBriefs` (`f8f1b63` / Spec 18)                                                       | Today: abstractness **1** at ≥2 commissions, **2** at ≥4 — too steep for walk-ins; retune gates (and/or weight by `reputation`)                                        |
-| P21 | Design  | Completing the first “level” **resets money and deletes paintings**. There shouldn’t really be levels — progress = unlocks. **Never wipe cash or gallery.**                                                                                | **01** `levelRules` / **04** `LevelCompleteOverlay` → `game.reset()` + **12/20** progression fantasy                         | **Fixed** — one-time `careerMilestoneAcknowledged` overlay; `acknowledgeCareerMilestone()` keeps progress (2026-08-04)                                                 |
-| P22 | Design  | Watercolour brush feels great. **Ink & Charcoal** (`ink` tier) looks like plain pen — little/no distinct texture. Limit colours to **B&W**; give strokes a charcoal/ink texture.                                                           | **[25](./tasks/25-brush-media.md)** B3 / polish **25c** (`e81307d` / `b7927c3`)                                              | Medium id is `ink` (“Ink & Charcoal”). Today: opacity 1 + bleed-on-lift only; no grain / palette lock                                                                  |
-| P23 | Balance | **Mum** should always pay the **maximum (~$5)** and grant the **maximum** of other progression (rep / skill XP).                                                                                                                           | **01** `calculatePayout` / briefs + **P7** Mum path (`299bb2d`) + **20** `previewSkillGains` / `reputationGain`              | Mum already forces 10/10 for display/payout quality; budgets still $4–6 and **hustle** XP scales with tiny cash (`finalPayout / 25`) so stays near floor               |
-
-## Suggested fix order (playtest 3)
-
-1. ~~**P21** — level-complete wipe (destroys career progress; blocks trust)~~ **done**
-2. **P19** — engine load label / picker stall (first-impression confusion)
-3. **P23** — Mum always max $5 + max progression gains (early economy)
-4. **P20** — slower abstractness ramp (Spec 18 retune)
-5. **P22** — ink/charcoal brush feel + B&W palette (Spec 25 follow-up)
 
 ---
 
@@ -90,3 +70,25 @@ Second pass after wave 1–4 merges. Match to tasks; not fixed yet.
 6. ~~**P18** — decline commission~~ **done**
 7. ~~**P17** — affordability badges on menu~~ **done**
 8. ~~**P16** → Spec **25** (after outline lock)~~ **done**
+
+---
+
+# Playtest notes 3 (2026-08-04)
+
+Third pass after Spec 25 merge. Match to tasks/commits; not fixed yet.
+
+| #   | Kind    | Note                                                                                                                                                                                                                                       | Primary task(s) / commits                                                                                                    | Notes / secondary                                                                                                                                                      |
+| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P19 | Bug/UX  | On open, UI says **“Loading Crayon Mode”** while **Janus** is actually loading from a previously selected engine. Engine menu half-opens (only **Close**), stalls ~5–10s, then options appear. Want a clearer **Janus loading** indicator. | **04** `+page` / `EngineStore` + **02** manager init + **03** `EnginePicker` / `ModelDownloadGate` (after **P10** `41b65f5`) | `activeEngineLabel` falls back to `"Crayon Mode"` when `options` empty during init; `select()` sets `state: 'loading'` and can leave picker empty until probe finishes |
+| P20 | Design  | Briefs jump from **“draw a house”** to **“what does peace look like”** too fast. Want **gradual** abstractness as reputation / commissions build.                                                                                          | **18** `maxWalkInAbstractness` / `kitchenBriefs` (`f8f1b63` / Spec 18)                                                       | Today: abstractness **1** at ≥2 commissions, **2** at ≥4 — too steep for walk-ins; retune gates (and/or weight by `reputation`)                                        |
+| P21 | Design  | Completing the first “level” **resets money and deletes paintings**. There shouldn’t really be levels — progress = unlocks. **Never wipe cash or gallery.**                                                                                | **01** `levelRules` / **04** `LevelCompleteOverlay` → `game.reset()` + **12/20** progression fantasy                         | **Fixed** — one-time `careerMilestoneAcknowledged` overlay; `acknowledgeCareerMilestone()` keeps progress (2026-08-04)                                                 |
+| P22 | Design  | Watercolour brush feels great. **Ink & Charcoal** (`ink` tier) looks like plain pen — little/no distinct texture. Limit colours to **B&W**; give strokes a charcoal/ink texture.                                                           | **[25](./tasks/25-brush-media.md)** B3 / polish **25c** (`e81307d` / `b7927c3`)                                              | Medium id is `ink` (“Ink & Charcoal”). Today: opacity 1 + bleed-on-lift only; no grain / palette lock                                                                  |
+| P23 | Balance | **Mum** should always pay the **maximum (~$5)** and grant the **maximum** of other progression (rep / skill XP).                                                                                                                           | **01** `calculatePayout` / briefs + **P7** Mum path (`299bb2d`) + **20** `previewSkillGains` / `reputationGain`              | Mum already forces 10/10 for display/payout quality; budgets still $4–6 and **hustle** XP scales with tiny cash (`finalPayout / 25`) so stays near floor               |
+
+## Suggested fix order (playtest 3)
+
+1. ~~**P21** — level-complete wipe (destroys career progress; blocks trust)~~ **done**
+2. **P19** — engine load label / picker stall (first-impression confusion)
+3. **P23** — Mum always max $5 + max progression gains (early economy)
+4. **P20** — slower abstractness ramp (Spec 18 retune)
+5. **P22** — ink/charcoal brush feel + B&W palette (Spec 25 follow-up)
