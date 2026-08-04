@@ -159,8 +159,8 @@ their own ids.
 | `abstractness` | When eligible                                                            | Voice                                  | Scoring path                        |
 | -------------- | ------------------------------------------------------------------------ | -------------------------------------- | ----------------------------------- |
 | `0`            | Always (and **forced** for first invite at `commissionsCompleted === 0`) | Mum, concrete "paint me a …"           | `preferredKeywords` only (today)    |
-| `1`            | `reputation >= 4` **or** `commissionsCompleted >= 6`                     | Evocative / soft memory, still a hint  | Best `interpretationClusters` match |
-| `2`            | `reputation >= 10` **or** `commissionsCompleted >= 12`                   | Pure mood / longing — no subject named | Best `interpretationClusters` match |
+| `1`            | `reputation >= 8` **or** `commissionsCompleted >= 12`                    | Evocative / soft memory, still a hint  | Best `interpretationClusters` match |
+| `2`            | `reputation >= 16` **or** `commissionsCompleted >= 20`                   | Pure mood / longing — no subject named | Best `interpretationClusters` match |
 
 ### 2.2 Required briefs (exact content)
 
@@ -169,12 +169,14 @@ the walk-in 90–170 band.
 
 **Band 0 — concrete (Mum's kitchen)**
 
-| id  | clientName | requestText (verbatim)                         | preferredKeywords    | abstractness |
-| --- | ---------- | ---------------------------------------------- | -------------------- | ------------ |
-| c1  | Mum        | Paint me a cat.                                | `['cat']`            | 0            |
-| c2  | Mum        | Can you draw a nice cup of tea for the fridge? | `['tea', 'cup']`     | 0            |
-| c3  | Mum        | Paint me a sunny flower. Something cheerful.   | `['flower', 'sun']`  | 0            |
-| c7  | Mum        | Draw a little bird on the windowsill.          | `['bird', 'window']` | 0            |
+| id  | clientName | requestText (verbatim)                           | preferredKeywords         | abstractness |
+| --- | ---------- | ------------------------------------------------ | ------------------------- | ------------ |
+| c1  | Mum        | Paint me a cool cat.                             | `['cat', 'cool']`         | 0            |
+| c2  | Mum        | Can you draw a nice cup of tea for the fridge?   | `['tea', 'cup']`          | 0            |
+| c3  | Mum        | Paint me a beautiful flower. Something cheerful. | `['flower', 'beautiful']` | 0            |
+| c7  | Mum        | Draw a cool little bird on the windowsill.       | `['bird', 'cool']`        | 0            |
+| c13 | Mum        | Paint me a cool car for the garage wall.         | `['car', 'cool']`         | 0            |
+| c14 | Mum        | Draw a beautiful fairy.                          | `['fairy', 'beautiful']`  | 0            |
 
 Use `avatarUrl: '/avatars/c1.svg'` for Mum (reuse existing asset). `clientName` is exactly
 `Mum` for band 0 so the kitchen read is obvious.
@@ -183,8 +185,8 @@ Use `avatarUrl: '/avatars/c1.svg'` for Mum (reuse existing asset). `clientName` 
 
 | id  | clientName     | requestText                                          | preferredKeywords (weak anchors — not the scoring path) | clusters (id / label / keywords)                                                                                                                               |
 | --- | -------------- | ---------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| c4  | Neighbour June | Something warm from when you were little.            | `['warm', 'little']`                                    | `childhood-summer`: childhood summer — `['childhood','summer','garden','bicycle']`; `kitchen-baking`: baking with mum — `['baking','cookies','flour','apron']` |
-| c5  | Uncle Ray      | Make it feel like a rainy afternoon indoors.         | `['rain', 'afternoon']`                                 | `window-rain`: rain on the glass — `['rain','window','droplets','grey']`; `sofa-book`: curled up reading — `['sofa','book','blanket','lamp']`                  |
+| c4  | Neighbour June | Draw something lovely from when you were little.     | `['warm', 'little']`                                    | `childhood-summer`: childhood summer — `['childhood','summer','garden','bicycle']`; `kitchen-baking`: baking with mum — `['baking','cookies','flour','apron']` |
+| c5  | Uncle Ray      | Paint a cozy rainy afternoon indoors.                | `['rain', 'afternoon']`                                 | `window-rain`: rain on the glass — `['rain','window','droplets','grey']`; `sofa-book`: curled up reading — `['sofa','book','blanket','lamp']`                  |
 | c8  | Cousin Priya   | I want the feeling of coming home after a long trip. | `['home', 'trip']`                                      | `front-door`: key in the door — `['door','key','hallway','shoes']`; `kitchen-light`: kitchen light on — `['kitchen','light','kettle','table']`                 |
 
 **Band 2 — pure mood**
@@ -207,7 +209,7 @@ Avatar urls: reuse `/avatars/c1.svg` … `/avatars/c6.svg` in rotation — no ne
 - Every brief parses with `clientBriefSchema`.
 - Exactly the band-0 ids above have `abstractness === 0` and omit clusters (or empty).
 - Every brief with `abstractness >= 1` has `interpretationClusters!.length >= 2`.
-- Mum appears on `c1`, `c2`, `c3`, `c6`, `c7`, `c12`.
+- Mum appears on `c1`, `c2`, `c3`, `c6`, `c7`, `c12`, `c13`, `c14`.
 - `c6.requestText` is exactly `I miss the old days.`
 
 ---

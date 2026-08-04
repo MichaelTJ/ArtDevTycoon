@@ -31,8 +31,8 @@ if one is added.
 - `KITCHEN_BRIEFS` / `LEVEL_1_BRIEFS` is validated once at import with `clientBriefSchema`;
   a typo fails fast rather than breaking a commission mid-run.
 - Walk-in briefs escalate abstractness with `commissionsCompleted` **or** `reputation`
-  (0 → concrete Mum asks; band 1 at rep ≥4 or ≥6 commissions; band 2 at rep ≥10 or
-  ≥12 commissions). First invite at 0 commissions is forced to Mum band-0 openers
+  (0 → concrete Mum asks; band 1 at rep ≥8 or ≥12 commissions; band 2 at rep ≥16 or
+  ≥20 commissions). First invite at 0 commissions is forced to Mum band-0 openers
   `{c1,c2,c3,c7}` regardless of reputation.
 - **Early economy (playtest P4/P23):** All Mum kitchen briefs use **$5 budget** (UI
   matches payout). Mum commissions always pay exactly **$5** via `MUM_PAYOUT_CASH`, not

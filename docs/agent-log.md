@@ -2461,3 +2461,42 @@ src/lib/components/ReceptionDesk.svelte.test.ts`.
 
 - Manual playthrough not run (unit/component tests only).
 - Failed-phase retry UI has no Skip (player can dismiss error or retry; out of P25 scope).
+
+## 2026-08-04 — Playtest P28 exponential abstract ramp + garage briefs
+
+**Zone:** `src/lib/data/kitchenBriefs.ts`, `kitchenBriefs.test.ts`, `briefs.test.ts`,
+`src/lib/data/README.md`, `src/lib/stores/gameState.svelte.test.ts`,
+`docs/tasks/18-abstract-prompts.md`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P28 — slower exponential walk-in abstractness gates (band 1 at rep
+≥8 or ≥12 commissions; band 2 at rep ≥16 or ≥20). Retuned band-0 Mum copy toward
+concrete + soft subjectivity (`cool`/`beautiful` adjectives); added garage-friendly
+`c13` (cool car) and `c14` (beautiful fairy). Softened band-1 `c4`/`c5` request text
+while keeping interpretation clusters.
+
+**Public surface:**
+
+- `maxWalkInAbstractness(commissionsCompleted, reputation?)` — new P28 thresholds
+- `KITCHEN_BRIEFS` — 14 walk-ins (`c13`, `c14` band-0); updated verbatim texts/keywords
+
+**Tests:** Gate matrix, eligibility, `pickBrief` band unlocks at 12/20 commissions and
+rep 8/16, store invite at 20 commissions / rep 16. Commands: `npm run check`; `npm run
+lint`; `npm run test:unit -- --run src/lib/data/kitchenBriefs.test.ts
+src/lib/data/briefs.test.ts src/lib/stores/gameState.svelte.test.ts`.
+
+**Decisions:**
+
+- First-invite opener set stays `{c1,c2,c3,c7}` (out of zone in `briefs.ts`); `c13`/`c14`
+  enter the band-0 pool after the kitchen opener phase.
+- Band-1 `c4`/`c5` copy nudged toward subjective + subject hint; clusters unchanged for
+  scoring stability.
+- P20 thresholds superseded — P28 is the current ramp.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- `abstractCritique.test.ts` / `scoring.test.ts` still assume c1 `['cat']` only — out of
+  zone; orchestrator may update on merge if full suite is run.
+- `ReceptionDesk.svelte.test.ts` expects old c1 text "Paint me a cat." (out of zone).
+- Manual playthrough not run (unit tests only).

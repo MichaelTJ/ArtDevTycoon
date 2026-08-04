@@ -42,8 +42,9 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] Playtest 3: P19–P23 (engine load, no level wipe, Mum max, abstract ramp, ink brush)
 - [x] Playtest 4: P24 — medium before My idea + copy rename
 - [x] Playtest 4: P25 — skip commission affordance polish
-- [ ] Playtest 4: P26–P28 (matched only — not fixed yet)
-- [ ] Triaged into task specs / bugfix PRs
+- [x] Playtest 4: P26 — Mum honesty reveal button copy
+- [ ] Playtest 4: P27 — letterbox → computer → receptionist by venue (largest)
+- [x] Playtest 4: P28 — exponential abstract ramp + garage-friendly band-0 copy
 
 ---
 
@@ -107,12 +108,12 @@ Fourth pass after playtest 3 merges. Match to tasks/commits; not fixed yet.
 | P25 | Design | Ability to **skip commissions**                                                                                                                                                              | **04** / **P18** `declineClient` (`4f3218e`) + **24a** board                                                          | **Fixed** — **Skip** on briefing + generating + reception footer; `declineClient()` works during `generating` (2026-08-04)                                         |
 | P26 | Design | Mum reveal button: **“You can be honest with me mum…”** instead of **“Ask for a real critique”**                                                                                             | **03** `ResultsPanel` + **P7** (`299bb2d`)                                                                            | **Fixed** — Mum reveal button copy + aria-label on `ResultsPanel` Mum path only (2026-08-04)                                                                       |
 | P27 | Design | Garage **must not** have a receptionist yet. Keep commission **selection** UI, but: **garage = letterbox**, next venue = **computer**, later = **receptionist**.                             | **24** `receptionistUnlocked` / `ReceptionDesk` + **14** venues (`garage` → `storefront` → …) + **21b** interactables | Today `receptionistUnlocked` is true from **garage** up (`artists.ts`). Retune gates + surface variants (letterbox / computer / receptionist) by `unlockedVenueId` |
-| P28 | Design | Simple → abstract ramp still too steep — want more **exponential** openness. Garage briefs like **“a cool car”**, **“a beautiful fairy”** (subjective adjectives). Gradually widen openness. | **18** `kitchenBriefs` + `maxWalkInAbstractness` (after **P20** `cf001f8`)                                            | Rewrite early band copy toward concrete + soft subjectivity; push band 1/2 unlocks later (and/or add a gentler mid band) so fridge/garage stay playful longer      |
+| P28 | Design | Simple → abstract ramp still too steep — want more **exponential** openness. Garage briefs like **“a cool car”**, **“a beautiful fairy”** (subjective adjectives). Gradually widen openness. | **18** `kitchenBriefs` + `maxWalkInAbstractness` (after **P20** `cf001f8`)                                            | **Fixed** — band 1 at rep ≥8 or ≥12 commissions; band 2 at rep ≥16 or ≥20; band-0 copy retuned + `c13`/`c14` garage asks (2026-08-04)                              |
 
 ## Suggested fix order (playtest 4)
 
 1. ~~**P24** — medium before “My idea” (gen/paint mismatch)~~ **done**
 2. ~~**P26** — Mum honesty button copy (tiny)~~ **done**
 3. ~~**P25** — skip commission affordance polish~~ **done**
-4. **P28** — garage brief content + slower/exponential abstractness
+4. ~~**P28** — garage brief content + slower/exponential abstractness~~ **done**
 5. **P27** — letterbox → computer → receptionist by venue (largest)
