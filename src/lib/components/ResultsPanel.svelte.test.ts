@@ -61,7 +61,7 @@ test('Mum commission shows praise and 10/10 until real critique is requested', a
 	await expect
 		.element(screen.getByText('The paws are facing the wrong way.'))
 		.not.toBeInTheDocument();
-	await screen.getByRole('button', { name: 'Ask for real critique from the art critic' }).click();
+	await screen.getByRole('button', { name: 'You can be honest with me mum…' }).click();
 	await expect.element(screen.getByText('The paws are facing the wrong way.')).toBeVisible();
 	await expect.element(screen.getByText('2 / 10')).toBeVisible();
 	await expect.element(screen.getByText('4 / 10')).toBeVisible();

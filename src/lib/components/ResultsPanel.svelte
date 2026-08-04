@@ -117,12 +117,12 @@
 		<button
 			type="button"
 			class="mt-4 min-h-11 rounded-lg border border-stone-400 bg-stone-100 px-4 py-2 font-semibold text-stone-800 hover:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-			aria-label="Ask for real critique from the art critic"
+			aria-label="You can be honest with me mum…"
 			onclick={() => {
 				realCritiqueRevealed = true;
 			}}
 		>
-			Ask for real critique
+			You can be honest with me mum…
 		</button>
 	{:else if mumRealCritique && realCritiqueRevealed}
 		<p class="mt-4 text-sm text-stone-500" role="status" aria-live="polite">
