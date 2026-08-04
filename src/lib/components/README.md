@@ -59,6 +59,10 @@ Import everything from `$lib/components` (barrel `index.ts`):
 
 **Spec 25:** `mediumTierId` selects a `brushProfiles` stroke feel (crayon grain, pencil thin lines, ink charcoal grain + bleed + B&W palette, watercolour wash). `StudioHudOverlay` shows a **Painting medium** picker during **briefing** (before **My idea** submit); selection syncs via `onselectmedium` → `game.setActiveMediumTier`. During **generating**, medium is a locked read-only label so AI gen and paint brush stay aligned. Locked tiers are disabled with cash/rep tease.
 
+### `ResultsPanel` (playtest P7 + P26)
+
+When `mumRealCritique` is set, the panel shows toddler praise and **10/10** scores until the player clicks **You can be honest with me mum…** (accessible name matches visible copy). That reveals the stored engine critique and real scores; non-Mum results are unchanged.
+
 ### Studio floor (spec 17)
 
 When `STUDIO_FLOOR_ENABLED` is true (default), `+page` mounts `StudioFloor` +

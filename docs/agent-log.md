@@ -2390,3 +2390,33 @@ src/lib/components/StudioHudOverlay.svelte.test.ts`.
 - Manual playthrough not run (component tests only).
 - `ErrorPanel` still says “Your prompt has been kept” on failed phase (out of zone).
 - Failed-phase retry UI has no medium picker (medium already chosen for that attempt).
+
+## 2026-08-04 — Playtest P26 Mum honesty reveal button copy
+
+**Zone:** `src/lib/components/ResultsPanel.svelte`, `ResultsPanel.svelte.test.ts`,
+`src/lib/components/README.md`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P26 — Mum commission results reveal button copy changed from **Ask for
+real critique** to **You can be honest with me mum…** (visible text and `aria-label`).
+Mum-path only (`mumRealCritique` present); non-Mum critique presentation unchanged.
+
+**Public surface:**
+
+- `ResultsPanel` — Mum reveal button accessible name **You can be honest with me mum…**
+
+**Tests:** Mum reveal flow clicks the new button name; praise → real critique reveal
+unchanged. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run
+src/lib/components/ResultsPanel.svelte.test.ts`.
+
+**Decisions:**
+
+- Matched visible label and `aria-label` exactly (Unicode ellipsis `…`) per playtest note.
+- Left post-reveal status copy **Real critic feedback shown.** unchanged (out of P26 scope).
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (component tests only).
+- `StudioHudOverlay.svelte.test.ts` still references the old button name (out of zone;
+  orchestrator should update when merging or in a follow-up spec).
