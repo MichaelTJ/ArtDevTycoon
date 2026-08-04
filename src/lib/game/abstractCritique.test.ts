@@ -78,6 +78,6 @@ describe('abstractCritique (c6 worked examples)', () => {
 describe('abstractCritique (concrete c1)', () => {
 	it('does not use interpretation scoring', () => {
 		expect(usesInterpretationScoring(c1)).toBe(false);
-		expect(critiqueTargetsForBrief(c1, 'a fluffy cat')).toEqual(['cat']);
+		expect(critiqueTargetsForBrief(c1, 'a fluffy cat')).toEqual(['cat', 'cool']);
 	});
 });

@@ -12,7 +12,7 @@ test('renders commission offers with budgets', async () => {
 		onclose: vi.fn()
 	});
 	await expect.element(screen.getByText('Reception desk')).toBeVisible();
-	await expect.element(screen.getByText('Paint me a cat.')).toBeVisible();
+	await expect.element(screen.getByText('Paint me a cool cat.')).toBeVisible();
 });
 
 test('accept brief fires onaccept', async () => {

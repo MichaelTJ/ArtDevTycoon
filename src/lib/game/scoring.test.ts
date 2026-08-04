@@ -9,13 +9,14 @@ const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
 describe('scorePrompt', () => {
 	const cases = [
 		{
+			// c1 keywords are cat + cool (P28) — "cat" alone is half match → accuracy 6
 			brief: c1,
 			prompt: 'cat',
-			accuracy: 10,
+			accuracy: 6,
 			creativity: 1,
-			payout: 4,
-			galleryScore: 5.5,
-			reputation: 1
+			payout: 2,
+			galleryScore: 3.5,
+			reputation: 0
 		},
 		{
 			brief: c1,
@@ -123,7 +124,8 @@ describe('calculatePayout', () => {
 	});
 
 	it('uses 0.5/0.5 weights for abstract briefs', () => {
-		expect(calculatePayout(c6, 10, 10, 1)).toBe(6);
+		// Mum abstract c6 budget is $5 (P23)
+		expect(calculatePayout(c6, 10, 10, 1)).toBe(5);
 		expect(calculatePayout(c6, 1, 10, 1)).toBe(3);
 	});
 
