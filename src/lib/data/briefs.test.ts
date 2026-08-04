@@ -128,12 +128,12 @@ describe('pickBrief', () => {
 		}
 	});
 
-	it('unlocks abstractness 1 (not 2) at commissionsCompleted 6', () => {
+	it('unlocks abstractness 1 (not 2) at commissionsCompleted 12', () => {
 		const levels = new Set<number>();
 		for (let i = 0; i < 80; i++) {
 			const brief = pickBrief({
 				unlockedTiers: ['walk-in'],
-				commissionsCompleted: 6,
+				commissionsCompleted: 12,
 				reputation: 0,
 				random: () => i / 80
 			});
@@ -150,7 +150,7 @@ describe('pickBrief', () => {
 			const brief = pickBrief({
 				unlockedTiers: ['walk-in'],
 				commissionsCompleted: 2,
-				reputation: 4,
+				reputation: 8,
 				random: () => i / 80
 			});
 			const level = brief.abstractness ?? 0;
@@ -160,13 +160,13 @@ describe('pickBrief', () => {
 		expect(levels.has(1)).toBe(true);
 	});
 
-	it('unlocks abstractness 2 including c6 at commissionsCompleted 12', () => {
+	it('unlocks abstractness 2 including c6 at commissionsCompleted 20', () => {
 		const levels = new Set<number>();
 		const ids = new Set<string>();
 		for (let i = 0; i < 80; i++) {
 			const brief = pickBrief({
 				unlockedTiers: ['walk-in'],
-				commissionsCompleted: 12,
+				commissionsCompleted: 20,
 				reputation: 0,
 				random: () => i / 80
 			});
@@ -183,7 +183,7 @@ describe('pickBrief', () => {
 			const brief = pickBrief({
 				unlockedTiers: ['walk-in'],
 				commissionsCompleted: 4,
-				reputation: 10,
+				reputation: 16,
 				random: () => i / 80
 			});
 			levels.add(brief.abstractness ?? 0);

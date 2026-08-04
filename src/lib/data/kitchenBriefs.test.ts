@@ -10,7 +10,7 @@ describe('KITCHEN_BRIEFS', () => {
 	});
 
 	it('has exactly band-0 ids with abstractness 0 and no clusters', () => {
-		const band0Ids = new Set(['c1', 'c2', 'c3', 'c7']);
+		const band0Ids = new Set(['c1', 'c2', 'c3', 'c7', 'c13', 'c14']);
 		for (const brief of KITCHEN_BRIEFS) {
 			const level = brief.abstractness ?? 0;
 			if (band0Ids.has(brief.id)) {
@@ -24,7 +24,7 @@ describe('KITCHEN_BRIEFS', () => {
 			KITCHEN_BRIEFS.filter((b) => (b.abstractness ?? 0) === 0)
 				.map((b) => b.id)
 				.sort()
-		).toEqual(['c1', 'c2', 'c3', 'c7']);
+		).toEqual(['c1', 'c13', 'c14', 'c2', 'c3', 'c7']);
 	});
 
 	it('requires at least two clusters for abstractness >= 1', () => {
@@ -40,12 +40,12 @@ describe('KITCHEN_BRIEFS', () => {
 	});
 
 	it('lists Mum on the kitchen opener and mood ids with shared band-0 avatar', () => {
-		const mumIds = ['c1', 'c2', 'c3', 'c6', 'c7', 'c12'];
+		const mumIds = ['c1', 'c2', 'c3', 'c6', 'c7', 'c12', 'c13', 'c14'];
 		for (const id of mumIds) {
 			const brief = KITCHEN_BRIEFS.find((b) => b.id === id);
 			expect(brief?.clientName).toBe('Mum');
 		}
-		for (const id of ['c1', 'c2', 'c3', 'c7']) {
+		for (const id of ['c1', 'c2', 'c3', 'c7', 'c13', 'c14']) {
 			expect(KITCHEN_BRIEFS.find((b) => b.id === id)?.avatarUrl).toBe('/avatars/c1.svg');
 		}
 	});
@@ -56,7 +56,7 @@ describe('KITCHEN_BRIEFS', () => {
 	});
 
 	it('keeps all Mum brief budgets at $5', () => {
-		const mumIds = ['c1', 'c2', 'c3', 'c6', 'c7', 'c12'];
+		const mumIds = ['c1', 'c2', 'c3', 'c6', 'c7', 'c12', 'c13', 'c14'];
 		for (const id of mumIds) {
 			expect(KITCHEN_BRIEFS.find((b) => b.id === id)?.budget).toBe(5);
 		}
@@ -64,20 +64,21 @@ describe('KITCHEN_BRIEFS', () => {
 });
 
 describe('maxWalkInAbstractness / isBriefEligibleForProgress', () => {
-	it('gates bands by reputation OR commission count (playtest P20)', () => {
+	it('gates bands by reputation OR commission count (playtest P28 exponential ramp)', () => {
 		const cases: Array<[number, number, number]> = [
 			[0, 0, 0],
 			[1, 0, 0],
 			[5, 0, 0],
-			[6, 0, 1],
-			[0, 4, 1],
-			[0, 3, 0],
-			[5, 4, 1],
-			[11, 0, 1],
-			[12, 0, 2],
-			[0, 10, 2],
-			[0, 9, 1],
-			[4, 10, 2]
+			[11, 0, 0],
+			[12, 0, 1],
+			[0, 7, 0],
+			[0, 8, 1],
+			[5, 8, 1],
+			[19, 0, 1],
+			[20, 0, 2],
+			[0, 15, 1],
+			[0, 16, 2],
+			[4, 16, 2]
 		];
 		for (const [commissions, reputation, expected] of cases) {
 			expect(maxWalkInAbstractness(commissions, reputation)).toBe(expected);
@@ -101,11 +102,13 @@ describe('maxWalkInAbstractness / isBriefEligibleForProgress', () => {
 	it('blocks abstract walk-ins before their unlock', () => {
 		const c6 = KITCHEN_BRIEFS.find((b) => b.id === 'c6')!;
 		const c4 = KITCHEN_BRIEFS.find((b) => b.id === 'c4')!;
-		expect(isBriefEligibleForProgress(c4, 5, 0)).toBe(false);
-		expect(isBriefEligibleForProgress(c4, 6, 0)).toBe(true);
-		expect(isBriefEligibleForProgress(c4, 0, 4)).toBe(true);
-		expect(isBriefEligibleForProgress(c6, 11, 0)).toBe(false);
-		expect(isBriefEligibleForProgress(c6, 12, 0)).toBe(true);
-		expect(isBriefEligibleForProgress(c6, 0, 10)).toBe(true);
+		expect(isBriefEligibleForProgress(c4, 11, 0)).toBe(false);
+		expect(isBriefEligibleForProgress(c4, 12, 0)).toBe(true);
+		expect(isBriefEligibleForProgress(c4, 0, 7)).toBe(false);
+		expect(isBriefEligibleForProgress(c4, 0, 8)).toBe(true);
+		expect(isBriefEligibleForProgress(c6, 19, 0)).toBe(false);
+		expect(isBriefEligibleForProgress(c6, 20, 0)).toBe(true);
+		expect(isBriefEligibleForProgress(c6, 0, 15)).toBe(false);
+		expect(isBriefEligibleForProgress(c6, 0, 16)).toBe(true);
 	});
 });

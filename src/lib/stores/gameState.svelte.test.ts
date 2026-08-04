@@ -169,13 +169,13 @@ describe('GameStore', () => {
 		}
 	});
 
-	it('inviteClient eventually yields abstractness 2 after twelve commissions', () => {
+	it('inviteClient eventually yields abstractness 2 after twenty commissions', () => {
 		let draw = 0;
 		const store = createStore(
 			{ generate: vi.fn(), critique: vi.fn() },
 			{ random: () => (draw++ % 80) / 80 }
 		);
-		store.commissionsCompleted = 12;
+		store.commissionsCompleted = 20;
 
 		const levels = new Set<number>();
 		for (let i = 0; i < 80; i++) {
@@ -194,7 +194,7 @@ describe('GameStore', () => {
 			{ random: () => (draw++ % 80) / 80 }
 		);
 		store.commissionsCompleted = 4;
-		store.reputation = 10;
+		store.reputation = 16;
 
 		const levels = new Set<number>();
 		for (let i = 0; i < 80; i++) {

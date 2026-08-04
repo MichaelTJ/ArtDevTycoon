@@ -11,9 +11,9 @@ const KITCHEN_BRIEF_DEFS = [
 		id: 'c1',
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
-		requestText: 'Paint me a cat.',
+		requestText: 'Paint me a cool cat.',
 		budget: 5,
-		preferredKeywords: ['cat'],
+		preferredKeywords: ['cat', 'cool'],
 		abstractness: 0 as const
 	},
 	{
@@ -29,18 +29,36 @@ const KITCHEN_BRIEF_DEFS = [
 		id: 'c3',
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
-		requestText: 'Paint me a sunny flower. Something cheerful.',
+		requestText: 'Paint me a beautiful flower. Something cheerful.',
 		budget: 5,
-		preferredKeywords: ['flower', 'sun'],
+		preferredKeywords: ['flower', 'beautiful'],
 		abstractness: 0 as const
 	},
 	{
 		id: 'c7',
 		clientName: 'Mum',
 		avatarUrl: '/avatars/c1.svg',
-		requestText: 'Draw a little bird on the windowsill.',
+		requestText: 'Draw a cool little bird on the windowsill.',
 		budget: 5,
-		preferredKeywords: ['bird', 'window'],
+		preferredKeywords: ['bird', 'cool'],
+		abstractness: 0 as const
+	},
+	{
+		id: 'c13',
+		clientName: 'Mum',
+		avatarUrl: '/avatars/c1.svg',
+		requestText: 'Paint me a cool car for the garage wall.',
+		budget: 5,
+		preferredKeywords: ['car', 'cool'],
+		abstractness: 0 as const
+	},
+	{
+		id: 'c14',
+		clientName: 'Mum',
+		avatarUrl: '/avatars/c1.svg',
+		requestText: 'Draw a beautiful fairy.',
+		budget: 5,
+		preferredKeywords: ['fairy', 'beautiful'],
 		abstractness: 0 as const
 	},
 	// --- Band 1: evocative ---
@@ -48,7 +66,7 @@ const KITCHEN_BRIEF_DEFS = [
 		id: 'c4',
 		clientName: 'Neighbour June',
 		avatarUrl: '/avatars/c5.svg',
-		requestText: 'Something warm from when you were little.',
+		requestText: 'Draw something lovely from when you were little.',
 		budget: 6,
 		preferredKeywords: ['warm', 'little'],
 		abstractness: 1 as const,
@@ -69,7 +87,7 @@ const KITCHEN_BRIEF_DEFS = [
 		id: 'c5',
 		clientName: 'Uncle Ray',
 		avatarUrl: '/avatars/c6.svg',
-		requestText: 'Make it feel like a rainy afternoon indoors.',
+		requestText: 'Paint a cozy rainy afternoon indoors.',
 		budget: 7,
 		preferredKeywords: ['rain', 'afternoon'],
 		abstractness: 1 as const,
@@ -230,10 +248,10 @@ export function maxWalkInAbstractness(
 	commissionsCompleted: number,
 	reputation = 0
 ): AbstractnessLevel {
-	// Band 2 — pure mood: after watercolour-tier reputation OR a long commission streak
-	if (reputation >= 10 || commissionsCompleted >= 12) return 2;
-	// Band 1 — evocative: after early standing (past pencil unlock rep) OR mid commission count
-	if (reputation >= 4 || commissionsCompleted >= 6) return 1;
+	// Band 2 — pure mood: late career only
+	if (reputation >= 16 || commissionsCompleted >= 20) return 2;
+	// Band 1 — evocative / soft openness: after garage-era standing
+	if (reputation >= 8 || commissionsCompleted >= 12) return 1;
 	return 0;
 }
 
