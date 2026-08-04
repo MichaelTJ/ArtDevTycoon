@@ -27,6 +27,18 @@ Turn three separate layers into a game. You own the state machine that drives th
 whole loop, the screen that assembles the components, and the end-to-end test that
 proves a player can actually finish a commission.
 
+### Playtest retunes (post-ship — current behaviour)
+
+These superseded parts of the original Level 1 “win and reset” / prompt copy. Spec text
+below may still show historical wording; prefer this table + `docs/playtest-notes.md`.
+
+| Playtest | Behaviour now |
+| -------- | ------------- |
+| **P21**  | Hitting cash + commission targets shows a one-time **Career milestone** overlay; Continue calls `acknowledgeCareerMilestone()` — **does not** `reset()` cash/gallery. Persisted `careerMilestoneAcknowledged`. |
+| **P24**  | Idea field label is **My idea** (not “Your prompt”). Medium chosen on briefing. |
+| **P25**  | **Skip** declines briefing **or** generating → idle (extends P18 `declineClient`). |
+| **P19**  | Engine menu uses `activeDisplayName` / loading placeholder — never “Loading Crayon Mode” while Janus restores from storage. |
+
 ## Files to create
 
 | File                                        | Contents                                    |

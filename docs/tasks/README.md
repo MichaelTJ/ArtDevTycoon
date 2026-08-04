@@ -165,19 +165,20 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 21e | [Ambient events](./21e-ambient-events.md)                     | Bark / thought bubbles (Mum + staff) — **shipped** (E1; E2–E7 deferred)                                                       | 21a (+ ideally 21b)    |
 | 21f | [Studio QoL](./21f-studio-qol.md)                             | Contextual E verbs, Mum BFS pathfind, `reducedVfx` consumers — **shipped** (F1/F4/F6; rest deferred)                          | after 21a/21b scene    |
 
-### Meta / tooling specs (22–23)
+### Meta / tooling specs (22–23, 26)
 
-| #   | Spec                                          | Owns (new)                                                                                  | Depends on                                        |
-| --- | --------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| 22  | [Multiple save slots](./22-multiple-saves.md) | `saveSlots.ts`, `SaveSlotsPanel`, GameStore switch/new/delete, migration from `adt.save.v1` | 12 (+ ideally 20)                                 |
-| 23  | [Dev mode](./23-dev-mode.md)                  | `src/lib/dev/**`, `DevPanel`, gated cheats + modifier peek; subsumes `?studioDebug`         | 01–04, 12; **after 22** if both touch GameMenuBar |
+| #   | Spec                                                    | Owns (new)                                                                                  | Depends on                                        |
+| --- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 22  | [Multiple save slots](./22-multiple-saves.md)           | `saveSlots.ts`, `SaveSlotsPanel`, GameStore switch/new/delete, migration from `adt.save.v1` | 12 (+ ideally 20)                                 |
+| 23  | [Dev mode](./23-dev-mode.md)                            | `src/lib/dev/**`, `DevPanel`, gated cheats + modifier peek; subsumes `?studioDebug`         | 01–04, 12; **after 22** if both touch GameMenuBar |
+| 26  | [Modifier / engine explorer](./26-modifier-explorer.md) | **MVP shipped:** `/modifier-explorer` batch gen + browse/tags/timing (Janus + SD-Turbo)     | 02, 05 (+ 06 optional); critique pass deferred    |
 
 ### Studio ops / late game (24–25)
 
-| #   | Spec                                                 | Owns (new)                                                                                           | Depends on           |
-| --- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------- |
-| 24  | [Artist team & major projects](./24-artist-team.md)  | Receptionist, artist roster/training, assign timer, major projects — **MVP shipped**                 | 16, 21a–21b          |
-| 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP shipped:** painting medium picker + crayon/pencil/ink/watercolour brush feel on `SketchCanvas` | 11, 13; playtest P16 |
+| #   | Spec                                                 | Owns (new)                                                                                                                              | Depends on           |
+| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 24  | [Artist team & major projects](./24-artist-team.md)  | Artists + major projects — **MVP shipped**; P25 Skip ✅; P27 letterbox→computer→receptionist (landing)                                  | 16, 21a–21b          |
+| 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP + polish:** briefing medium picker / My idea (P24); ink charcoal B&W (P22); crayon/pencil/ink/watercolour on `SketchCanvas`       | 11, 13; P16 / P22 / P24 |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -207,13 +208,27 @@ Wave J  (meta / tooling — after 12; prefer serial GameMenuBar)
 
 Wave K  (studio ops — **MVP shipped**)
    └── 24 Artist team & major projects → docs/tasks/24-artist-team.md
-       ├── 24a Receptionist + NPC talk + commission board ✅
+       ├── 24a Commission board + NPC talk ✅ (P27 retunes channels by venue)
        ├── 24b Artist roster + training ✅
        ├── 24c Assign commissions to artists ✅
-       └── 24d Major projects (comic / animated series) ✅
+       ├── 24d Major projects (comic / animated series) ✅
+       └── P25 Skip commission ✅ · P27 letterbox/computer/receptionist (landing)
 
-Wave L  (painting feel — outline; after P6 loop stable)
-   └── 25 Brush media → docs/tasks/25-brush-media.md (25a picker, 25b stroke profiles)
+Wave L  (painting feel — **shipped** + playtest polish)
+   └── 25 Brush media → docs/tasks/25-brush-media.md
+       ├── 25a picker on briefing + My idea (P24) ✅
+       ├── 25b stroke profiles ✅ · ink charcoal B&W (P22) ✅
+       └── 25c cursor/eraser polish deferred
+
+Wave M  (engine lab — MVP already on main; no implementing agent)
+   └── 26 Modifier / engine explorer → docs/tasks/26-modifier-explorer.md
+       ├── A/B batch gen + browse/good-tags/timing ✅
+       ├── C1/C2 Janus + SD-Turbo generate ✅
+       └── C3 Janus critique pass on gallery (next slice)
+
+Playtest follow-ups (docs/playtest-notes.md — not separate specs)
+   ├── Playtest 3 P19–P23 ✅ (engine load, no level wipe, Mum max, abstract gates, ink)
+   └── Playtest 4 P24–P26/P28 ✅ · P27 channels landing
 ```
 
 Spec 17 adds Phaser 3 as an npm dependency (allowed exception in that spec), mounts a
@@ -221,8 +236,9 @@ walkable tilemap kitchen, and bridges to `GameStore` via `StudioBridge`. Domain 
 engines stay in SvelteKit. Do not run it concurrently with another agent editing
 `src/routes/+page.svelte` or `src/lib/stores/gameState.svelte.ts`.
 
-Spec 18 makes walk-in briefs escalate from Mum's concrete kitchen asks ("Paint me a cat")
-to pure mood ("I miss the old days"), and scores abstract briefs via interpretation
+Spec 18 makes walk-in briefs escalate from Mum's concrete + soft-subjective asks
+("Paint me a cool car") to pure mood ("I miss the old days"), with **exponential**
+reputation/commission OR-gates (P28), and scores abstract briefs via interpretation
 clusters instead of parroting vague request words. The orchestrator lands the additive
 `contracts.ts` fields first; then Wave D runs two agents in parallel:
 
@@ -262,11 +278,21 @@ Spec 22 adds three local save slots (`adt.save.slots.v1`) with migration from le
 save import/export, and a dev-only Level 1 modifier peek — production players without
 the gate never see it. Run **22 before 23** so GameMenuBar gains Saves, then Dev.
 
-Spec 24 MVP is the active-studio fantasy on top of Spec 16’s idle staffing: talkable NPCs
-and a **receptionist** commission board, a trainable **artist team**, hand-off of
-individual jobs, and **major projects** (comic book / animated series). See
-[24-artist-team.md](./24-artist-team.md). Keep distinct from Spec 16 passive income.
-Deferred: artist floor desks (B4), parallel jobs (C4), continuity rules (D5).
+Spec 24 MVP is the active-studio fantasy on top of Spec 16’s idle staffing: talkable NPCs,
+a **commission board** that escalates by venue (garage **letterbox** → storefront
+**computer** → gallery-hall **receptionist** — P27), a trainable **artist team**, hand-off
+of individual jobs, and **major projects**. Players can **Skip** briefs during briefing or
+generating (P25). See [24-artist-team.md](./24-artist-team.md). Keep distinct from Spec 16
+passive income. Deferred: artist floor desks (B4), parallel jobs (C4), continuity rules (D5).
+
+Spec 25 owns brush feel + painting medium selection on the sketch pad; medium is chosen on
+**briefing** before **My idea** (P24). See [25-brush-media.md](./25-brush-media.md).
+
+Spec 26 is the **dev-only engine lab** at `/modifier-explorer`: batch-generate curated
+axis prompts on Janus and/or SD-Turbo, browse/filter results, mark good facet tags, and
+compare timing. Janus is the focus engine because it can generate **and** critique; the
+next useful slice is **C3** (critique pass over the saved gallery). Not part of the
+player HUD — see [26-modifier-explorer.md](./26-modifier-explorer.md).
 
 ## Worktrees are already set up
 

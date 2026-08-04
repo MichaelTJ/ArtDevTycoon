@@ -1,7 +1,8 @@
 # Spec 25 — Brush types & painting medium feel
 
 **Status:** MVP shipped — **25a** medium picker + **25b** crayon/pencil/ink/watercolour brush
-profiles on `SketchCanvas`. Polish slice **25c** deferred.
+profiles on `SketchCanvas`. Playtest polish: **P22** (ink charcoal), **P24** (picker on
+briefing + **My idea**). Slice **25c** still deferred.
 **Worktree:** `../adt-wt-brush-media` branch `agent/brush-media`
 **Depends on:** Spec **11** (`SketchCanvas`), Spec **13** (medium tiers / Toolkit),
 playtest **P6** paint-while-waiting loop.
@@ -12,9 +13,10 @@ The Toolkit already unlocks mediums (crayons, pencils, ink, watercolour, …) fo
 **generation modifiers / comedy**. Spec 25 makes the **player painting surface** match
 the selected medium:
 
-1. Choose medium in the **painting** UI (not only in Toolkit for AI).
+1. Choose medium **before** writing **My idea** (briefing) so AI gen and painting share
+   the same style — locked during `generating`.
 2. Brush behaviour and look follow that medium — crayons feel waxy/grainy; watercolours
-   bloom and wash; pencils are hard thin strokes; etc.
+   bloom and wash; pencils are hard thin strokes; ink/charcoal is dry B&W grain; etc.
 3. Unlock gates stay aligned with Spec 13 (`unlockedMediumTierIds` / active medium).
 
 Comedy stays ADT: early crayons are charmingly bad; “epic” unlocks feel better in the
@@ -25,6 +27,8 @@ hand, not just in the prompt suffix.
 | Note                                                                                                                 | Source             |
 | -------------------------------------------------------------------------------------------------------------------- | ------------------ |
 | Outline brush types; draw in crayons when crayons selected; same for watercolours; choose medium in painting section | Playtest 2 **P16** |
+| Ink/charcoal B&W + charcoal grain                                                                                    | Playtest 3 **P22** |
+| Medium before **My idea**; lock medium while generating                                                              | Playtest 4 **P24** |
 
 ## Catalog
 
@@ -73,17 +77,20 @@ Edit:
   src/routes/+page.svelte (wiring)
 ```
 
-## Definition of done (MVP)
+## Definition of done (MVP + playtest polish)
 
-- [x] A1 — Medium picker on painting UI
+- [x] A1 — Medium picker on **briefing** (before My idea); locked during generating (P24)
 - [x] A2 — Sync with Toolkit active medium
 - [x] A3 — Locked mediums greyed with reason
 - [x] B1–B4 — Distinct crayon/pencil/ink/watercolour feel
+- [x] B3 polish — ink charcoal grain + B&W palette (P22)
+- [x] PromptComposer label **My idea** (P24)
 - [x] Tests + check + lint green
-- [x] playtest-notes P16 + agent-log + spec status
+- [x] playtest-notes P16 / P22 / P24 + agent-log + spec status
 
 ## Open decisions (resolved for MVP)
 
 1. Painting medium **equals** Toolkit `activeMediumTierId` — picker calls `setActiveMediumTier`.
 2. Canvas grain uses coordinate-seeded dots (no texture assets); DPR capped at 2 as today.
 3. Watercolour uses low opacity + `shadowBlur` wash hack — no wet sim.
+4. Mid-generate medium switches are **disallowed** so AI style cannot desync from paint feel.

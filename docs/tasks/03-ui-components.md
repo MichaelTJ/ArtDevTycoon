@@ -1,5 +1,7 @@
 # Spec 03 — UI Component Library
 
+**Status:** Shipped. Playtest copy/UX retunes: **My idea** (P24), Mum honesty reveal (P26),
+**Skip** on overlay/desk (P25 — wired with Spec 04).
 **Worktree:** `../adt-wt-ui` (branch `agent/ui`)
 **Depends on:** nothing. Start immediately, in parallel with specs 01 and 05.
 
@@ -236,7 +238,8 @@ showing them would give the game away.
 let { value = $bindable(''), disabled = false, maxLength = 500, onsubmit }: Props = $props();
 ```
 
-- A `<label>` reading "Your prompt", bound to a `<textarea>` via `id`/`for`.
+- A `<label>` reading **My idea** (playtest P24; historically “Your prompt”), bound to a
+  `<textarea>` via `id`/`for`.
 - A live character counter `"37 / 500"`, turning `text-red-700` past 90% of the limit.
 - A primary submit button labelled **Create Art**, disabled when `disabled` is true or
   the trimmed value is empty.
@@ -323,6 +326,8 @@ The payoff moment. A dialog surface (`role="dialog"`, `aria-modal="true"`,
 - The `criticReview` as a blockquote attributed to `clientName`
 - The payout, large and in `text-emerald-700`, as `"+$85"`
 - A primary button **Collect Cash** calling `oncollect`
+- **Mum path (P7 / P26):** when `mumRealCritique` is set, show toddler praise first; reveal
+  control reads **You can be honest with me mum…** (not “Ask for a real critique”)
 
 Entry transition: `scale` + `fade`, reduced-motion aware. Move focus to the Collect
 Cash button on mount so keyboard users are not stranded.

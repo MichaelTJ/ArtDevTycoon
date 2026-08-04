@@ -1,5 +1,6 @@
 # Spec 18 — Progressive Abstract Prompts (kitchen mum → mood briefs)
 
+**Status:** Shipped, then retuned by playtest **P20** / **P28** (gates + early copy).
 **Worktree:** `git worktree add -b agent/abstract-prompts ../adt-wt-abstract-prompts main`
 **Depends on:** Specs 01–04 and 12–16 merged (playable loop + prestige tiers). Does **not**
 depend on 05–11 or 17. Presentation (Phaser kitchen) is orthogonal — this spec owns the
@@ -7,23 +8,29 @@ depend on 05–11 or 17. Presentation (Phaser kitchen) is orthogonal — this sp
 
 ## Mission
 
-Today every Level 1 walk-in asks for a concrete subject ("cozy coffee cup", "fluffy cat
-with a crown"). That is fine for the first commissions in Mum's kitchen, but it never
-gets harder as a _prompting_ challenge. Spec 15's billionaire tier jumps straight to
-"paint the feeling of a Tuesday" with the same keyword-overlap scorer — so parroting
-`tuesday feeling ordinary` still "works", and there is no mid-game ramp.
+Walk-in briefs start concrete (with soft subjective adjectives — “cool”, “beautiful”)
+and only slowly open into evocative and pure-mood asks. Spec 15's billionaire tier still
+jumps to feeling-briefs later; Spec 18 owns the **kitchen / early garage ladder**.
 
 This spec makes the walk-in ladder teach prompting:
 
-1. **Round 1 kitchen** — Mum asks for simple, paint-me-a-thing briefs ("Paint me a cat").
-2. **As commissions accumulate** — requests get progressively more abstract
-   ("I miss the old days"), so the player must invent a concrete scene.
-3. **Abstract critique** — accuracy no longer rewards echoing the vague request words.
-   It scores whether the player committed to a _valid interpretation cluster_ (e.g.
-   faded family photo / childhood summer / Sunday dinner) and filled that cluster out.
+1. **Band 0 (fridge / garage)** — Mum asks for concrete subjects with a little openness
+   (“Paint me a cool car”, “Draw a beautiful fairy”) — still keyword-scored.
+2. **Band 1–2** — as **reputation OR commissions** pass exponential gates, requests get
+   more abstract (“I miss the old days”), so the player must invent a concrete scene.
+3. **Abstract critique** — accuracy scores commitment to a _valid interpretation cluster_
+   (e.g. faded family photo / Sunday dinner), not parroting vague request words.
 
 The comedy of Level 1 crayon modifiers stays untouched. Only the brief text and the
 scoring target change.
+
+### Playtest retunes (current literals)
+
+| Playtest | Change |
+| -------- | ------ |
+| **P20**  | Gates use reputation **or** commissions (not commissions-only). |
+| **P28**  | Slower exponential gates; band-0 cool/beautiful copy + `c13`/`c14`; gentler band-1 c4/c5 text. |
+| **P23**  | All Mum kitchen budgets **$5** (see Mum payout helpers in `$lib/game`). |
 
 ---
 
@@ -158,14 +165,18 @@ their own ids.
 
 | `abstractness` | When eligible                                                            | Voice                                  | Scoring path                        |
 | -------------- | ------------------------------------------------------------------------ | -------------------------------------- | ----------------------------------- |
-| `0`            | Always (and **forced** for first invite at `commissionsCompleted === 0`) | Mum, concrete "paint me a …"           | `preferredKeywords` only (today)    |
-| `1`            | `reputation >= 8` **or** `commissionsCompleted >= 12`                    | Evocative / soft memory, still a hint  | Best `interpretationClusters` match |
-| `2`            | `reputation >= 16` **or** `commissionsCompleted >= 20`                   | Pure mood / longing — no subject named | Best `interpretationClusters` match |
+| `0`            | Always (and **forced** for first invite at `commissionsCompleted === 0`) | Mum, concrete + soft subjectivity (“cool” / “beautiful”) | `preferredKeywords` only (today)    |
+| `1`            | `reputation >= 8` **or** `commissionsCompleted >= 12`                    | Evocative / soft hint, still somewhat open              | Best `interpretationClusters` match |
+| `2`            | `reputation >= 16` **or** `commissionsCompleted >= 20`                   | Pure mood / longing — no subject named                   | Best `interpretationClusters` match |
+
+`maxWalkInAbstractness(commissionsCompleted, reputation = 0)` implements the OR-gates above.
+`pickBrief` / `pickBoardOffers` must pass `reputation`.
 
 ### 2.2 Required briefs (exact content)
 
-Implement **at least** these twelve (six rewritten `c1`–`c6`, six new). Budgets stay in
-the walk-in 90–170 band.
+Band-0 Mum briefs use budget **$5** (playtest P4 / P23). Later walk-ins / prestige keep
+higher budgets. First-invite opener pool stays `{c1,c2,c3,c7}`; `c13`/`c14` join the
+band-0 pool after the opener force lifts.
 
 **Band 0 — concrete (Mum's kitchen)**
 
