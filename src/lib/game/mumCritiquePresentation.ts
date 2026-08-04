@@ -6,7 +6,7 @@ import type { SkillGainPreview } from './skills';
 /** Display name for the kitchen resident client (matches briefs and studio NPC). */
 export const MUM_CLIENT_NAME = 'Mum';
 
-/** Player-facing Mum scores before "Ask for real critique". */
+/** Player-facing Mum scores before "You can be honest with me mum…". */
 export const MUM_DISPLAY_SCORE = LEVEL_1.maxScore;
 
 /** Fixed cash payout for every Mum commission (playtest P23). */

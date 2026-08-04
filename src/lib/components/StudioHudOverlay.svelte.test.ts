@@ -217,7 +217,7 @@ test('Mum results pass through praise mode to ResultsPanel', async () => {
 	});
 	await expect.element(screen.getByText(praise)).toBeVisible();
 	await expect
-		.element(screen.getByRole('button', { name: 'Ask for real critique from the art critic' }))
+		.element(screen.getByRole('button', { name: 'You can be honest with me mum…' }))
 		.toBeVisible();
 });
 

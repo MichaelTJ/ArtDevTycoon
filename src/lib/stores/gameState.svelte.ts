@@ -166,7 +166,7 @@ export class GameStore {
 	currentCritique = $state<Critique | null>(null);
 	/**
 	 * Engine verdict for Mum commissions — player-facing praise hides this until
-	 * "Ask for real critique" in {@link ResultsPanel}.
+	 * "You can be honest with me mum…" in {@link ResultsPanel}.
 	 */
 	mumRealCritique = $state<MumRealCritique | null>(null);
 	/** Set when the current results payout came from an auction. */
