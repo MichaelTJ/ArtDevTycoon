@@ -30,7 +30,7 @@
 		unlockedMediumTierIds?: string[];
 		cash?: number;
 		reputation?: number;
-		/** Sync painting medium with Toolkit active tier when unlocked. */
+		/** Sync painting medium with Toolkit active tier during briefing (before submit). */
 		onselectmedium?: (id: string) => void;
 		currentClient: ClientBrief | null;
 		currentArtwork: Artwork | null;
@@ -140,7 +140,48 @@
 		}
 		return `Unlock for $${tier.unlockCost}`;
 	}
+
+	function activeMediumTier(): (typeof MEDIUM_TIERS)[number] {
+		return MEDIUM_TIERS.find((tier) => tier.id === activeMediumTierId) ?? MEDIUM_TIERS[0]!;
+	}
 </script>
+
+{#snippet mediumPicker(locked: boolean)}
+	<div
+		class="flex flex-wrap items-center gap-2"
+		role="group"
+		aria-label={locked ? 'Painting medium (locked for this piece)' : 'Painting medium'}
+	>
+		<span class="text-sm font-medium text-stone-700">Medium</span>
+		{#if locked}
+			<span class="text-sm text-stone-600">
+				<span aria-hidden="true">{activeMediumTier().icon}</span>
+				{activeMediumTier().name}
+			</span>
+		{:else}
+			{#each MEDIUM_TIERS as tier (tier.id)}
+				{@const unlocked = isMediumUnlocked(tier.id)}
+				{@const active = tier.id === activeMediumTierId}
+				{@const lockReason = mediumLockReason(tier)}
+				<button
+					type="button"
+					class="min-h-10 min-w-10 rounded-lg border px-2 text-lg {active
+						? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500'
+						: unlocked
+							? 'border-stone-300 bg-white hover:bg-stone-50'
+							: 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-60'}"
+					aria-label="{tier.name}{lockReason ? ` — ${lockReason}` : ''}"
+					aria-pressed={active}
+					disabled={!unlocked}
+					title={lockReason ?? tier.name}
+					onclick={() => onselectmedium?.(tier.id)}
+				>
+					<span aria-hidden="true">{tier.icon}</span>
+				</button>
+			{/each}
+		{/if}
+	</div>
+{/snippet}
 
 <aside
 	class="studio-hud flex max-h-[min(70vh,640px)] flex-col gap-3 overflow-y-auto rounded-xl border border-stone-300 bg-stone-50/95 p-3 shadow-sm sm:max-h-none"
@@ -176,6 +217,7 @@
 				<AbstractBriefHint abstractness={currentClient.abstractness ?? 0} />
 			{/if}
 		{/if}
+		{@render mediumPicker(false)}
 		<PromptComposer bind:value={draftPrompt} {onsubmit} />
 		<button
 			type="button"
@@ -189,29 +231,7 @@
 		{#if currentClient}
 			<ClientCard brief={currentClient} />
 		{/if}
-		<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Painting medium">
-			<span class="text-sm font-medium text-stone-700">Medium</span>
-			{#each MEDIUM_TIERS as tier (tier.id)}
-				{@const unlocked = isMediumUnlocked(tier.id)}
-				{@const active = tier.id === activeMediumTierId}
-				{@const lockReason = mediumLockReason(tier)}
-				<button
-					type="button"
-					class="min-h-10 min-w-10 rounded-lg border px-2 text-lg {active
-						? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500'
-						: unlocked
-							? 'border-stone-300 bg-white hover:bg-stone-50'
-							: 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-60'}"
-					aria-label="{tier.name}{lockReason ? ` — ${lockReason}` : ''}"
-					aria-pressed={active}
-					disabled={!unlocked}
-					title={lockReason ?? tier.name}
-					onclick={() => onselectmedium?.(tier.id)}
-				>
-					<span aria-hidden="true">{tier.icon}</span>
-				</button>
-			{/each}
-		</div>
+		{@render mediumPicker(true)}
 		<SketchCanvas
 			bind:hasStrokes={sketchHasStrokes}
 			mediumTierId={activeMediumTierId}
@@ -221,7 +241,7 @@
 			<ArtworkFrame
 				imageUrl={aiGeneratedImageUrl}
 				title="AI result"
-				alt="Generated art from your prompt"
+				alt="Generated art from your idea"
 				size="full"
 			/>
 			<p class="text-sm text-stone-700">

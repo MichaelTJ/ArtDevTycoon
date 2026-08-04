@@ -57,15 +57,41 @@ test('idle shows waiting copy without invite button', async () => {
 		.not.toBeInTheDocument();
 });
 
-test('briefing shows prompt composer without sketch pad', async () => {
+test('briefing shows My idea composer and medium picker without sketch pad', async () => {
 	const screen = render(StudioHudOverlay, {
 		...base,
 		phase: 'briefing',
 		currentClient: LEVEL_1_BRIEFS[0]
 	});
-	await expect.element(screen.getByLabelText('Your prompt')).toBeVisible();
+	await expect.element(screen.getByLabelText('My idea')).toBeVisible();
 	await expect.element(screen.getByText('Mum')).toBeVisible();
+	await expect.element(screen.getByRole('group', { name: 'Painting medium' })).toBeVisible();
 	await expect.element(screen.getByLabelText('Sketch canvas')).not.toBeInTheDocument();
+});
+
+test('briefing medium picker selects unlocked tier', async () => {
+	const onselectmedium = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		activeMediumTierId: 'crayon',
+		unlockedMediumTierIds: ['crayon', 'pencil'],
+		onselectmedium
+	});
+	await screen.getByRole('button', { name: /Pencil & Sketchbook/i }).click();
+	expect(onselectmedium).toHaveBeenCalledWith('pencil');
+});
+
+test('briefing medium picker disables locked tiers', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		unlockedMediumTierIds: ['crayon']
+	});
+	const inkBtn = screen.getByRole('button', { name: /Ink & Charcoal — Need/i });
+	await expect.element(inkBtn).toBeDisabled();
 });
 
 test('briefing decline button fires ondecline', async () => {
@@ -80,40 +106,25 @@ test('briefing decline button fires ondecline', async () => {
 	expect(ondecline).toHaveBeenCalledTimes(1);
 });
 
-test('generating shows sketch pad while waiting', async () => {
-	const screen = render(StudioHudOverlay, {
-		...base,
-		phase: 'generating',
-		currentClient: LEVEL_1_BRIEFS[0]
-	});
-	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
-	await expect.element(screen.getByText(/Paint on the canvas while you wait/)).toBeVisible();
-	await expect.element(screen.getByRole('group', { name: 'Painting medium' })).toBeVisible();
-});
-
-test('generating medium picker selects unlocked tier', async () => {
+test('generating shows locked medium and sketch pad while waiting', async () => {
 	const onselectmedium = vi.fn();
 	const screen = render(StudioHudOverlay, {
 		...base,
 		phase: 'generating',
 		currentClient: LEVEL_1_BRIEFS[0],
 		activeMediumTierId: 'crayon',
-		unlockedMediumTierIds: ['crayon', 'pencil'],
 		onselectmedium
 	});
-	await screen.getByRole('button', { name: /Pencil & Sketchbook/i }).click();
-	expect(onselectmedium).toHaveBeenCalledWith('pencil');
-});
-
-test('generating medium picker disables locked tiers', async () => {
-	const screen = render(StudioHudOverlay, {
-		...base,
-		phase: 'generating',
-		currentClient: LEVEL_1_BRIEFS[0],
-		unlockedMediumTierIds: ['crayon']
-	});
-	const inkBtn = screen.getByRole('button', { name: /Ink & Charcoal — Need/i });
-	await expect.element(inkBtn).toBeDisabled();
+	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
+	await expect.element(screen.getByText(/Paint on the canvas while you wait/)).toBeVisible();
+	await expect
+		.element(screen.getByRole('group', { name: 'Painting medium (locked for this piece)' }))
+		.toBeVisible();
+	await expect.element(screen.getByText(/Crayons & Construction Paper/)).toBeVisible();
+	await expect
+		.element(screen.getByRole('button', { name: /Pencil & Sketchbook/i }))
+		.not.toBeInTheDocument();
+	expect(onselectmedium).not.toHaveBeenCalled();
 });
 
 test('generating submit choice keeps sketch pad visible with AI preview below', async () => {
@@ -127,7 +138,7 @@ test('generating submit choice keeps sketch pad visible with AI preview below', 
 		onconfirmsubmit
 	});
 	const sketchCanvas = screen.getByLabelText('Sketch canvas');
-	const aiImage = screen.getByAltText('Generated art from your prompt');
+	const aiImage = screen.getByAltText('Generated art from your idea');
 	await expect.element(sketchCanvas).toBeVisible();
 	await expect.element(aiImage).toBeVisible();
 	expect(

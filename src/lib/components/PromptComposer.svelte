@@ -28,9 +28,7 @@
 </script>
 
 <div class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm">
-	<label for={textareaId} class="mb-2 block text-base font-medium text-stone-800">
-		Your prompt
-	</label>
+	<label for={textareaId} class="mb-2 block text-base font-medium text-stone-800"> My idea </label>
 	<textarea
 		id={textareaId}
 		bind:value

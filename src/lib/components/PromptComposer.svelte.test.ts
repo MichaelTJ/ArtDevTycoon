@@ -5,7 +5,7 @@ import PromptComposer from './PromptComposer.svelte';
 
 test('typing updates the character counter', async () => {
 	const screen = render(PromptComposer, { value: '' });
-	const textarea = screen.getByLabelText('Your prompt');
+	const textarea = screen.getByLabelText('My idea');
 	await userEvent.fill(textarea, 'hello');
 	await expect.element(screen.getByText('5 / 500')).toBeVisible();
 });
@@ -36,7 +36,7 @@ test('submit button is disabled when disabled prop is true', async () => {
 test('Ctrl+Enter submits', async () => {
 	const onsubmit = vi.fn();
 	const screen = render(PromptComposer, { value: 'dragon', onsubmit });
-	const textarea = screen.getByLabelText('Your prompt');
+	const textarea = screen.getByLabelText('My idea');
 	await userEvent.click(textarea);
 	await userEvent.keyboard('{Control>}{Enter}{/Control}');
 	expect(onsubmit).toHaveBeenCalledTimes(1);
