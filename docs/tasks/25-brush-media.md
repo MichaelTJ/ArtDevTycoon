@@ -32,7 +32,7 @@ hand, not just in the prompt suffix.
 
 | ID  | Feature                         | Player fantasy                                                                   | Size | Priority | Status   |
 | --- | ------------------------------- | -------------------------------------------------------------------------------- | ---- | -------- | -------- |
-| A1  | **Painting medium selector**    | While sketching / paint-while-wait, pick an unlocked medium                      | M    | MVP      | **Done** |
+| A1  | **Painting medium selector**    | Pick an unlocked medium **before** submitting **My idea** (briefing)             | M    | MVP      | **Done** |
 | A2  | Sync with Toolkit active medium | Default selection = `activeMediumTierId`; changing here MAY update active medium | S    | MVP      | **Done** |
 | A3  | Locked mediums greyed           | Show next unlock tease (rep/cash) without opening full Toolkit                   | S    | MVP      | **Done** |
 
@@ -51,7 +51,7 @@ Implementation (MVP):
 - `brushProfiles.ts` — stamp parameters per medium tier id (`grainStyle: 'charcoal'` for ink).
 - `brushStroke.ts` — pure helpers: `applyBrushStrokeStyle`, crayon/charcoal grain, ink bleed.
 - `SketchCanvas` accepts `mediumTierId`; ink locks palette to B&W swatches only.
-- `StudioHudOverlay` medium picker during `generating`; `+page` wires `setActiveMediumTier`.
+- `StudioHudOverlay` medium picker during **briefing** (locked label during `generating`); `+page` wires `setActiveMediumTier`.
 
 ### C. Polish — slice **25c**
 

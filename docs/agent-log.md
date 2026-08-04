@@ -2351,3 +2351,42 @@ src/lib/components/SketchCanvas.svelte.test.ts`.
 
 - Manual playthrough not run (unit/component tests only).
 - Undo/eraser behaviour unchanged from Spec 25 MVP (25c deferred).
+
+## 2026-08-04 — Playtest P24 medium-before-idea + My idea copy
+
+**Zone:** `src/lib/components/PromptComposer.svelte`, `PromptComposer.svelte.test.ts`,
+`StudioHudOverlay.svelte`, `StudioHudOverlay.svelte.test.ts`, `src/lib/components/README.md`,
+`docs/playtest-notes.md`, `docs/tasks/25-brush-media.md`, `docs/agent-log.md`
+
+**Built:** Playtest P24 fix — **Painting medium** picker moved from `generating` to
+**briefing** (above **My idea** composer) so `createArt` snapshots the same medium the
+player paints with. During `generating`, medium shows as a locked read-only label (no
+`onselectmedium`). `PromptComposer` label renamed **Your prompt → My idea**; AI preview
+alt text updated to **Generated art from your idea**.
+
+**Public surface:**
+
+- `PromptComposer` — visible label / accessible name **My idea**
+- `StudioHudOverlay` — `{@render mediumPicker(false)}` on briefing;
+  `{@render mediumPicker(true)}` on generating (locked display)
+- `onselectmedium` fires only during briefing (unchanged parent wiring in `+page.svelte`)
+
+**Tests:** Briefing medium picker select + locked-tier disable; generating locked medium
+(no tier buttons); My idea label; AI alt copy. Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run src/lib/components/PromptComposer.svelte.test.ts
+src/lib/components/StudioHudOverlay.svelte.test.ts`.
+
+**Decisions:**
+
+- Reused existing emoji-button picker via a `mediumPicker(locked)` snippet — briefing stays
+  interactive; generating swaps to icon + tier name text with no click targets.
+- No `+page` or store changes — `setActiveMediumTier` at briefing already binds before
+  `createArt` submit.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (component tests only).
+- `ErrorPanel` still says “Your prompt has been kept” on failed phase (out of zone).
+- Failed-phase retry UI has no medium picker (medium already chosen for that attempt).
