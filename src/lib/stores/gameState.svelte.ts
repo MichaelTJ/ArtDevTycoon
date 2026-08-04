@@ -535,13 +535,15 @@ export class GameStore {
 	}
 
 	/**
-	 * Player turns down the active brief during briefing — no payout, back to idle.
-	 * Reception desk offers are declined by closing the board before `acceptBoardBrief`.
+	 * Player skips the active commission during briefing or generating — no payout, back to idle.
+	 * In-flight `createArt` / `confirmSubmitChoice` abort via phase guards after await.
+	 * Reception desk offers are skipped by closing the board before `acceptBoardBrief`.
 	 */
 	declineClient(): void {
-		if (this.phase !== 'briefing' || !this.currentClient) {
+		if ((this.phase !== 'briefing' && this.phase !== 'generating') || !this.currentClient) {
 			return;
 		}
+		const wasGenerating = this.phase === 'generating';
 		this.currentClient = null;
 		this.currentArtwork = null;
 		this.currentCritique = null;
@@ -552,8 +554,13 @@ export class GameStore {
 		this.draftSketchBlob = null;
 		this.pendingSubmitChoice = false;
 		this.aiGeneratedImageUrl = null;
+		this.generationProgress = null;
+		this.workStartedAt = null;
 		this.artistAssignment = null;
 		this.phase = 'idle';
+		if (wasGenerating) {
+			this.#setSwitchingLocked(false);
+		}
 		this.#scheduleAutoInvite();
 		this.#persist();
 	}

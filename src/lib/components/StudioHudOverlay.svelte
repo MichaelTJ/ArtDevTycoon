@@ -66,7 +66,7 @@
 		oncollect: () => void;
 		onretry: () => void;
 		ondismisserror: () => void;
-		/** Briefing only — player declines the active commission. */
+		/** Briefing and generating — player skips the active commission. */
 		ondecline?: () => void;
 	}
 
@@ -222,10 +222,10 @@
 		<button
 			type="button"
 			class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-			aria-label="Decline commission"
+			aria-label="Skip this commission"
 			onclick={() => ondecline?.()}
 		>
-			No thanks
+			Skip
 		</button>
 	{:else if phase === 'generating'}
 		{#if currentClient}
@@ -274,6 +274,14 @@
 				messages={loadingMessages}
 			/>
 		{/if}
+		<button
+			type="button"
+			class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+			aria-label="Skip this commission"
+			onclick={() => ondecline?.()}
+		>
+			Skip
+		</button>
 	{:else if phase === 'critiquing' && currentArtwork}
 		{#if currentClient}
 			<ClientCard brief={currentClient} />

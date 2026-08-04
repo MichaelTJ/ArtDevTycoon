@@ -41,7 +41,8 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] Playtest 2: P11–P18 (incl. Spec 25 MVP for P16)
 - [x] Playtest 3: P19–P23 (engine load, no level wipe, Mum max, abstract ramp, ink brush)
 - [x] Playtest 4: P24 — medium before My idea + copy rename
-- [ ] Playtest 4: P25–P28 (matched only — not fixed yet)
+- [x] Playtest 4: P25 — skip commission affordance polish
+- [ ] Playtest 4: P26–P28 (matched only — not fixed yet)
 - [ ] Triaged into task specs / bugfix PRs
 
 ---
@@ -103,7 +104,7 @@ Fourth pass after playtest 3 merges. Match to tasks/commits; not fixed yet.
 | #   | Kind   | Note                                                                                                                                                                                         | Primary task(s) / commits                                                                                             | Notes / secondary                                                                                                                                                  |
 | --- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | P24 | Design | Choose **pen / art style (medium) before** entering the idea. Typing then switching brushes makes AI gen ≠ painting. Rename UI **“prompt” → “My idea”**.                                     | **25** medium picker + **03** `PromptComposer` / `StudioHudOverlay` (`e81307d`) + **04** `createArt` medium bind      | **Fixed** — medium picker on **briefing** above **My idea**; locked label during `generating`; PromptComposer + AI preview alt copy (2026-08-04)                   |
-| P25 | Design | Ability to **skip commissions**                                                                                                                                                              | **04** / **P18** `declineClient` (`4f3218e`) + **24a** board                                                          | Briefing already has **No thanks**; may need clearer **Skip** wording, idle skip, or skip after accept / while generating — confirm affordance coverage            |
+| P25 | Design | Ability to **skip commissions**                                                                                                                                                              | **04** / **P18** `declineClient` (`4f3218e`) + **24a** board                                                          | **Fixed** — **Skip** on briefing + generating + reception footer; `declineClient()` works during `generating` (2026-08-04)                                         |
 | P26 | Design | Mum reveal button: **“You can be honest with me mum…”** instead of **“Ask for a real critique”**                                                                                             | **03** `ResultsPanel` + **P7** (`299bb2d`)                                                                            | **Fixed** — Mum reveal button copy + aria-label on `ResultsPanel` Mum path only (2026-08-04)                                                                       |
 | P27 | Design | Garage **must not** have a receptionist yet. Keep commission **selection** UI, but: **garage = letterbox**, next venue = **computer**, later = **receptionist**.                             | **24** `receptionistUnlocked` / `ReceptionDesk` + **14** venues (`garage` → `storefront` → …) + **21b** interactables | Today `receptionistUnlocked` is true from **garage** up (`artists.ts`). Retune gates + surface variants (letterbox / computer / receptionist) by `unlockedVenueId` |
 | P28 | Design | Simple → abstract ramp still too steep — want more **exponential** openness. Garage briefs like **“a cool car”**, **“a beautiful fairy”** (subjective adjectives). Gradually widen openness. | **18** `kitchenBriefs` + `maxWalkInAbstractness` (after **P20** `cf001f8`)                                            | Rewrite early band copy toward concrete + soft subjectivity; push band 1/2 unlocks later (and/or add a gentler mid band) so fridge/garage stay playful longer      |
@@ -112,6 +113,6 @@ Fourth pass after playtest 3 merges. Match to tasks/commits; not fixed yet.
 
 1. ~~**P24** — medium before “My idea” (gen/paint mismatch)~~ **done**
 2. ~~**P26** — Mum honesty button copy (tiny)~~ **done**
-3. **P25** — skip commission affordance polish
+3. ~~**P25** — skip commission affordance polish~~ **done**
 4. **P28** — garage brief content + slower/exponential abstractness
 5. **P27** — letterbox → computer → receptionist by venue (largest)

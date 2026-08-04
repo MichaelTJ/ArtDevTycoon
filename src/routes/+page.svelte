@@ -203,7 +203,7 @@
 	}
 
 	function declineClient(): void {
-		if (game.phase !== 'briefing') return;
+		if (game.phase !== 'briefing' && game.phase !== 'generating') return;
 		game.declineClient();
 		showAssignArtist = false;
 		clientSummoned = false;

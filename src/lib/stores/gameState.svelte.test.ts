@@ -1569,17 +1569,70 @@ describe('GameStore', () => {
 		expect(store.commissionsCompleted).toBe(commissionsBefore);
 	});
 
-	it('declineClient is a no-op outside briefing', () => {
+	it('declineClient clears generating without payout and unlocks engine switching', async () => {
+		let resolveGenerate!: (value: Artwork) => void;
+		const generatePromise = new Promise<Artwork>((resolve) => {
+			resolveGenerate = resolve;
+		});
+		const setSwitchingLocked = vi.fn();
+		const store = createStore(
+			{
+				generate: vi.fn(() => generatePromise),
+				critique: vi.fn()
+			},
+			{ random: () => 0, setSwitchingLocked }
+		);
+		store.inviteClient();
+		store.draftPrompt = 'a cat';
+		const cashBefore = store.cash;
+		const repBefore = store.reputation;
+		void store.createArt();
+		expect(store.phase).toBe('generating');
+		expect(setSwitchingLocked).toHaveBeenCalledWith(true);
+		store.declineClient();
+		expect(store.phase).toBe('idle');
+		expect(store.currentClient).toBeNull();
+		expect(store.pendingSubmitChoice).toBe(false);
+		expect(store.aiGeneratedImageUrl).toBeNull();
+		expect(store.workStartedAt).toBeNull();
+		expect(store.cash).toBe(cashBefore);
+		expect(store.reputation).toBe(repBefore);
+		expect(setSwitchingLocked).toHaveBeenCalledWith(false);
+		resolveGenerate(fakeArtwork);
+		await generatePromise;
+		expect(store.phase).toBe('idle');
+		expect(store.currentArtwork).toBeNull();
+	});
+
+	it('declineClient clears pending submit choice during generating', async () => {
+		const store = createStore(
+			{ generate: vi.fn(async () => fakeArtwork), critique: vi.fn() },
+			{ random: () => 0 }
+		);
+		store.inviteClient();
+		store.draftPrompt = 'a cat';
+		await store.createArt();
+		expect(store.pendingSubmitChoice).toBe(true);
+		expect(store.aiGeneratedImageUrl).toBe(fakeArtwork.imageUrl);
+		store.declineClient();
+		expect(store.phase).toBe('idle');
+		expect(store.currentClient).toBeNull();
+		expect(store.pendingSubmitChoice).toBe(false);
+		expect(store.aiGeneratedImageUrl).toBeNull();
+	});
+
+	it('declineClient is a no-op outside briefing and generating', () => {
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { random: () => 0 });
 		store.declineClient();
 		expect(store.phase).toBe('idle');
 		store.inviteClient();
-		store.draftPrompt = 'test';
-		void store.createArt();
-		expect(store.phase).toBe('generating');
+		store.phase = 'results';
+		store.currentClient = KITCHEN_BRIEFS[0]!;
 		store.declineClient();
-		expect(store.phase).toBe('generating');
-		expect(store.currentClient).not.toBeNull();
+		expect(store.phase).toBe('results');
+		store.phase = 'critiquing';
+		store.declineClient();
+		expect(store.phase).toBe('critiquing');
 	});
 
 	it('major project beat completes and payout collects', () => {

@@ -94,7 +94,7 @@ test('briefing medium picker disables locked tiers', async () => {
 	await expect.element(inkBtn).toBeDisabled();
 });
 
-test('briefing decline button fires ondecline', async () => {
+test('briefing skip button fires ondecline', async () => {
 	const ondecline = vi.fn();
 	const screen = render(StudioHudOverlay, {
 		...base,
@@ -102,7 +102,33 @@ test('briefing decline button fires ondecline', async () => {
 		currentClient: LEVEL_1_BRIEFS[0],
 		ondecline
 	});
-	await screen.getByRole('button', { name: 'Decline commission' }).click();
+	await screen.getByRole('button', { name: 'Skip this commission' }).click();
+	expect(ondecline).toHaveBeenCalledTimes(1);
+});
+
+test('generating skip button fires ondecline while waiting', async () => {
+	const ondecline = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		ondecline
+	});
+	await screen.getByRole('button', { name: 'Skip this commission' }).click();
+	expect(ondecline).toHaveBeenCalledTimes(1);
+});
+
+test('generating skip button fires ondecline during submit choice', async () => {
+	const ondecline = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		pendingSubmitChoice: true,
+		aiGeneratedImageUrl: artwork.imageUrl,
+		ondecline
+	});
+	await screen.getByRole('button', { name: 'Skip this commission' }).click();
 	expect(ondecline).toHaveBeenCalledTimes(1);
 });
 

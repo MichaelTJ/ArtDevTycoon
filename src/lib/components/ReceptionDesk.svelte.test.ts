@@ -32,11 +32,11 @@ test('dialog is accessible and closable', async () => {
 	expect(onclose).toHaveBeenCalled();
 });
 
-test('no thanks closes board without accepting', async () => {
+test('skip closes board without accepting', async () => {
 	const onclose = vi.fn();
 	const onaccept = vi.fn();
 	const screen = render(ReceptionDesk, { offers, onaccept, onclose });
-	await screen.getByRole('button', { name: 'Decline commission board offers' }).click();
+	await screen.getByRole('button', { name: 'Skip this commission' }).click();
 	expect(onclose).toHaveBeenCalled();
 	expect(onaccept).not.toHaveBeenCalled();
 });

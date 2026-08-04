@@ -2420,3 +2420,44 @@ src/lib/components/ResultsPanel.svelte.test.ts`.
 - Manual playthrough not run (component tests only).
 - `StudioHudOverlay.svelte.test.ts` still references the old button name (out of zone;
   orchestrator should update when merging or in a follow-up spec).
+
+## 2026-08-04 — Playtest P25 skip commission affordance
+
+**Zone:** `src/lib/stores/gameState.svelte.ts`, `gameState.svelte.test.ts`,
+`src/lib/stores/README.md`, `StudioHudOverlay.svelte`, `StudioHudOverlay.svelte.test.ts`,
+`ReceptionDesk.svelte`, `ReceptionDesk.svelte.test.ts`, `src/lib/components/README.md`,
+`src/routes/+page.svelte`, `docs/playtest-notes.md`, `docs/agent-log.md`
+
+**Built:** Playtest P25 — player-facing **Skip** button (`aria-label="Skip this commission"`)
+on briefing, generating (including `pendingSubmitChoice`), and reception desk footer.
+`GameStore.declineClient()` now works during **briefing** or **generating**: clears
+client/artwork/draft/submit-choice state, returns to `idle` with no payout/rep change,
+unlocks engine switching when aborting generate; in-flight `createArt` / late generate
+results ignored via existing phase guards.
+
+**Public surface:**
+
+- `GameStore.declineClient(): void` — briefing + generating; unchanged name (P18 alias)
+- `StudioHudOverlay` — `ondecline?` on briefing and generating
+- `ReceptionDesk` — footer **Skip** → `onclose()`
+- `+page` `declineClient()` — allows generating phase + `dismiss-client` bridge sync
+
+**Tests:** Briefing skip; generating skip (in-flight + pending submit choice); no-op on
+results/critiquing; HUD + reception Skip labels. Commands: `npm run check`; `npm run lint`;
+`npm run test:unit -- --run src/lib/stores/gameState.svelte.test.ts
+src/lib/components/StudioHudOverlay.svelte.test.ts
+src/lib/components/ReceptionDesk.svelte.test.ts`.
+
+**Decisions:**
+
+- Kept `declineClient()` name (P18 public API) rather than adding `skipCommission()` alias.
+- No AbortController — store uses phase guards in async methods (same as slot switch /
+  `devForceIdle`); `#setSwitchingLocked(false)` only when skipping from generating.
+- Skip not offered on `results` / `critiquing` — collect/deliver remains the exit.
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (unit/component tests only).
+- Failed-phase retry UI has no Skip (player can dismiss error or retry; out of P25 scope).

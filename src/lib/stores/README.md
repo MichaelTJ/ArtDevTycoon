@@ -21,15 +21,15 @@ Import from:
 
 ## State machine
 
-| Phase           | UI                                                                                                                                                                        | Entry                                                         |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| `idle`          | {@link IdlePanel}                                                                                                                                                         | start / after collect                                         |
-| `briefing`      | {@link ClientCard} + {@link PromptComposer} + decline                                                                                                                     | `inviteClient()` / `acceptBoardBrief()`                       |
-| `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting; stays interactive after AI arrives) + AI preview below canvas + submit-choice until `confirmSubmitChoice` | `createArt()` then player picks                               |
-| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                                       | after submit choice                                           |
-| `results`       | {@link ResultsPanel}                                                                                                                                                      | after critique                                                |
-| `failed`        | {@link ErrorPanel} + composer                                                                                                                                             | engine error                                                  |
-| `levelComplete` | {@link LevelCompleteOverlay} — one-time career milestone; dismiss via `acknowledgeCareerMilestone()`                                                                      | First time both LEVEL_1 targets met (if not yet acknowledged) |
+| Phase           | UI                                                                                                                                                                                   | Entry                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `idle`          | {@link IdlePanel}                                                                                                                                                                    | start / after collect                                         |
+| `briefing`      | {@link ClientCard} + {@link PromptComposer} + **Skip**                                                                                                                               | `inviteClient()` / `acceptBoardBrief()`                       |
+| `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting; stays interactive after AI arrives) + AI preview below canvas + submit-choice until `confirmSubmitChoice` + **Skip** | `createArt()` then player picks                               |
+| `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                                                  | after submit choice                                           |
+| `results`       | {@link ResultsPanel}                                                                                                                                                                 | after critique                                                |
+| `failed`        | {@link ErrorPanel} + composer                                                                                                                                                        | engine error                                                  |
+| `levelComplete` | {@link LevelCompleteOverlay} — one-time career milestone; dismiss via `acknowledgeCareerMilestone()`                                                                                 | First time both LEVEL_1 targets met (if not yet acknowledged) |
 
 Every store method guards on the current phase. `collectCash()` is async and idempotent —
 calling it twice does not pay twice. Blob image URLs are converted to durable `data:` URLs
@@ -50,6 +50,10 @@ before the gallery entry is persisted.
   `acknowledgeCareerMilestone()` persists `careerMilestoneAcknowledged` and returns to
   `idle` without wiping cash, gallery, or unlocks. `reset()` remains for new-game /
   slot wipe only.
+- Playtest P25: `declineClient()` skips during **briefing** or **generating** (including
+  `pendingSubmitChoice`); clears client/artwork/draft and returns to `idle` with no payout.
+  In-flight generate/critique abort via existing phase guards; `#setSwitchingLocked(false)`
+  when skipping from generating.
 - Playtest P23: Mum commissions bypass `calculatePayout` — `#applyCritiqueResult` and
   artist handoff set `finalPayout` to `MUM_PAYOUT_CASH` ($5), `pendingSkillGains` to
   `mumSkillGains()` (10/10/20), and `collectCash` applies `MUM_REPUTATION_GAIN` (3).
