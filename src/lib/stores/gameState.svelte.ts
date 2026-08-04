@@ -1,10 +1,10 @@
 import { CLIENT_TIER_INFO, unlockedClientTiers } from '$lib/data/clientTiers';
 import { CORPORATE_BRIEFS } from '$lib/data/corporateBriefs';
+import { canHireArtist, getArtistCatalogEntry } from '$lib/data/artists';
 import {
-	canHireArtist,
-	getArtistCatalogEntry,
-	receptionistUnlocked as venueHasReceptionist
-} from '$lib/data/artists';
+	commissionBoardAvailable as venueHasCommissionBoard,
+	commissionChannelForVenue
+} from '$lib/game/commissionChannel';
 import {
 	canUnlockMediumTier,
 	DEFAULT_MEDIUM_TIER_ID,
@@ -233,7 +233,12 @@ export class GameStore {
 
 	incomePerSecond = $derived(totalIncomePerSecond(this.hiredStaffIds));
 
-	receptionistAvailable = $derived(venueHasReceptionist(this.unlockedVenueId));
+	commissionChannel = $derived(commissionChannelForVenue(this.unlockedVenueId));
+
+	commissionBoardAvailable = $derived(venueHasCommissionBoard(this.unlockedVenueId));
+
+	/** True when the floor shows a talkable receptionist NPC (gallery-hall+). */
+	receptionistAvailable = $derived(this.commissionChannel === 'receptionist');
 
 	artistAssignmentFill = $derived.by(() => {
 		if (!this.artistAssignment) return null;

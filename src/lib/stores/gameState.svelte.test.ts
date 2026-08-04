@@ -1506,12 +1506,31 @@ describe('GameStore', () => {
 		expect(skilled.presentationMultiplier).toBeCloseTo(1.09, 5);
 	});
 
-	it('receptionistAvailable is false on fridge and true on garage', () => {
+	it('commission channels progress by venue (P27)', () => {
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.commissionChannel).toBe('none');
+		expect(store.commissionBoardAvailable).toBe(false);
 		expect(store.receptionistAvailable).toBe(false);
+
 		store.cash = 50;
 		store.reputation = 4;
 		expect(store.unlockVenue('garage')).toBe(true);
+		expect(store.commissionChannel).toBe('letterbox');
+		expect(store.commissionBoardAvailable).toBe(true);
+		expect(store.receptionistAvailable).toBe(false);
+
+		store.cash = 200;
+		store.reputation = 8;
+		expect(store.unlockVenue('storefront')).toBe(true);
+		expect(store.commissionChannel).toBe('computer');
+		expect(store.commissionBoardAvailable).toBe(true);
+		expect(store.receptionistAvailable).toBe(false);
+
+		store.cash = 500;
+		store.reputation = 14;
+		expect(store.unlockVenue('gallery-hall')).toBe(true);
+		expect(store.commissionChannel).toBe('receptionist');
+		expect(store.commissionBoardAvailable).toBe(true);
 		expect(store.receptionistAvailable).toBe(true);
 	});
 

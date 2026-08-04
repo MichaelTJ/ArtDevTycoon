@@ -12,6 +12,7 @@ const snapshot: StudioSnapshot = {
 	residentClientArmed: false,
 	hiredRoleIds: [],
 	reducedVfx: false,
+	commissionChannel: 'none',
 	receptionistVisible: false
 };
 

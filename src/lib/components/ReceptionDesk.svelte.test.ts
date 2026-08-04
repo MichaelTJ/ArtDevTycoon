@@ -15,6 +15,28 @@ test('renders commission offers with budgets', async () => {
 	await expect.element(screen.getByText('Paint me a cool cat.')).toBeVisible();
 });
 
+test('letterbox channel uses mail framing', async () => {
+	const screen = render(ReceptionDesk, {
+		offers,
+		channel: 'letterbox',
+		onaccept: vi.fn(),
+		onclose: vi.fn()
+	});
+	await expect.element(screen.getByRole('heading', { name: 'Letterbox' })).toBeVisible();
+	await expect.element(screen.getByText(/job slip from the letterbox/i)).toBeVisible();
+});
+
+test('computer channel uses inbox framing', async () => {
+	const screen = render(ReceptionDesk, {
+		offers,
+		channel: 'computer',
+		onaccept: vi.fn(),
+		onclose: vi.fn()
+	});
+	await expect.element(screen.getByRole('heading', { name: 'Computer' })).toBeVisible();
+	await expect.element(screen.getByText(/brief from your inbox/i)).toBeVisible();
+});
+
 test('accept brief fires onaccept', async () => {
 	const onaccept = vi.fn();
 	const screen = render(ReceptionDesk, { offers, onaccept, onclose: vi.fn() });

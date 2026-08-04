@@ -1,4 +1,5 @@
 import type { ClientBrief, GalleryEntry, GamePhase } from '$lib/types/contracts';
+import type { CommissionChannel } from '$lib/game/commissionChannel';
 import type { InteractableId, StudioShopId } from './interactables';
 import type { RoomZoneId } from './rooms';
 
@@ -69,7 +70,9 @@ export interface StudioSnapshot {
 	 * prefers-reduced-motion.
 	 */
 	reducedVfx: boolean;
-	/** Spec 24 — show receptionist NPC and talk target when venue ≥ garage. */
+	/** P27 — how commission offers are surfaced at this venue. */
+	commissionChannel: CommissionChannel;
+	/** Spec 24 / P27 — receptionist NPC only when channel is `receptionist`. */
 	receptionistVisible: boolean;
 }
 

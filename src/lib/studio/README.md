@@ -96,7 +96,9 @@ Furniture may carry an optional `interactableId` (`rooms.ts`). Registry lives in
 | --------------- | -------------- | ------------------------------------------------------------------------------------------------------- |
 | `fridge`        | `home-kitchen` | Toggle chest frame (2↔3), emit `prop-bark`, auto-close after 2s                                         |
 | `toolkit-shelf` | `art-room`     | Emit `open-shop` / `toolkit` → `+page` bumps `openToolkitNonce` → menu bar opens existing `ToolkitShop` |
-| Receptionist    | garage+ venues | Emit `open-reception` → `ReceptionDesk` commission board (spec 24)                                      |
+| Receptionist    | gallery-hall+  | NPC at `clientWait`; emit `open-reception` → `ReceptionDesk` (receptionist copy)                        |
+| Letterbox       | garage         | Prop at `clientWait`; emit `open-reception` → letterbox board UI                                        |
+| Computer inbox  | storefront     | Prop at `clientWait`; emit `open-reception` → computer board UI                                         |
 
 Interact priority (must not reorder): talk → deliver → desk → easel → look → **prop**.
 Commission talk/deliver always wins when in range. World prompts use

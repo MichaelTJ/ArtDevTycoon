@@ -1,8 +1,8 @@
 # Spec 24 — Artist team, training & major projects
 
-**Status:** **MVP shipped** (Wave K — 24a–24d). Playtest **P25** (Skip) shipped; **P27**
-commission-channel retune (letterbox → computer → receptionist) landing / in flight.
-**Worktree:** `../adt-wt-artist-team` (historical); P27 worktree `../adt-wt-pt4-commission-channels`
+**Status:** **MVP shipped** (Wave K — 24a–24d). Playtest **P25** (Skip) and **P27**
+(letterbox → computer → receptionist) shipped.
+**Worktree:** `../adt-wt-artist-team` (historical); P27 `../adt-wt-pt4-commission-channels`
 **Depends on:** Specs **16** (idle staff), **21a–21b** (floor NPCs + interact), **12–15**
 (progressions). Assignment uses **simulated timers** (no engine generate required in MVP).
 
@@ -18,6 +18,9 @@ Spec 16’s staff are **idle automations**. Spec 24 is the active studio fantasy
 | `garage`        | **letterbox**   | Job slips in the mail — no receptionist NPC  |
 | `storefront`    | **computer**    | Jobs arrive in a computer inbox              |
 | `gallery-hall+` | **receptionist**| Talkable receptionist NPC + desk board       |
+
+**P27 update:** Commission **board** unlocks at garage (letterbox UI) → storefront (computer) →
+gallery-hall+ (receptionist NPC + desk copy). `receptionistUnlocked` / NPC sprite = gallery-hall+ only.
 
 Keep Spec 16 roles. Spec 24 adds a parallel `hiredArtists[]` roster (does not replace
 `hiredStaffIds` or idle income).
@@ -56,7 +59,7 @@ Save fields (Zod v1 defaults): `hiredArtists[]`, `artistAssignment`, `majorProje
 - [x] Unit + component tests for owned modules
 - [x] P8/P9 playtest notes marked fixed
 - [x] P25 — **Skip** on briefing / generating / board footer
-- [ ] P27 — letterbox / computer / receptionist by venue (no receptionist on garage)
+- [x] P27 — letterbox / computer / receptionist by venue (no receptionist on garage)
 
 ### Deferred (post-MVP)
 
@@ -96,5 +99,5 @@ Save fields (Zod v1 defaults): `hiredArtists[]`, `artistAssignment`, `majorProje
 - `GameStore` — `pickCommissionBoardOffers`, `acceptBoardBrief`, `declineClient` / Skip,
   `hireArtist`, `fireArtist`, `assignBriefToArtist`, major-project APIs; channel-derived
   board availability
-- `StudioBridge` — `open-reception`, snapshot `receptionistVisible` (NPC only)
+- `StudioBridge` — `open-reception`, snapshot `commissionChannel`, `receptionistVisible` (NPC only)
 - `ReceptionDesk` — `channel` / variant chrome + **Skip** footer
