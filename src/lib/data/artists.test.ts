@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { ARTIST_CATALOG, canHireArtist, receptionistUnlocked } from './artists';
 
 describe('receptionistUnlocked', () => {
-	it('is false for fridge-only kitchen', () => {
+	it('is false below gallery-hall', () => {
 		expect(receptionistUnlocked('fridge')).toBe(false);
+		expect(receptionistUnlocked('garage')).toBe(false);
+		expect(receptionistUnlocked('storefront')).toBe(false);
 	});
 
-	it('is true from garage upward', () => {
-		expect(receptionistUnlocked('garage')).toBe(true);
-		expect(receptionistUnlocked('storefront')).toBe(true);
+	it('is true from gallery-hall upward', () => {
 		expect(receptionistUnlocked('gallery-hall')).toBe(true);
+		expect(receptionistUnlocked('mega-museum')).toBe(true);
 	});
 });
 

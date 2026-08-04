@@ -123,8 +123,10 @@ export class StudioScene extends Phaser.Scene {
 	#mumWander: WanderState | null = null;
 	#mumPauseUntil = 0;
 	#mumUsesSheet = false;
-	/** Spec 24 — front-desk NPC when venue ≥ garage. */
+	/** Spec 24 / P27 — front-desk NPC when channel is receptionist. */
 	#receptionist: Phaser.Physics.Arcade.Sprite | null = null;
+	/** P27 — letterbox / computer prop at the commission anchor (no NPC). */
+	#commissionBoardProp: Phaser.GameObjects.Image | null = null;
 	#staff = new Map<FloorStaffRoleId, StaffSprite>();
 	#prompt!: Phaser.GameObjects.Image;
 	#promptLabel!: Phaser.GameObjects.Text;
@@ -265,6 +267,11 @@ export class StudioScene extends Phaser.Scene {
 			this.#receptionist = null;
 		}
 
+		if (this.#commissionBoardProp) {
+			this.#commissionBoardProp.destroy();
+			this.#commissionBoardProp = null;
+		}
+
 		if (!keepMum && this.#mum) {
 			this.#mum.destroy();
 			this.#mum = null;
@@ -310,7 +317,7 @@ export class StudioScene extends Phaser.Scene {
 		}
 		this.#rebuildEasels();
 		this.#syncStaff();
-		this.#syncReceptionist();
+		this.#syncCommissionChannel();
 		this.#createVfxEmitters();
 		this.#syncWorkParticles();
 	}
@@ -696,6 +703,33 @@ export class StudioScene extends Phaser.Scene {
 		}
 	}
 
+	#syncCommissionChannel(): void {
+		this.#syncReceptionist();
+		this.#syncCommissionBoardProp();
+	}
+
+	#syncCommissionBoardProp(): void {
+		const channel = this.#snapshot?.commissionChannel ?? 'none';
+		if (channel !== 'letterbox' && channel !== 'computer') {
+			if (this.#commissionBoardProp) {
+				this.#commissionBoardProp.destroy();
+				this.#commissionBoardProp = null;
+			}
+			return;
+		}
+
+		const anchor = receptionistAnchor(this.#room);
+		const x = anchor.tx * TILE_SIZE + TILE_SIZE / 2;
+		const y = anchor.ty * TILE_SIZE + TILE_SIZE / 2;
+		const frame = channel === 'letterbox' ? 2 : 0;
+		const tint = channel === 'letterbox' ? 0xc8a878 : 0x88aacc;
+
+		if (!this.#commissionBoardProp) {
+			this.#commissionBoardProp = this.add.image(x, y, 'furniture', frame).setDepth(8);
+		}
+		this.#commissionBoardProp.setPosition(x, y).setFrame(frame).setTint(tint);
+	}
+
 	#syncReceptionist(): void {
 		const visible = this.#snapshot?.receptionistVisible ?? false;
 		if (!visible) {
@@ -1068,7 +1102,7 @@ export class StudioScene extends Phaser.Scene {
 			} else {
 				this.#rebuildEasels();
 				this.#syncStaff();
-				this.#syncReceptionist();
+				this.#syncCommissionChannel();
 			}
 			if (this.#client) {
 				this.#applyClientLook(this.#client);
@@ -1255,9 +1289,27 @@ export class StudioScene extends Phaser.Scene {
 			} else if (this.#client && this.#clientArrived) {
 				const d = Phaser.Math.Distance.Between(px, py, this.#client.x, this.#client.y);
 				if (d < INTERACT_RANGE_PX) return { kind: 'talk' };
-			} else if (this.#receptionist && this.#snapshot?.receptionistVisible) {
-				const d = Phaser.Math.Distance.Between(px, py, this.#receptionist.x, this.#receptionist.y);
-				if (d < INTERACT_RANGE_PX) return { kind: 'reception' };
+			} else {
+				const channel = this.#snapshot?.commissionChannel ?? 'none';
+				if (
+					channel === 'receptionist' &&
+					this.#receptionist &&
+					this.#snapshot?.receptionistVisible
+				) {
+					const d = Phaser.Math.Distance.Between(
+						px,
+						py,
+						this.#receptionist.x,
+						this.#receptionist.y
+					);
+					if (d < INTERACT_RANGE_PX) return { kind: 'reception' };
+				} else if (channel === 'letterbox' || channel === 'computer') {
+					const anchor = receptionistAnchor(this.#room);
+					const ax = anchor.tx * TILE_SIZE + TILE_SIZE / 2;
+					const ay = anchor.ty * TILE_SIZE + TILE_SIZE / 2;
+					const d = Phaser.Math.Distance.Between(px, py, ax, ay);
+					if (d < INTERACT_RANGE_PX) return { kind: 'reception' };
+				}
 			}
 		}
 
@@ -1332,6 +1384,16 @@ export class StudioScene extends Phaser.Scene {
 		if (target.kind === 'talk' || target.kind === 'deliver') {
 			return { kind: target.kind, clientName: this.#promptClientName() };
 		}
+		if (target.kind === 'reception') {
+			const channel = this.#snapshot?.commissionChannel ?? 'none';
+			if (channel === 'letterbox') {
+				return { kind: 'mail', registryLabel: 'Check letterbox' };
+			}
+			if (channel === 'computer') {
+				return { kind: 'prop', registryLabel: 'Open inbox' };
+			}
+			return { kind: 'reception' };
+		}
 		return { kind: target.kind };
 	}
 
@@ -1349,9 +1411,15 @@ export class StudioScene extends Phaser.Scene {
 			x = npc.x;
 			y = npc.y - 18;
 		}
-		if (target.kind === 'reception' && this.#receptionist) {
-			x = this.#receptionist.x;
-			y = this.#receptionist.y - 18;
+		if (target.kind === 'reception') {
+			if (this.#receptionist && this.#snapshot?.receptionistVisible) {
+				x = this.#receptionist.x;
+				y = this.#receptionist.y - 18;
+			} else {
+				const anchor = receptionistAnchor(this.#room);
+				x = anchor.tx * TILE_SIZE + TILE_SIZE / 2;
+				y = anchor.ty * TILE_SIZE + TILE_SIZE / 2 - 18;
+			}
 		}
 		if (target.kind === 'prop') {
 			const prop = this.#interactProps.find((p) => p.id === target.id);

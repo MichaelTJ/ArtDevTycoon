@@ -1,35 +1,63 @@
 <script lang="ts">
+	import type { CommissionChannel } from '$lib/game/commissionChannel';
 	import type { ClientBrief } from '$lib/types/contracts';
 
 	interface Props {
 		offers: ClientBrief[];
+		channel?: CommissionChannel;
 		onaccept: (brief: ClientBrief) => void;
 		onclose: () => void;
 	}
 
-	let { offers, onaccept, onclose }: Props = $props();
+	let { offers, channel = 'receptionist', onaccept, onclose }: Props = $props();
+
+	const copy = $derived.by(() => {
+		switch (channel) {
+			case 'letterbox':
+				return {
+					title: 'Letterbox',
+					description: 'Pick a job slip from the letterbox — commissions arrive by mail.',
+					dialogLabel: 'Letterbox',
+					closeLabel: 'Close letterbox'
+				};
+			case 'computer':
+				return {
+					title: 'Computer',
+					description: 'Pick a brief from your inbox — new jobs land on the computer.',
+					dialogLabel: 'Computer inbox',
+					closeLabel: 'Close inbox'
+				};
+			default:
+				return {
+					title: 'Reception desk',
+					description: 'Pick a commission from the board — the grown-up way to find work.',
+					dialogLabel: 'Reception desk',
+					closeLabel: 'Close reception desk'
+				};
+		}
+	});
 </script>
 
 <div
 	class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/60 p-4"
 	role="dialog"
 	aria-modal="true"
-	aria-label="Reception desk"
+	aria-label={copy.dialogLabel}
 >
 	<div
 		class="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-stone-300 bg-white p-5 shadow-sm"
 	>
 		<div class="flex items-start justify-between gap-3">
 			<div>
-				<h2 class="text-lg font-semibold text-stone-800">Reception desk</h2>
+				<h2 class="text-lg font-semibold text-stone-800">{copy.title}</h2>
 				<p class="mt-1 text-sm text-stone-500">
-					Pick a commission from the board — the grown-up way to find work.
+					{copy.description}
 				</p>
 			</div>
 			<button
 				type="button"
 				class="min-h-11 shrink-0 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-				aria-label="Close reception desk"
+				aria-label={copy.closeLabel}
 				onclick={onclose}
 			>
 				Close

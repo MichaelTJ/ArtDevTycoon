@@ -165,7 +165,8 @@
 			residentClientArmed: clientSummoned && kitchenHasMum && game.phase === 'idle',
 			hiredRoleIds: game.hiredStaffIds,
 			reducedVfx,
-			receptionistVisible: game.receptionistAvailable
+			receptionistVisible: game.receptionistAvailable,
+			commissionChannel: game.commissionChannel
 		});
 	}
 
@@ -187,7 +188,7 @@
 	}
 
 	function openReceptionDesk(): void {
-		if (!game.receptionistAvailable || game.phase !== 'idle') return;
+		if (!game.commissionBoardAvailable || game.phase !== 'idle') return;
 		boardOffers = game.pickCommissionBoardOffers(3);
 		showReceptionDesk = true;
 	}
@@ -270,7 +271,8 @@
 		void game.lastWorkDurationMs;
 		void game.workStartedAt;
 		void game.hiredStaffIds;
-		void game.receptionistAvailable;
+		void game.commissionBoardAvailable;
+		void game.commissionChannel;
 		void clientSummoned;
 		void kitchenHasMum;
 		void reducedVfx;
@@ -654,6 +656,7 @@
 
 {#if showReceptionDesk}
 	<ReceptionDesk
+		channel={game.commissionChannel}
 		offers={boardOffers}
 		onaccept={acceptBoardBrief}
 		onclose={() => {

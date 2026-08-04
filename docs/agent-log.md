@@ -2500,3 +2500,48 @@ src/lib/data/briefs.test.ts src/lib/stores/gameState.svelte.test.ts`.
   zone; orchestrator may update on merge if full suite is run.
 - `ReceptionDesk.svelte.test.ts` expects old c1 text "Paint me a cat." (out of zone).
 - Manual playthrough not run (unit tests only).
+
+## 2026-08-04 — P27 commission channels (pt4 worktree)
+
+**Zone:** `src/lib/data/artists*`, `src/lib/game/commissionChannel*`, `gameState*`,
+`ReceptionDesk*`, `studio/bridge*`, `StudioScene.ts`, `+page.svelte`, docs (playtest-notes,
+24-artist-team, agent-log), directory READMEs under owned zones.
+
+**Built:** Playtest P27 — commission selection UI escalates by venue without a receptionist
+NPC until gallery-hall. Pure helper `commissionChannelForVenue` maps fridge → none, garage →
+letterbox, storefront → computer, gallery-hall+ → receptionist. `GameStore` exposes
+`commissionChannel`, `commissionBoardAvailable`, and `receptionistAvailable` (NPC only).
+`ReceptionDesk` accepts `channel` for title/copy variants. Phaser shows a letterbox/computer
+prop at `clientWait` for non-receptionist board channels; receptionist sprite only when
+channel is `receptionist`. `open-reception` opens the board for any board channel.
+
+**Public surface:**
+
+- `$lib/game/commissionChannel` — `CommissionChannel`, `commissionChannelForVenue`,
+  `commissionBoardAvailable`
+- `receptionistUnlocked(unlockedVenueId)` — true only for gallery-hall+
+- `GameStore.commissionChannel`, `commissionBoardAvailable`, `receptionistAvailable`
+- `StudioSnapshot.commissionChannel`, `receptionistVisible` (NPC flag)
+- `ReceptionDesk` prop `channel?: CommissionChannel`
+
+**Tests:** `artists.test.ts`, `commissionChannel.test.ts`, `gameState.svelte.test.ts`
+(P27 venue progression), `ReceptionDesk.svelte.test.ts` (letterbox/computer copy),
+`bridge.test.ts`. Commands: `npm run check`; `npm run lint`; `npm run test:unit -- --run
+src/lib/data/artists.test.ts src/lib/game/commissionChannel.test.ts
+src/lib/stores/gameState.svelte.test.ts src/lib/components/ReceptionDesk.svelte.test.ts
+src/lib/studio/bridge.test.ts`.
+
+**Decisions:**
+
+- Kept bridge event name `open-reception` for all board channels (minimal seam change).
+- Letterbox/computer use furniture prop tint at `receptionistAnchor`; prompts via
+  registry labels ("Check letterbox", "Open inbox").
+- `receptionistUnlocked` in data layer uses venue order ≥ gallery-hall (parallel to
+  `commissionChannel` mapping, no data→game import).
+
+**Requests:** None.
+
+**Known gaps:**
+
+- Manual playthrough not run (unit/component tests only).
+- No dedicated Phaser art for letterbox/computer — tinted furniture placeholder.

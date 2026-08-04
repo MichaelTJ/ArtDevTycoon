@@ -58,6 +58,10 @@ before the gallery entry is persisted.
   artist handoff set `finalPayout` to `MUM_PAYOUT_CASH` ($5), `pendingSkillGains` to
   `mumSkillGains()` (10/10/20), and `collectCash` applies `MUM_REPUTATION_GAIN` (3).
   Non-Mum clients unchanged.
+- Playtest P27: `commissionChannel` / `commissionBoardAvailable` derive from
+  `unlockedVenueId` (fridge → none; garage → letterbox; storefront → computer;
+  gallery-hall+ → receptionist). `receptionistAvailable` is true only for the
+  receptionist channel.
 
 ## Tests
 

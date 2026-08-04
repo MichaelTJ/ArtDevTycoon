@@ -11,6 +11,9 @@ Spec 16’s staff are **idle automations**. Spec 24 is the active studio fantasy
 **artists**, **training**, **commission hand-off**, **major projects**, and a
 **receptionist** commission board once the venue is garage or better.
 
+**P27 update:** Commission **board** unlocks at garage (letterbox UI) → storefront (computer) →
+gallery-hall+ (receptionist NPC + desk copy). `receptionistUnlocked` / NPC sprite = gallery-hall+ only.
+
 Keep Spec 16 roles. Spec 24 adds a parallel `hiredArtists[]` roster (does not replace
 `hiredStaffIds` or idle income).
 
@@ -20,7 +23,7 @@ Keep Spec 16 roles. Spec 24 adds a parallel `hiredArtists[]` roster (does not re
 
 | Item                | Literal / rule                                              | Tests                          |
 | ------------------- | ----------------------------------------------------------- | ------------------------------ |
-| Receptionist unlock | `unlockedVenueId !== 'fridge'` (garage+)                    | `artists.test.ts`              |
+| Receptionist unlock | `unlockedVenueId` ≥ `gallery-hall` (P27)                    | `artists.test.ts`              |
 | Artist hire costs   | Jade $45/4 rep, Sam $60/6, Riley $75/8                      | `artists.test.ts`              |
 | XP / level          | +25 XP per assignment/beat; level = `floor(xp/40)+1` cap 5  | `artistTraining.test.ts`       |
 | Mock artist scores  | Level 1 → 6/6; level 5 → 10/10                              | `artistTraining.test.ts`       |
@@ -58,24 +61,25 @@ Save fields (Zod v1 defaults): `hiredArtists[]`, `artistAssignment`, `majorProje
 
 ## Slices (reference)
 
-| ID    | Feature            | MVP                                                 |
-| ----- | ------------------ | --------------------------------------------------- |
-| A1    | NPC talk handlers  | ✅ receptionist → `open-reception`                  |
-| A2    | Receptionist NPC   | ✅ Phaser sprite at `clientWait` when garage+       |
-| A3    | Commission board   | ✅ `ReceptionDesk` 2–4 offers via `pickBoardOffers` |
-| B1–B3 | Roster / hire / XP | ✅ `TeamRoster`, `artistTraining.ts`                |
-| C1–C3 | Assign + timer     | ✅ `AssignArtistModal`, mock completion → results   |
-| D1–D4 | Major projects     | ✅ `MajorProjectPanel`, beat timers, collect payout |
+| ID    | Feature            | MVP                                                       |
+| ----- | ------------------ | --------------------------------------------------------- |
+| A1    | NPC talk handlers  | ✅ receptionist → `open-reception`                        |
+| A2    | Receptionist NPC   | ✅ Phaser sprite at `clientWait` when gallery-hall+ (P27) |
+| A3    | Commission board   | ✅ `ReceptionDesk` 2–4 offers via `pickBoardOffers`       |
+| B1–B3 | Roster / hire / XP | ✅ `TeamRoster`, `artistTraining.ts`                      |
+| C1–C3 | Assign + timer     | ✅ `AssignArtistModal`, mock completion → results         |
+| D1–D4 | Major projects     | ✅ `MajorProjectPanel`, beat timers, collect payout       |
 
 ---
 
 ## Public surface
 
 - `$lib/data/artists` — catalog, `receptionistUnlocked`, `canHireArtist`
+- `$lib/game/commissionChannel` — `commissionChannelForVenue`, `commissionBoardAvailable` (P27)
 - `$lib/data/majorProjects` — defs, `canAcceptMajorProject`, rep rewards
 - `$lib/game/artistTraining` — level/XP/scores
 - `$lib/game/assignCommission` — timers, `pickBoardOffers`, mock artwork URL
 - `$lib/game/majorProjectProgress` — beat progress helpers
 - `GameStore` — `pickCommissionBoardOffers`, `acceptBoardBrief`, `hireArtist`, `fireArtist`,
   `assignBriefToArtist`, major-project APIs
-- `StudioBridge` — `open-reception`, snapshot `receptionistVisible`
+- `StudioBridge` — `open-reception`, snapshot `commissionChannel`, `receptionistVisible`

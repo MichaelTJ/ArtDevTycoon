@@ -5,6 +5,11 @@ export {
 	MAX_PROMPT_LENGTH
 } from './promptPipeline';
 export {
+	commissionBoardAvailable,
+	commissionChannelForVenue,
+	type CommissionChannel
+} from './commissionChannel';
+export {
 	scorePrompt,
 	calculatePayout,
 	toGalleryScore,

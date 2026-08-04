@@ -44,11 +44,11 @@ export const ARTIST_CATALOG: readonly ArtistCatalogEntry[] = [
 
 const VENUE_ORDER = GALLERY_VENUES.map((v) => v.id);
 
-/** Receptionist desk unlocks once the player has garage or better (not fridge-only). */
+/** Receptionist NPC unlocks at gallery-hall and above (P27 — not garage/storefront). */
 export function receptionistUnlocked(unlockedVenueId: string): boolean {
 	const idx = VENUE_ORDER.indexOf(unlockedVenueId);
-	const garageIdx = VENUE_ORDER.indexOf('garage');
-	return idx >= 0 && garageIdx >= 0 && idx >= garageIdx;
+	const galleryIdx = VENUE_ORDER.indexOf('gallery-hall');
+	return idx >= 0 && galleryIdx >= 0 && idx >= galleryIdx;
 }
 
 export function getArtistCatalogEntry(id: string): ArtistCatalogEntry | undefined {
