@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MEDIUM_TIER_ID, getMediumTier } from '$lib/data/mediumTiers';
-import { buildLevel1Prompt } from '$lib/game';
+import { buildLevel1Prompt, mediumSkillBackground } from '$lib/game';
 import { clampCheatCash, clampCheatRep, peekLevel1ModifierSuffix } from './cheats';
 
 describe('clampCheatCash', () => {
@@ -34,6 +34,6 @@ describe('peekLevel1ModifierSuffix', () => {
 	it('matches the crayon medium suffix used by buildLevel1Prompt', () => {
 		const suffix = peekLevel1ModifierSuffix();
 		expect(suffix).toBe(getMediumTier(DEFAULT_MEDIUM_TIER_ID).promptModifierSuffix);
-		expect(buildLevel1Prompt('a dragon')).toBe(`a dragon, ${suffix}`);
+		expect(buildLevel1Prompt('a dragon')).toBe(`a dragon, ${suffix}, ${mediumSkillBackground(1)}`);
 	});
 });

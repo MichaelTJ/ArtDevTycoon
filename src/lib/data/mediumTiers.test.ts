@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { LEVEL_1 } from '$lib/types/contracts';
 import { MEDIUM_TIERS, canUnlockMediumTier, getMediumTier, getNextMediumTier } from './mediumTiers';
 
 describe('MEDIUM_TIERS', () => {
@@ -6,6 +7,10 @@ describe('MEDIUM_TIERS', () => {
 		expect(MEDIUM_TIERS[0]?.id).toBe('crayon');
 		expect(MEDIUM_TIERS[0]?.unlockCost).toBe(0);
 		expect(MEDIUM_TIERS[0]?.requiredReputation).toBe(0);
+	});
+
+	it('crayon rank-1 suffix is byte-identical to LEVEL_1.promptModifiers', () => {
+		expect(getMediumTier('crayon').promptModifierSuffix).toBe(LEVEL_1.promptModifiers);
 	});
 
 	it('has strictly increasing payout multipliers', () => {

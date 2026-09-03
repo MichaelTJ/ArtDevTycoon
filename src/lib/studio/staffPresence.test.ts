@@ -33,6 +33,16 @@ describe('staffAnchorForRole', () => {
 		});
 	});
 
+	it('uses extra desk and extra wait tiles when they exist', () => {
+		const kitchen = {
+			...ROOMS['home-kitchen'],
+			desks: [{ tx: 4, ty: 4 }],
+			clientWaits: [{ tx: 3, ty: 1 }]
+		};
+		expect(staffAnchorForRole('apprentice', kitchen)).toEqual({ tx: 4, ty: 4 });
+		expect(staffAnchorForRole('marketing-director', kitchen)).toEqual({ tx: 3, ty: 1 });
+	});
+
 	it('anchors curator at first patrol waypoint', () => {
 		const kitchen = ROOMS['home-kitchen'];
 		expect(staffAnchorForRole('curator', kitchen)).toEqual(curatorPatrol(kitchen)[0]);

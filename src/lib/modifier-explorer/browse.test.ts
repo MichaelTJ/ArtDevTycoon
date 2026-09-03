@@ -29,12 +29,12 @@ describe('modifier explorer browse', () => {
 		const result = makeResult({
 			facets: makeFacets({
 				subject: { key: 'horse', label: 'galloping horse', level: 5 },
-				style: { key: 'pencilsketch', label: 'a rough graphite pencil sketch', level: 2 }
+				style: { key: 'pencil', label: 'Pencil', level: 2 }
 			})
 		});
 		const tags = listGenerationTags(result);
 		expect(tags.some((tag) => tag.kind === 'subject' && tag.id === 'horse')).toBe(true);
-		expect(tags.some((tag) => tag.kind === 'style' && tag.id === 'pencilsketch')).toBe(true);
+		expect(tags.some((tag) => tag.kind === 'style' && tag.id === 'pencil')).toBe(true);
 		expect(tags.some((tag) => tag.kind === 'mood')).toBe(true);
 	});
 
@@ -54,8 +54,8 @@ describe('modifier explorer browse', () => {
 			makeResult({
 				caseId: 'oil-owl',
 				facets: makeFacets({
-					style: { key: 'oilpainting', label: 'oil painting', level: 5 },
-					subject: { key: 'owl', label: 'perched owl', level: 3 }
+					style: { key: 'oil', label: 'Oil', level: 5 },
+					subject: { key: 'owl', label: 'Perched owl', level: 3 }
 				})
 			})
 		]);
@@ -117,7 +117,7 @@ describe('modifier explorer browse', () => {
 		const tagged = tagResults([
 			makeResult({
 				caseId: 'expert',
-				facets: makeFacets({ style: { key: 'oilpainting', label: 'oil painting', level: 5 } })
+				facets: makeFacets({ style: { key: 'oil', label: 'Oil', level: 5 } })
 			}),
 			makeResult({
 				caseId: 'novice',

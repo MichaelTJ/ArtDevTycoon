@@ -13,7 +13,9 @@ export const CURRENT_SAVE_VERSION = 1;
 /** One hired named artist on the spec 24 roster (parallel to spec 16 staff ids). */
 export const hiredArtistSchema = z.object({
 	catalogId: z.string().min(1),
-	xp: z.number().int().min(0).default(0)
+	xp: z.number().int().min(0).default(0),
+	/** Spec 27. Missing keys = 0 XP. */
+	mediumSkillXp: z.record(z.string(), z.number().int().min(0)).default({})
 });
 
 export type HiredArtistSave = z.infer<typeof hiredArtistSchema>;
@@ -82,6 +84,11 @@ export const saveDataSchema = z.object({
 	skillXpImagination: z.number().int().min(0).default(0),
 	skillXpHustle: z.number().int().min(0).default(0),
 
+	/** Spec 27. Per-medium skill XP. Missing keys = 0 XP = Novice. */
+	playerMediumSkillXp: z.record(z.string(), z.number().int().min(0)).default({}),
+	/** Spec 27. Artist-skill catch-up clock. Null on old saves → stamp `now()` on load. */
+	lastMediumSkillTickAt: z.number().int().nonnegative().nullable().default(null),
+
 	/** Spec 24. Named artist roster — separate from spec 16 hiredStaffIds. */
 	hiredArtists: z.array(hiredArtistSchema).default([]),
 	/** Null when the player is painting personally or idle. */
@@ -123,6 +130,19 @@ function withIncomeTickInitialised(data: SaveData, now: () => number): SaveData 
 }
 
 /**
+ * Spec 27: a null medium-skill tick must never dump retroactive artist XP.
+ * Old saves parse as null; we stamp `now()` here (same pattern as income).
+ */
+function withMediumSkillTickInitialised(data: SaveData, now: () => number): SaveData {
+	if (data.lastMediumSkillTickAt !== null) return data;
+	return { ...data, lastMediumSkillTickAt: now() };
+}
+
+function withCatchupClocksInitialised(data: SaveData, now: () => number): SaveData {
+	return withMediumSkillTickInitialised(withIncomeTickInitialised(data, now), now);
+}
+
+/**
  * Reads and validates the ACTIVE slot's SaveData. Migrates legacy `adt.save.v1` on
  * first boot. Returns `createDefaultSave(startingCash)` for an empty active slot,
  * malformed storage, or a `localStorage` throw — a corrupt save must never block boot.
@@ -132,11 +152,11 @@ export function loadSave(startingCash: number, now: () => number = Date.now): Sa
 		ensureSaveSlotsMigrated(startingCash, now);
 		const slotData = loadActiveSlotData(startingCash, now);
 		if (!slotData) {
-			return withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
+			return withCatchupClocksInitialised(createDefaultSave(startingCash, now), now);
 		}
-		return withIncomeTickInitialised(slotData, now);
+		return withCatchupClocksInitialised(slotData, now);
 	} catch {
-		return withIncomeTickInitialised(createDefaultSave(startingCash, now), now);
+		return withCatchupClocksInitialised(createDefaultSave(startingCash, now), now);
 	}
 }
 

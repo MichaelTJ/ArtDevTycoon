@@ -11,6 +11,35 @@ export interface TileMarker {
 	ty: number;
 }
 
+export function markersEqual(a: TileMarker, b: TileMarker): boolean {
+	return a.tx === b.tx && a.ty === b.ty;
+}
+
+/** Primary plus extras, skipping duplicates. */
+export function collectMarkers(primary: TileMarker, extras?: readonly TileMarker[]): TileMarker[] {
+	const out: TileMarker[] = [{ tx: primary.tx, ty: primary.ty }];
+	for (const extra of extras ?? []) {
+		if (!out.some((marker) => markersEqual(marker, extra))) {
+			out.push({ tx: extra.tx, ty: extra.ty });
+		}
+	}
+	return out;
+}
+
+export function roomDesks(room: Pick<RoomDef, 'desk' | 'desks'>): TileMarker[] {
+	return collectMarkers(room.desk, room.desks);
+}
+
+export function roomFridgeAnchors(
+	room: Pick<RoomDef, 'fridgeAnchor' | 'fridgeAnchors'>
+): TileMarker[] {
+	return collectMarkers(room.fridgeAnchor, room.fridgeAnchors);
+}
+
+export function roomClientWaits(room: Pick<RoomDef, 'clientWait' | 'clientWaits'>): TileMarker[] {
+	return collectMarkers(room.clientWait, room.clientWaits);
+}
+
 /**
  * Furniture sprites placed after the tile layer.
  * Frames refer to `furniture.png` strip: 0 table, 1 barrel, 2 chest, 3 open chest, 4 block.
@@ -23,6 +52,8 @@ export interface FurnitureProp {
 	solid: boolean;
 	/** When set, player may E-interact via interactables registry. */
 	interactableId?: InteractableId;
+	/** Phaser spritesheet key. Omitted = the classic `furniture` strip. */
+	sheet?: string;
 }
 
 export interface RoomZone {
@@ -60,6 +91,12 @@ export interface RoomDef {
 	desk: TileMarker;
 	playerSpawn: TileMarker;
 	fridgeAnchor: TileMarker;
+	/** Extra desks beyond `desk`. Door and player-spawn stay unique. */
+	desks?: readonly TileMarker[];
+	/** Extra fridge / painting anchors beyond `fridgeAnchor`. */
+	fridgeAnchors?: readonly TileMarker[];
+	/** Extra client standing tiles beyond `clientWait`. */
+	clientWaits?: readonly TileMarker[];
 	furniture: readonly FurnitureProp[];
 	/** Empty for single-room plans; ≥2 for storefront / halls. */
 	zones: readonly RoomZone[];
@@ -70,6 +107,16 @@ export interface RoomDef {
 	 * walls. Kept for docs; implementers MAY ignore and bake walls into `ground`.
 	 */
 	palette: 'kitchen' | 'garage' | 'storefront' | 'museum';
+	/**
+	 * Studio-editor atlas id (`home-interior` | `home-indoor` | `tiny-town` |
+	 * `tiny-dungeon` | `tiny-battle`). Omitted rooms keep Tiny Dungeon `walls-floors`.
+	 */
+	tilesetId?: string;
+	/**
+	 * Per-cell tileset id when a floor or wall uses a pack other than `tilesetId`.
+	 * Omitted or `undefined` entries use `tilesetId`.
+	 */
+	groundSheets?: readonly (string | undefined)[];
 }
 
 function idx(width: number, tx: number, ty: number): number {

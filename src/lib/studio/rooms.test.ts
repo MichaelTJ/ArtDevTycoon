@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ROOMS, getRoomForEnvironment, markerWalkable } from './rooms';
+import {
+	ROOMS,
+	getRoomForEnvironment,
+	markerWalkable,
+	roomDesks,
+	roomFridgeAnchors
+} from './rooms';
 
 describe('rooms', () => {
 	it('home-kitchen is 6×6 with Mum resident and walkable markers', () => {
@@ -88,6 +94,17 @@ describe('rooms', () => {
 			expect(markerWalkable(room, room.door)).toBe(true);
 			expect(markerWalkable(room, room.desk)).toBe(true);
 		}
+	});
+
+	it('collects unique extra desks and fridge anchors', () => {
+		const kitchen = ROOMS['home-kitchen'];
+		expect(roomDesks(kitchen)).toEqual([kitchen.desk]);
+		expect(
+			roomFridgeAnchors({
+				...kitchen,
+				fridgeAnchors: [kitchen.fridgeAnchor, { tx: 4, ty: 4 }]
+			})
+		).toEqual([kitchen.fridgeAnchor, { tx: 4, ty: 4 }]);
 	});
 
 	it('getRoomForEnvironment falls back to home-kitchen', () => {

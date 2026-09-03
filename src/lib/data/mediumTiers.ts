@@ -27,10 +27,9 @@ export interface MediumTier {
 /**
  * Ordered from worst to best. Index order matters: `getNextMediumTier` and the shop's
  * "up next" preview both walk this array in order. `promptModifierSuffix` values below
- * are drawn straight from the skill-tier vocabulary already validated in
- * `data/modifier-explorer/manifest.json` (categories `skill-amateur` through
- * `skill-master`), so they are known to produce a visible quality gradient with the
- * in-browser engines, not just invented copy.
+ * are the Spec 27 rank-1 (Novice) hidden suffixes. Higher ranks live in
+ * `mediumSkillTiers.ts`. Rank-1 copy (except crayon) is the explorer2 Round 4/5 Novice
+ * phrase. Crayon rank 1 stays byte-identical to `LEVEL_1.promptModifiers`.
  */
 export const MEDIUM_TIERS: readonly MediumTier[] = [
 	{
@@ -50,8 +49,7 @@ export const MEDIUM_TIERS: readonly MediumTier[] = [
 		tagline: 'Graphite over crayon wax. Clients notice the extra care.',
 		unlockCost: 15,
 		requiredReputation: 3,
-		promptModifierSuffix:
-			'rough pencil sketch, sketchbook page, basic shading, uneven lines, student artwork',
+		promptModifierSuffix: 'messy continuous line graphite drawing',
 		payoutMultiplier: 1.15,
 		icon: '✏️'
 	},
@@ -61,7 +59,7 @@ export const MEDIUM_TIERS: readonly MediumTier[] = [
 		tagline: 'Bold outlines and real shadow. Your first taste of drama.',
 		unlockCost: 35,
 		requiredReputation: 6,
-		promptModifierSuffix: 'ink wash, charcoal shading, crisp outlines, student portfolio piece',
+		promptModifierSuffix: 'smudged, chaotic charcoal scribble',
 		payoutMultiplier: 1.3,
 		icon: '🖋️'
 	},
@@ -71,7 +69,7 @@ export const MEDIUM_TIERS: readonly MediumTier[] = [
 		tagline: 'Soft blends and happy accidents.',
 		unlockCost: 75,
 		requiredReputation: 10,
-		promptModifierSuffix: 'watercolor wash, soft pastels, gouache, delicate blending',
+		promptModifierSuffix: 'messy chalk pastel scribble',
 		payoutMultiplier: 1.5,
 		icon: '🎨'
 	},
@@ -81,8 +79,7 @@ export const MEDIUM_TIERS: readonly MediumTier[] = [
 		tagline: 'Clean, professional, saleable at real galleries.',
 		unlockCost: 160,
 		requiredReputation: 16,
-		promptModifierSuffix:
-			'digital illustration, vector art, cel shading, professional finish, crisp outlines',
+		promptModifierSuffix: 'MS Paint style pixelated drawing, flat colors',
 		payoutMultiplier: 1.75,
 		icon: '🖥️'
 	},
@@ -92,8 +89,7 @@ export const MEDIUM_TIERS: readonly MediumTier[] = [
 		tagline: 'The masters\u2019 medium. Every commission now reads as a masterpiece.',
 		unlockCost: 350,
 		requiredReputation: 24,
-		promptModifierSuffix:
-			'oil painting on canvas, impasto, masterpiece, intricate detail, hyperrealistic, trending on artstation',
+		promptModifierSuffix: 'beginner oil painting, muddy colors, amateur canvas, thick messy paint',
 		payoutMultiplier: 2.2,
 		icon: '🖼️'
 	}

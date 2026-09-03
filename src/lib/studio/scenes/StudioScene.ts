@@ -22,15 +22,7 @@ import { cameraLetterboxBounds, cameraRoomCenter, cameraZoomToFitRoom } from '..
 import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
 import { applyDomEditableKeyboardGate } from '../domInputKeyboardGate';
-import {
-	CLIENT_SPEED,
-	INTERACT_KEYS,
-	INTERACT_RANGE_PX,
-	PLAYER_SPEED,
-	TILE_SIZE,
-	TILESET_MARGIN,
-	TILESET_SPACING
-} from '../config';
+import { CLIENT_SPEED, INTERACT_KEYS, INTERACT_RANGE_PX, PLAYER_SPEED, TILE_SIZE } from '../config';
 import { slotsForVenue, type EaselSlot } from '../easelLayout';
 import {
 	FRIDGE,
@@ -39,7 +31,7 @@ import {
 	TOOLKIT_SHELF,
 	type InteractableId
 } from '../interactables';
-import { interactPromptLabel, type InteractPromptKind } from '../interactPrompt';
+import { interactPromptLabel, type InteractPromptInput } from '../interactPrompt';
 import {
 	nextWanderTarget,
 	stepToward,
@@ -49,6 +41,7 @@ import {
 } from '../npcWander';
 import { findPathInRoom } from '../pathfind';
 import type { ResidentNpcDef, RoomDef, RoomZone, TileMarker } from '../rooms';
+import { roomDesks } from '../rooms';
 import { isSafeStudioImageUrl } from '../safeImageUrl';
 import {
 	curatorPatrol,
@@ -59,6 +52,8 @@ import {
 	type FloorStaffRoleId
 } from '../staffPresence';
 import { getRoomForVenue } from '../venueRooms';
+import { getTileset } from '$lib/studio-editor/catalog';
+import { resolvePersonLook } from '$lib/studio-editor/apply';
 import {
 	CASH_BURST_COUNT,
 	CASH_BURST_LIFESPAN_MS,
@@ -139,6 +134,7 @@ export class StudioScene extends Phaser.Scene {
 	#fridgeAutoClose: Phaser.Time.TimerEvent | null = null;
 	#groundLayer: Phaser.Tilemaps.TilemapLayer | null = null;
 	#tilemap: Phaser.Tilemaps.Tilemap | null = null;
+	#groundOverlays: Phaser.GameObjects.Group | null = null;
 	#touchVector = { x: 0, y: 0 };
 	#touchInteract = false;
 	#working = false;
@@ -284,6 +280,8 @@ export class StudioScene extends Phaser.Scene {
 		this.#interactProps = [];
 		this.#fridgeOpen = false;
 		this.#cancelFridgeAutoClose();
+		this.#groundOverlays?.destroy(true);
+		this.#groundOverlays = null;
 		this.#groundLayer?.destroy();
 		this.#groundLayer = null;
 		this.#tilemap?.destroy();
@@ -443,24 +441,40 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#buildTilemap(): void {
-		const { width, height, ground, collision } = this.#room;
+		const { width, height, ground, collision, groundSheets, tilesetId } = this.#room;
+		const spec = getTileset(tilesetId ?? 'tiny-dungeon');
 		const data: number[][] = [];
+		const overlays: { x: number; y: number; key: string; frame: number }[] = [];
 		for (let y = 0; y < height; y++) {
 			const row: number[] = [];
 			for (let x = 0; x < width; x++) {
-				row.push(ground[y * width + x] ?? 0);
+				const i = y * width + x;
+				const sheetId = groundSheets?.[i];
+				const usesOverlay = !!sheetId && sheetId !== spec.id;
+				if (usesOverlay) {
+					row.push(collision[i] === 1 ? spec.defaultWall : spec.defaultFloor);
+					const overlaySpec = getTileset(sheetId);
+					overlays.push({
+						x,
+						y,
+						key: overlaySpec.framePhaserKey,
+						frame: ground[i] ?? 0
+					});
+				} else {
+					row.push(ground[i] ?? 0);
+				}
 			}
 			data.push(row);
 		}
 
 		const map = this.make.tilemap({ data, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
 		const tileset = map.addTilesetImage(
-			'walls-floors',
-			'walls-floors',
+			spec.phaserKey,
+			spec.phaserKey,
 			TILE_SIZE,
 			TILE_SIZE,
-			TILESET_MARGIN,
-			TILESET_SPACING
+			spec.margin,
+			spec.spacing
 		);
 		if (!tileset) return;
 
@@ -475,6 +489,21 @@ export class StudioScene extends Phaser.Scene {
 			}
 		}
 
+		this.#groundOverlays?.destroy(true);
+		this.#groundOverlays = this.add.group();
+		for (const overlay of overlays) {
+			if (!this.textures.exists(overlay.key)) continue;
+			const sprite = this.add
+				.image(
+					overlay.x * TILE_SIZE + TILE_SIZE / 2,
+					overlay.y * TILE_SIZE + TILE_SIZE / 2,
+					overlay.key,
+					overlay.frame
+				)
+				.setDepth(1);
+			this.#groundOverlays.add(sprite);
+		}
+
 		this.#tilemap = map;
 		this.#groundLayer = layer;
 		this.registry.set('groundLayer', layer);
@@ -486,10 +515,11 @@ export class StudioScene extends Phaser.Scene {
 		this.#fridgeOpen = false;
 		this.#cancelFridgeAutoClose();
 		for (const prop of this.#room.furniture) {
+			const sheet = prop.sheet && this.textures.exists(prop.sheet) ? prop.sheet : 'furniture';
 			const sprite = this.#furnitureGroup.create(
 				prop.tx * TILE_SIZE + TILE_SIZE / 2,
 				prop.ty * TILE_SIZE + TILE_SIZE / 2,
-				'furniture',
+				sheet,
 				prop.frame
 			) as Phaser.Physics.Arcade.Sprite;
 			sprite.setDepth(5);
@@ -535,23 +565,32 @@ export class StudioScene extends Phaser.Scene {
 
 	#spawnPlayer(): void {
 		const { playerSpawn } = this.#room;
+		const look = resolvePersonLook('player');
+		const key = this.textures.exists(look.sheetId) ? look.sheetId : 'player';
 		this.#player = this.physics.add.sprite(
 			playerSpawn.tx * TILE_SIZE + TILE_SIZE / 2,
 			playerSpawn.ty * TILE_SIZE + TILE_SIZE / 2,
-			'player',
-			0
+			key,
+			look.frame
 		);
 		this.#player.setDepth(10);
 		this.#player.setCollideWorldBounds(true);
 		this.#player.body?.setSize(10, 10);
 		this.#player.body?.setOffset(3, 4);
+		if (look.tint === null) {
+			this.#player.clearTint();
+		} else {
+			this.#player.setTint(look.tint);
+		}
 
 		if (this.#groundLayer) {
 			this.physics.add.collider(this.#player, this.#groundLayer);
 		}
 		this.physics.add.collider(this.#player, this.#furnitureGroup);
 		this.#applyCameraFollow();
-		this.#player.anims.play('player-idle');
+		if (key === 'player' && this.anims.exists('player-idle')) {
+			this.#player.anims.play('player-idle');
+		}
 	}
 
 	/** Soft follow lerp unless `reducedVfx` — then hard follow. */
@@ -577,18 +616,23 @@ export class StudioScene extends Phaser.Scene {
 		if (this.#mum) return;
 
 		this.#mumDef = mum;
-		// Prefer dedicated `mum` sheet; else tinted clients (Spec 21a §4).
-		const useMumSheet = this.textures.exists('mum');
-		this.#mumUsesSheet = useMumSheet;
-		const key = useMumSheet ? 'mum' : 'clients';
+		const look = resolvePersonLook('mum');
+		const key = this.textures.exists(look.sheetId)
+			? look.sheetId
+			: this.textures.exists('mum')
+				? 'mum'
+				: 'clients';
+		this.#mumUsesSheet = key === 'mum';
 		this.#mum = this.physics.add.sprite(
 			mum.spawn.tx * TILE_SIZE + TILE_SIZE / 2,
 			mum.spawn.ty * TILE_SIZE + TILE_SIZE / 2,
 			key,
-			mum.frame
+			look.frame
 		);
 		this.#mum.setDepth(10);
-		if (!useMumSheet) {
+		if (look.tint !== null) {
+			this.#mum.setTint(look.tint);
+		} else if (key === 'clients') {
 			this.#mum.setTint(MUM_TINT);
 		}
 		this.#mumWander = {
@@ -611,6 +655,11 @@ export class StudioScene extends Phaser.Scene {
 
 	#playMumAnim(kind: 'idle' | 'walk'): void {
 		if (!this.#mum) return;
+		const texture = this.#mum.texture.key;
+		if (texture !== 'mum' && texture !== 'clients') {
+			this.#mum.anims.stop();
+			return;
+		}
 		const key =
 			this.#mumUsesSheet && this.anims.exists(kind === 'idle' ? 'mum-idle' : 'mum-walk')
 				? kind === 'idle'
@@ -773,11 +822,18 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#playStaffIdle(entry: StaffSprite): void {
-		const key = this.#staffTextureKey();
-		// Keep role frame — shared client-idle always forces frame 0.
 		if (entry.sprite.anims.isPlaying) {
 			entry.sprite.anims.stop();
 		}
+		const current = entry.sprite.texture.key;
+		if (current !== 'staff' && current !== 'clients') {
+			if (Number(entry.sprite.frame.name) !== entry.lookFrame) {
+				entry.sprite.setFrame(entry.lookFrame);
+			}
+			return;
+		}
+		const key = this.#staffTextureKey();
+		// Keep role frame — shared client-idle always forces frame 0.
 		if (entry.sprite.texture.key !== key) {
 			entry.sprite.setTexture(key, entry.lookFrame);
 			return;
@@ -788,6 +844,11 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#playStaffWalk(entry: StaffSprite): void {
+		const current = entry.sprite.texture.key;
+		if (current !== 'staff' && current !== 'clients') {
+			entry.sprite.anims.stop();
+			return;
+		}
 		const useStaff = this.textures.exists('staff') && this.anims.exists('staff-walk');
 		entry.sprite.anims.play(useStaff ? 'staff-walk' : 'client-walk', true);
 	}
@@ -807,7 +868,10 @@ export class StudioScene extends Phaser.Scene {
 			if (this.#staff.has(roleId)) continue;
 			const anchor = staffAnchorForRole(roleId, this.#room);
 			const look = staffLookForRole(roleId);
-			const key = this.#staffTextureKey();
+			const key =
+				look.spriteKey && this.textures.exists(look.spriteKey)
+					? look.spriteKey
+					: this.#staffTextureKey();
 			const sprite = this.physics.add.sprite(
 				anchor.tx * TILE_SIZE + TILE_SIZE / 2,
 				anchor.ty * TILE_SIZE + TILE_SIZE / 2,
@@ -872,7 +936,12 @@ export class StudioScene extends Phaser.Scene {
 
 	#applyClientLook(sprite: Phaser.Physics.Arcade.Sprite): void {
 		const look = clientLookForTier(this.#snapshot?.client?.tier ?? 'walk-in');
-		sprite.setFrame(look.frame);
+		const key = look.spriteKey && this.textures.exists(look.spriteKey) ? look.spriteKey : 'clients';
+		if (sprite.texture.key !== key) {
+			sprite.setTexture(key, look.frame);
+		} else {
+			sprite.setFrame(look.frame);
+		}
 		if (look.tint === null) {
 			sprite.clearTint();
 		} else {
@@ -995,11 +1064,29 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#deskWorldPos(): { x: number; y: number } {
-		const { desk } = this.#room;
+		const desk = this.#nearestDeskTile();
 		return {
 			x: desk.tx * TILE_SIZE + TILE_SIZE / 2,
 			y: desk.ty * TILE_SIZE + TILE_SIZE / 2
 		};
+	}
+
+	#nearestDeskTile(): TileMarker {
+		const desks = roomDesks(this.#room);
+		const player = this.#player;
+		if (!player) return desks[0] ?? this.#room.desk;
+		let best = desks[0] ?? this.#room.desk;
+		let bestDist = Number.POSITIVE_INFINITY;
+		for (const desk of desks) {
+			const x = desk.tx * TILE_SIZE + TILE_SIZE / 2;
+			const y = desk.ty * TILE_SIZE + TILE_SIZE / 2;
+			const dist = Phaser.Math.Distance.Between(player.x, player.y, x, y);
+			if (dist < bestDist) {
+				best = desk;
+				bestDist = dist;
+			}
+		}
+		return best;
 	}
 
 	#ensureVfxTextures(): void {
@@ -1146,7 +1233,9 @@ export class StudioScene extends Phaser.Scene {
 		this.#client.setDepth(10);
 		this.#applyClientLook(this.#client);
 		this.#clientArrived = false;
-		this.#client.anims.play('client-walk', true);
+		if (!look.spriteKey || look.spriteKey === 'clients') {
+			this.#client.anims.play('client-walk', true);
+		}
 
 		const targetX = clientWait.tx * TILE_SIZE + TILE_SIZE / 2;
 		const targetY = clientWait.ty * TILE_SIZE + TILE_SIZE / 2;
@@ -1321,10 +1410,11 @@ export class StudioScene extends Phaser.Scene {
 			}
 		}
 
-		const deskX = this.#room.desk.tx * TILE_SIZE + TILE_SIZE / 2;
-		const deskY = this.#room.desk.ty * TILE_SIZE + TILE_SIZE / 2;
+		const desk = this.#nearestDeskTile();
+		const deskX = desk.tx * TILE_SIZE + TILE_SIZE / 2;
+		const deskY = desk.ty * TILE_SIZE + TILE_SIZE / 2;
 		if (
-			phase === 'briefing' &&
+			(phase === 'briefing' || phase === 'idle') &&
 			Phaser.Math.Distance.Between(px, py, deskX, deskY) < INTERACT_RANGE_PX
 		) {
 			return { kind: 'desk' };
@@ -1368,7 +1458,7 @@ export class StudioScene extends Phaser.Scene {
 	#interactPromptKind(target: {
 		kind: 'talk' | 'deliver' | 'reception' | 'desk' | 'easel' | 'look' | 'prop';
 		id?: InteractableId;
-	}): { kind: InteractPromptKind; registryLabel?: string | null; clientName?: string | null } {
+	}): InteractPromptInput {
 		if (target.kind === 'prop') {
 			if (target.id === 'fridge') {
 				return {
@@ -1393,6 +1483,9 @@ export class StudioScene extends Phaser.Scene {
 				return { kind: 'prop', registryLabel: 'Open inbox' };
 			}
 			return { kind: 'reception' };
+		}
+		if (target.kind === 'desk') {
+			return { kind: 'desk', deskIsPractice: this.#snapshot?.phase === 'idle' };
 		}
 		return { kind: target.kind };
 	}

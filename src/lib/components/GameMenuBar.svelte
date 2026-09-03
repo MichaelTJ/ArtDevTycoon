@@ -447,6 +447,7 @@
 		cashMeter={game.progressMeters.cash}
 		reputationMeter={game.progressMeters.reputation}
 		skills={game.skillProgressList}
+		mediumSkills={game.mediumSkillProgressList}
 		onclose={() => {
 			showProgress = false;
 		}}

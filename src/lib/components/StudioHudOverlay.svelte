@@ -1,7 +1,12 @@
 <script lang="ts">
 	import type { SubmitChoice } from '$lib/game/submitChoice';
 	import type { AuctionResult } from '$lib/game/auction';
-	import { reputationGain, type SkillGainPreview } from '$lib/game';
+	import {
+		mediumSkillProgress,
+		reputationGain,
+		type MediumSkillProgress,
+		type SkillGainPreview
+	} from '$lib/game';
 	import type { MumRealCritique } from '$lib/game/mumCritiquePresentation';
 	import { canUnlockMediumTier, MEDIUM_TIERS, DEFAULT_MEDIUM_TIER_ID } from '$lib/data/mediumTiers';
 	import { getStallStageLabel, stallMessagesForArtwork } from '$lib/data/stallMessages';
@@ -13,6 +18,7 @@
 	import ErrorPanel from './ErrorPanel.svelte';
 	import GeneratingPanel from './GeneratingPanel.svelte';
 	import IdlePanel from './IdlePanel.svelte';
+	import PracticeDesk from './PracticeDesk.svelte';
 	import PromptComposer from './PromptComposer.svelte';
 	import ResultsPanel from './ResultsPanel.svelte';
 	import ScoreBadge from './ScoreBadge.svelte';
@@ -68,6 +74,13 @@
 		ondismisserror: () => void;
 		/** Briefing and generating — player skips the active commission. */
 		ondecline?: () => void;
+		/** Spec 28 — idle practice canvas replaces the idle column. */
+		practiceOpen?: boolean;
+		skill?: MediumSkillProgress | null;
+		rankUpLabel?: string | null;
+		onpractice?: () => void;
+		onpracticetick?: (deltaMs: number) => void;
+		onexitpractice?: () => void;
 	}
 
 	let {
@@ -103,7 +116,13 @@
 		oncollect,
 		onretry,
 		ondismisserror,
-		ondecline
+		ondecline,
+		practiceOpen = false,
+		skill = null,
+		rankUpLabel = null,
+		onpractice,
+		onpracticetick,
+		onexitpractice
 	}: Props = $props();
 
 	let sketchHasStrokes = $state(false);
@@ -120,6 +139,7 @@
 			: critiqueMessages
 	);
 	const critiquingStageLabel = $derived(getStallStageLabel(activeMediumTierId));
+	const practiceSkill = $derived(skill ?? mediumSkillProgress(activeMediumTierId, 0));
 
 	function isMediumUnlocked(id: string): boolean {
 		return unlockedMediumTierIds.includes(id);
@@ -188,27 +208,51 @@
 	aria-label="Commission desk"
 >
 	{#if phase === 'idle'}
-		<p class="text-sm text-stone-600">Walk with WASD or arrows · press E to talk</p>
-		{#if floorInteract}
-			<div class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm">
-				<p class="text-stone-800">
-					{clientSummoned
-						? 'Someone wants to talk — walk over and press E.'
-						: idleMessage || 'A client will walk in shortly.'}
-				</p>
-			</div>
-			{#if studioDebug && clientSummoned}
-				<button
-					type="button"
-					data-testid="studio-debug-talk"
-					class="min-h-11 rounded-lg border border-amber-700 bg-amber-100 px-4 py-2 font-semibold text-amber-950"
-					onclick={ontalk}
-				>
-					Talk to client
-				</button>
-			{/if}
+		{#if practiceOpen}
+			<PracticeDesk
+				mediumTierId={activeMediumTierId}
+				{unlockedMediumTierIds}
+				{cash}
+				{reputation}
+				skill={practiceSkill}
+				{rankUpLabel}
+				onselectmedium={(id) => onselectmedium?.(id)}
+				onpracticetick={(deltaMs) => onpracticetick?.(deltaMs)}
+				ondone={() => onexitpractice?.()}
+			/>
 		{:else}
-			<IdlePanel {oninvite} message={idleMessage} />
+			<p class="text-sm text-stone-600">Walk with WASD or arrows · press E to talk</p>
+			{#if floorInteract}
+				<div class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm">
+					<p class="text-stone-800">
+						{clientSummoned
+							? 'Someone wants to talk — walk over and press E.'
+							: idleMessage || 'A client will walk in shortly.'}
+					</p>
+				</div>
+				{#if !clientSummoned}
+					<button
+						type="button"
+						class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 font-semibold text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+						aria-label="Practice at the desk"
+						onclick={() => onpractice?.()}
+					>
+						Practice
+					</button>
+				{/if}
+				{#if studioDebug && clientSummoned}
+					<button
+						type="button"
+						data-testid="studio-debug-talk"
+						class="min-h-11 rounded-lg border border-amber-700 bg-amber-100 px-4 py-2 font-semibold text-amber-950"
+						onclick={ontalk}
+					>
+						Talk to client
+					</button>
+				{/if}
+			{:else}
+				<IdlePanel {oninvite} {onpractice} message={idleMessage} />
+			{/if}
 		{/if}
 	{:else if phase === 'briefing'}
 		{#if currentClient}

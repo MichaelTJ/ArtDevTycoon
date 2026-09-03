@@ -22,6 +22,8 @@ export interface InteractPromptInput {
 	registryLabel?: string | null;
 	/** Client display name for talk/deliver — e.g. "Mum", "Neighbour". */
 	clientName?: string | null;
+	/** Spec 28. When kind==='desk' and true, show the practice verb. */
+	deskIsPractice?: boolean;
 }
 
 /**
@@ -40,7 +42,7 @@ export function interactPromptLabel(input: InteractPromptInput): string {
 		case 'deliver':
 			return name ? `Deliver to ${name}` : 'Deliver art';
 		case 'desk':
-			return 'Work at desk';
+			return input.deskIsPractice ? 'Practice at desk' : 'Work at desk';
 		case 'easel':
 			return 'View art';
 		case 'look':

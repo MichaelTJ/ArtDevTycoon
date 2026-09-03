@@ -5,11 +5,14 @@
 		getArtistCatalogEntry,
 		type ArtistCatalogEntry
 	} from '$lib/data/artists';
+	import { MEDIUM_TIERS } from '$lib/data/mediumTiers';
 	import { artistLevel, artistLevelFill, xpToNextLevel } from '$lib/game/artistTraining';
+	import { mediumSkillProgress, mediumSkillXpOf } from '$lib/game';
 
 	interface HiredArtistRow {
 		catalogId: string;
 		xp: number;
+		mediumSkillXp: Record<string, number>;
 	}
 
 	interface Props {
@@ -93,6 +96,21 @@
 								>
 									<div class="h-full bg-amber-600" style:width="{fill * 100}%"></div>
 								</div>
+								<ul
+									class="mt-2 space-y-0.5"
+									aria-label="Medium ranks for {entry?.name ?? row.catalogId}"
+								>
+									{#each MEDIUM_TIERS as tier (tier.id)}
+										{@const rank = mediumSkillProgress(
+											tier.id,
+											mediumSkillXpOf(row.mediumSkillXp, tier.id)
+										)}
+										<li class="text-xs text-stone-600">
+											{tier.icon}
+											{tier.name.split(' ')[0]} · {rank.rankLabel}
+										</li>
+									{/each}
+								</ul>
 								{#if entry?.specialisms.length}
 									<p class="mt-1 text-xs text-stone-500">{entry.specialisms.join(' · ')}</p>
 								{/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { resolve } from '$app/paths';
 	import type { DevModeReason } from '$lib/dev/devMode';
 
 	interface Props {
@@ -120,6 +121,12 @@
 							Open saves
 						</button>
 					{/if}
+					<a
+						class="inline-flex min-h-11 items-center rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+						href={resolve('/studio-editor')}
+					>
+						Studio editor
+					</a>
 				</div>
 			</section>
 

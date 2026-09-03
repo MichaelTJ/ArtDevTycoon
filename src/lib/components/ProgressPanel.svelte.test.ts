@@ -69,6 +69,7 @@ test('lists career standing and craft sections', async () => {
 		cashMeter,
 		reputationMeter,
 		skills,
+		mediumSkills: [],
 		onclose
 	});
 
@@ -83,4 +84,34 @@ test('lists career standing and craft sections', async () => {
 
 	await screen.getByRole('button', { name: 'Close progress' }).click();
 	expect(onclose).toHaveBeenCalledOnce();
+});
+
+test('medium skills row shows Pencil and Competent without suffixes', async () => {
+	const onclose = vi.fn();
+	const screen = render(ProgressPanel, {
+		cash: 100,
+		reputation: 0,
+		commissions,
+		cashMeter,
+		reputationMeter,
+		skills,
+		mediumSkills: [
+			{
+				mediumId: 'pencil',
+				xp: 270,
+				level: 4,
+				rankLabel: 'Competent',
+				xpIntoLevel: 0,
+				xpForNext: 150,
+				fill: 0
+			}
+		],
+		onclose
+	});
+
+	await expect.element(screen.getByText('Craft skills')).toBeVisible();
+	await expect.element(screen.getByText('Medium skills')).toBeVisible();
+	await expect
+		.element(screen.getByRole('progressbar', { name: /Pencil & Sketchbook · Competent/ }))
+		.toBeVisible();
 });

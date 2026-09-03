@@ -15,13 +15,26 @@
 		/** Spec 13 medium tier — drives brush feel (Spec 25b). */
 		mediumTierId?: string;
 		onexportready?: (getBlob: () => Promise<Blob | null>) => void;
+		/**
+		 * Fired while the brush (not eraser) is drawing, about once per animation frame
+		 * worth of pointermove, with the ms since the previous tick of this stroke.
+		 * Parent converts this to XP. Never fire when disabled or when tool === 'eraser'.
+		 */
+		onpracticetick?: (deltaMs: number) => void;
+		/** Injectable clock for practice ticks; defaults to `performance.now`. */
+		nowMs?: () => number;
+		/** Accessible name for the canvas element. */
+		ariaLabel?: string;
 	}
 
 	let {
 		disabled = false,
 		hasStrokes = $bindable(false),
 		mediumTierId = DEFAULT_MEDIUM_TIER_ID,
-		onexportready
+		onexportready,
+		onpracticetick,
+		nowMs = () => performance.now(),
+		ariaLabel = 'Sketch canvas'
 	}: Props = $props();
 
 	const CANVAS_CSS = 384;
@@ -53,6 +66,8 @@
 	let drawing = $state(false);
 	let lastX = $state(0);
 	let lastY = $state(0);
+	/** Stroke clock for Spec 28 practice XP — not reactive; cleared on pointer up. */
+	let strokeLastTs: number | null = null;
 
 	const brushProfile = $derived(getBrushProfile(mediumTierId));
 	const isInkMedium = $derived(mediumTierId === 'ink');
@@ -162,6 +177,7 @@
 		const { x, y } = pointerPos(event);
 		lastX = x;
 		lastY = y;
+		strokeLastTs = tool === 'brush' ? nowMs() : null;
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		if (tool === 'eraser') {
@@ -192,10 +208,28 @@
 			ctx.stroke();
 			resetBrushContext(ctx);
 		} else {
+			maybePracticeTick(x, y);
 			strokeBrushSegment(ctx, x, y);
 		}
 		lastX = x;
 		lastY = y;
+	}
+
+	/**
+	 * Spec 28: grant time only for actual brush movement. Ignore hover, eraser,
+	 * zero-dt, sub-2px jitter, and tab-thaw spikes above 250ms.
+	 */
+	function maybePracticeTick(x: number, y: number): void {
+		if (disabled || tool === 'eraser' || !onpracticetick || strokeLastTs === null) {
+			return;
+		}
+		const ts = nowMs();
+		const dt = ts - strokeLastTs;
+		strokeLastTs = ts;
+		const dist = Math.hypot(x - lastX, y - lastY);
+		if (dist >= 2 && dt > 0 && dt <= 250) {
+			onpracticetick(dt);
+		}
 	}
 
 	function onPointerUp(event: PointerEvent): void {
@@ -203,6 +237,7 @@
 			return;
 		}
 		drawing = false;
+		strokeLastTs = null;
 		canvasEl?.releasePointerCapture(event.pointerId);
 		const ctx = ctx2d();
 		if (!ctx) {
@@ -359,6 +394,6 @@
 		onpointermove={onPointerMove}
 		onpointerup={onPointerUp}
 		onpointercancel={onPointerUp}
-		aria-label="Sketch canvas"
+		aria-label={ariaLabel}
 	></canvas>
 </div>

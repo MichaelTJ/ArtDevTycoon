@@ -39,6 +39,12 @@ describe('interactPromptLabel', () => {
 		}
 	});
 
+	it('desk practice verb when deskIsPractice is true', () => {
+		expect(interactPromptLabel({ kind: 'desk', deskIsPractice: true })).toBe('Practice at desk');
+		expect(interactPromptLabel({ kind: 'desk', deskIsPractice: false })).toBe('Work at desk');
+		expect(interactPromptLabel({ kind: 'desk' })).toBe('Work at desk');
+	});
+
 	it('unknown kind → Interact', () => {
 		expect(interactPromptLabel({ kind: 'not-a-kind' as InteractPromptKind })).toBe('Interact');
 	});

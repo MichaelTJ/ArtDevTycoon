@@ -12,6 +12,8 @@ import {
 	createDefaultSave,
 	getActiveSlotId,
 	listSaveSlots,
+	mediumSkillSuffix,
+	mediumSkillBackground,
 	peekSlot,
 	previewSkillGains,
 	scorePrompt,
@@ -1010,7 +1012,8 @@ describe('GameStore', () => {
 
 		expect(generate).toHaveBeenCalledOnce();
 		const args = generate.mock.calls[0][0];
-		expect(args.prompt.endsWith(getMediumTier('oil').promptModifierSuffix)).toBe(true);
+		expect(args.prompt).toContain(getMediumTier('oil').promptModifierSuffix);
+		expect(args.prompt.endsWith(mediumSkillBackground(1))).toBe(true);
 	});
 
 	it('hydrates gallery progression fields from save', () => {
@@ -1717,6 +1720,14 @@ describe('GameStore save slots', () => {
 		expect(store.activeMediumTierId).toBe('pencil');
 	});
 
+	it('slot switch closes practice', () => {
+		const store = createSlotStore();
+		expect(store.enterPractice()).toBe(true);
+		store.newGameInSlot('1', 'Kitchen');
+		expect(store.practiceOpen).toBe(false);
+		expect(store.phase).toBe('idle');
+	});
+
 	it('newGameInSlot / rename / copy / delete cover slot helpers', () => {
 		const store = createSlotStore(() => 42);
 		store.cash = 333;
@@ -1812,6 +1823,315 @@ describe('GameStore Spec 23 dev cheats', () => {
 		expect(store.currentClient).toBeNull();
 		releaseGenerate(fakeArtwork);
 		await pending;
+		expect(store.phase).toBe('idle');
+	});
+});
+
+describe('GameStore Spec 27 medium skill', () => {
+	it('createArt uses the player pencil Master suffix at 810 XP', async () => {
+		const generate = vi.fn(
+			async ({ playerPrompt, prompt: builtPrompt }: { playerPrompt: string; prompt: string }) => {
+				void builtPrompt;
+				return { ...fakeArtwork, playerPrompt };
+			}
+		);
+		const store = createStore({ generate, critique: vi.fn(async () => fakeDraft) });
+		store.unlockedMediumTierIds = ['crayon', 'pencil'];
+		store.activeMediumTierId = 'pencil';
+		store.playerMediumSkillXp = { pencil: 810 };
+		store.inviteClient();
+		store.draftPrompt = 'an apple';
+
+		await store.createArt();
+
+		expect(generate).toHaveBeenCalledOnce();
+		const args = generate.mock.calls[0]?.[0];
+		expect(args?.prompt).toBe(
+			`an apple, ${mediumSkillSuffix('pencil', 7)}, ${mediumSkillBackground(7)}`
+		);
+	});
+
+	it('grants 1 pencil XP after 8000ms generating and none while idle', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.unlockedMediumTierIds = ['crayon', 'pencil'];
+		store.activeMediumTierId = 'pencil';
+		store.phase = 'generating';
+		store.tickMediumSkillsForTests(8_000);
+		expect(store.playerMediumSkillXp.pencil).toBe(1);
+
+		store.phase = 'idle';
+		const before = { ...store.playerMediumSkillXp };
+		store.tickMediumSkillsForTests(8_000);
+		expect(store.playerMediumSkillXp).toEqual(before);
+	});
+
+	it('grants hired artist idle XP into the active medium and work XP into the assignment medium', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 100;
+		store.reputation = 8;
+		store.unlockedMediumTierIds = ['crayon', 'pencil', 'ink'];
+		store.activeMediumTierId = 'pencil';
+		expect(store.hireArtist('jade-ink')).toBe(true);
+
+		store.tickMediumSkillsForTests(60_000);
+		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(1);
+
+		store.inviteClient();
+		store.activeMediumTierId = 'ink';
+		expect(store.assignBriefToArtist('jade-ink')).toBe(true);
+		store.tickMediumSkillsForTests(2_000);
+		expect(store.hiredArtists[0]?.mediumSkillXp.ink).toBe(1);
+		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(1);
+	});
+
+	it('clamps artist idle catch-up to 10 minutes (10 XP at the idle rate)', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.cash = 100;
+		store.reputation = 8;
+		store.activeMediumTierId = 'pencil';
+		expect(store.hireArtist('jade-ink')).toBe(true);
+		store.tickMediumSkillsForTests(999_999);
+		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(10);
+	});
+
+	it('stamps a null lastMediumSkillTickAt on hydrate so the first tick grants 0 artist XP', () => {
+		const nowMs = 5_000;
+		const store = createStore(
+			{ generate: vi.fn(), critique: vi.fn() },
+			{
+				now: () => nowMs,
+				loadSave: () => ({
+					...createDefaultSave(LEVEL_1.startingCash, () => nowMs),
+					cash: 100,
+					reputation: 8,
+					hiredArtists: [{ catalogId: 'jade-ink', xp: 0, mediumSkillXp: {} }],
+					lastMediumSkillTickAt: null
+				})
+			}
+		);
+		expect(store.lastMediumSkillTickAt).toBe(nowMs);
+		expect(store.hiredArtists[0]?.mediumSkillXp).toEqual({});
+		const cleanup = store.startIncomeTicker();
+		expect(store.hiredArtists[0]?.mediumSkillXp.pencil ?? 0).toBe(0);
+		cleanup();
+	});
+
+	it('grantPracticeDrawingMs banks remainder across two 2000ms strokes', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(2000);
+		expect(store.playerMediumSkillXp.crayon ?? 0).toBe(0);
+		expect(persistSave).not.toHaveBeenCalled();
+		store.grantPracticeDrawingMs(2000);
+		expect(store.playerMediumSkillXp.crayon).toBe(1);
+		expect(persistSave).toHaveBeenCalled();
+		store.grantPracticeDrawingMs(2000);
+		expect(store.playerMediumSkillXp.crayon).toBe(2);
+	});
+
+	it('enterPractice succeeds while idle and rejects briefing or assignment', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		expect(store.practiceOpen).toBe(true);
+		expect(store.enterPractice()).toBe(false);
+
+		store.exitPractice();
+		expect(store.practiceOpen).toBe(false);
+		expect(store.enterPractice()).toBe(true);
+		store.exitPractice();
+
+		store.inviteClient();
+		expect(store.enterPractice()).toBe(false);
+	});
+
+	it('enterPractice is blocked while an artist assignment is set', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.artistAssignment = {
+			artistCatalogId: 'jade-ink',
+			briefId: 'c1',
+			startedAt: 1000,
+			durationMs: 5000,
+			mediumTierId: 'crayon'
+		};
+		expect(store.enterPractice()).toBe(false);
+		expect(store.practiceOpen).toBe(false);
+	});
+
+	it('enterPractice is blocked during an active major-project beat', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.majorProjectProgress = {
+			projectId: 'comic',
+			beatsCompleted: 0,
+			crewByBeat: ['jade-ink'],
+			activeBeatIndex: 0,
+			beatStartedAt: 1000,
+			beatDurationMs: 8000
+		};
+		expect(store.enterPractice()).toBe(false);
+	});
+
+	it('inviteClient while practising closes the canvas', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		store.inviteClient();
+		expect(store.practiceOpen).toBe(false);
+		expect(store.phase).toBe('briefing');
+	});
+
+	it('reset closes practice', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		store.reset();
+		expect(store.practiceOpen).toBe(false);
+	});
+
+	it('grantPracticeDrawingMs while open grants 1 XP per 3000ms', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(3000);
+		expect(store.playerMediumSkillXp.crayon).toBe(1);
+	});
+
+	it('grantPracticeDrawingMs while closed grants no XP', () => {
+		const persistSave = vi.fn();
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
+		store.grantPracticeDrawingMs(10_000);
+		expect(store.playerMediumSkillXp.crayon ?? 0).toBe(0);
+		expect(persistSave).not.toHaveBeenCalled();
+	});
+
+	it('practice XP crossing 60 on pencil surfaces Doodler rank-up', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.unlockedMediumTierIds = ['crayon', 'pencil'];
+		store.setActiveMediumTier('pencil');
+		store.playerMediumSkillXp = { pencil: 59 };
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(3000);
+		expect(store.playerMediumSkillXp.pencil).toBe(60);
+		expect(store.lastMediumSkillRankUp).toEqual({ mediumId: 'pencil', rankLabel: 'Doodler' });
+	});
+
+	it('auto-invite stays paused while practising and resumes after exit', () => {
+		vi.useFakeTimers();
+		try {
+			const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+			expect(store.enterPractice()).toBe(true);
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS);
+			expect(store.phase).toBe('idle');
+			expect(store.currentClient).toBeNull();
+			store.exitPractice();
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS);
+			expect(store.phase).toBe('briefing');
+			expect(store.practiceOpen).toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('artist generate uses the skill suffix and lands the engine image', async () => {
+		vi.useFakeTimers();
+		try {
+			let nowMs = 1000;
+			const artistArt: Artwork = {
+				id: 'artist-gen',
+				imageUrl: 'data:image/png;base64,abc',
+				playerPrompt: '[Jade Ink] brief',
+				width: 384,
+				height: 384,
+				generationMs: 12,
+				engineId: 'mock'
+			};
+			const generate = vi.fn(
+				async ({ playerPrompt, prompt: builtPrompt }: { playerPrompt: string; prompt: string }) => {
+					void playerPrompt;
+					void builtPrompt;
+					return artistArt;
+				}
+			);
+			const store = createStore(
+				{ generate, critique: vi.fn() },
+				{ now: () => nowMs, tickIntervalMs: 500 }
+			);
+			store.cash = 100;
+			store.reputation = 8;
+			store.unlockedMediumTierIds = ['crayon', 'pencil'];
+			store.activeMediumTierId = 'pencil';
+			expect(store.hireArtist('jade-ink')).toBe(true);
+			store.inviteClient();
+			expect(store.assignBriefToArtist('jade-ink')).toBe(true);
+			await Promise.resolve();
+			await Promise.resolve();
+			expect(generate).toHaveBeenCalledOnce();
+			const args = generate.mock.calls[0]?.[0];
+			expect(args?.prompt).toContain(mediumSkillSuffix('pencil', 1));
+			expect(args?.prompt.endsWith(mediumSkillBackground(1))).toBe(true);
+
+			const cleanup = store.startIncomeTicker();
+			nowMs += 9000;
+			vi.advanceTimersByTime(500);
+			expect(store.phase).toBe('results');
+			expect(store.currentArtwork?.imageUrl).toBe('data:image/png;base64,abc');
+			cleanup();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('falls back to SVG mock art when artist generate rejects', async () => {
+		vi.useFakeTimers();
+		try {
+			let nowMs = 1000;
+			const generate = vi.fn(async () => {
+				throw new Error('engine down');
+			});
+			const store = createStore(
+				{ generate, critique: vi.fn() },
+				{ now: () => nowMs, tickIntervalMs: 500 }
+			);
+			store.cash = 100;
+			store.reputation = 8;
+			expect(store.hireArtist('jade-ink')).toBe(true);
+			store.inviteClient();
+			expect(store.assignBriefToArtist('jade-ink')).toBe(true);
+			await Promise.resolve();
+			await Promise.resolve();
+			const cleanup = store.startIncomeTicker();
+			nowMs += 9000;
+			vi.advanceTimersByTime(500);
+			expect(store.phase).toBe('results');
+			expect(store.currentArtwork?.imageUrl.startsWith('data:image/svg+xml')).toBe(true);
+			cleanup();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('ignores a late artist generate after declineClient', async () => {
+		let resolveGenerate!: (value: Artwork) => void;
+		const generatePromise = new Promise<Artwork>((resolve) => {
+			resolveGenerate = resolve;
+		});
+		const store = createStore({ generate: vi.fn(() => generatePromise), critique: vi.fn() });
+		store.cash = 100;
+		store.reputation = 8;
+		expect(store.hireArtist('jade-ink')).toBe(true);
+		store.inviteClient();
+		expect(store.assignBriefToArtist('jade-ink')).toBe(true);
+		store.declineClient();
+		expect(store.currentArtwork).toBeNull();
+		resolveGenerate({
+			id: 'late',
+			imageUrl: 'data:image/png;base64,late',
+			playerPrompt: 'late',
+			width: 8,
+			height: 8,
+			generationMs: 1,
+			engineId: 'mock'
+		});
+		await generatePromise;
+		await Promise.resolve();
+		expect(store.currentArtwork).toBeNull();
 		expect(store.phase).toBe('idle');
 	});
 });

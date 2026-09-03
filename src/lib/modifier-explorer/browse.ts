@@ -24,7 +24,7 @@ export interface BrowseQuery {
 	engine: ExplorerEngineId | 'all';
 	category: ModifierCategory | 'all';
 	pickFilter: 'all' | 'picked' | 'unpicked';
-	/** Selected exact option keys per axis, e.g. keys.style = ['oilpainting']. */
+	/** Selected exact option keys per axis, e.g. keys.style = ['oil']. */
 	keys: Record<AxisId, string[]>;
 	/** Selected difficulty levels per axis, e.g. levels.lighting = [5]. */
 	levels: Record<AxisId, AxisLevel[]>;
@@ -156,7 +156,67 @@ export const BROWSE_PRESETS: readonly BrowsePreset[] = [
 		description: 'Every oil-painting styled result, across subjects.',
 		apply: {
 			category: 'all',
-			keys: { ...emptyKeys(), style: ['oilpainting'] },
+			keys: { ...emptyKeys(), style: ['oil'] },
+			levels: emptyLevels(),
+			text: ''
+		},
+		groupBy: 'subject'
+	},
+	{
+		id: 'crayon-all',
+		label: 'All crayon (unlock)',
+		description: 'Crayon medium unlock tag across subjects — Level 1 comedy baseline.',
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), style: ['crayon'] },
+			levels: emptyLevels(),
+			text: ''
+		},
+		groupBy: 'subject'
+	},
+	{
+		id: 'pencil-all',
+		label: 'All pencil (unlock)',
+		description: 'Pencil medium unlock tag across subjects.',
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), style: ['pencil'] },
+			levels: emptyLevels(),
+			text: ''
+		},
+		groupBy: 'subject'
+	},
+	{
+		id: 'ink-all',
+		label: 'All ink (unlock)',
+		description: 'Ink medium unlock tag across subjects.',
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), style: ['ink'] },
+			levels: emptyLevels(),
+			text: ''
+		},
+		groupBy: 'subject'
+	},
+	{
+		id: 'watercolor-all',
+		label: 'All watercolour (unlock)',
+		description: 'Watercolour medium unlock tag across subjects.',
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), style: ['watercolor'] },
+			levels: emptyLevels(),
+			text: ''
+		},
+		groupBy: 'subject'
+	},
+	{
+		id: 'acrylic-all',
+		label: 'All acrylic (unlock)',
+		description: 'Acrylic medium unlock tag across subjects.',
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), style: ['acrylic'] },
 			levels: emptyLevels(),
 			text: ''
 		},
@@ -169,6 +229,18 @@ export const BROWSE_PRESETS: readonly BrowsePreset[] = [
 		apply: {
 			category: 'all',
 			keys: { ...emptyKeys(), subject: ['fox'] },
+			levels: emptyLevels(),
+			text: ''
+		},
+		groupBy: 'style'
+	},
+	{
+		id: 'cat-styles',
+		label: 'Cat · all styles',
+		description: 'Sleeping / sitting cats across every art style (Janus stress case).',
+		apply: {
+			category: 'all',
+			keys: { ...emptyKeys(), subject: ['cat', 'housecat'] },
 			levels: emptyLevels(),
 			text: ''
 		},

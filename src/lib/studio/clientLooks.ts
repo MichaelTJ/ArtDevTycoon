@@ -1,8 +1,12 @@
+import { overlayClientLook } from '$lib/studio-editor/apply';
+
 export interface ClientLook {
 	/** Frame index in the `clients` (or future `clients` expanded) sheet. */
 	frame: number;
 	/** `null` means clearTint / no tint. */
 	tint: number | null;
+	/** Phaser texture key when the studio editor overrides the default clients sheet. */
+	spriteKey?: string;
 }
 
 /**
@@ -11,15 +15,21 @@ export interface ClientLook {
  * (Proposal “neighbour” === walk-in in this codebase.)
  */
 export function clientLookForTier(tier: string): ClientLook {
+	let base: ClientLook;
 	switch (tier) {
 		case 'corporate':
-			return { frame: 0, tint: 0x7a9cc4 };
+			base = { frame: 0, tint: 0x7a9cc4 };
+			break;
 		case 'billionaire':
-			return { frame: 0, tint: 0xb48cff };
+			base = { frame: 0, tint: 0xb48cff };
+			break;
 		case 'auction-house':
-			return { frame: 0, tint: 0xc47878 };
+			base = { frame: 0, tint: 0xc47878 };
+			break;
 		case 'walk-in':
 		default:
-			return { frame: 0, tint: null };
+			base = { frame: 0, tint: null };
+			break;
 	}
+	return overlayClientLook(tier, base);
 }

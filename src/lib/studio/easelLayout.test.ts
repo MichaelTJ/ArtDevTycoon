@@ -55,6 +55,17 @@ describe('slotsForVenue', () => {
 		expect(hallSlots.every((s) => s.kind === 'easel')).toBe(true);
 	});
 
+	it('extra fridge anchors become extra magnet slots', () => {
+		const kitchen = {
+			...ROOMS['home-kitchen'],
+			fridgeAnchors: [{ tx: 4, ty: 4 }]
+		};
+		const slots = slotsForVenue('fridge', kitchen);
+		expect(slots).toHaveLength(3);
+		expect(slots.some((slot) => slot.tx === 1 && slot.ty === 1)).toBe(true);
+		expect(slots.some((slot) => slot.tx === 4 && slot.ty === 4)).toBe(true);
+	});
+
 	it('never produces out-of-bounds slots on 6×6 kitchen', () => {
 		const kitchen = ROOMS['home-kitchen'];
 		for (const venue of ['fridge', 'garage', 'storefront', 'gallery-hall', 'mega-museum']) {

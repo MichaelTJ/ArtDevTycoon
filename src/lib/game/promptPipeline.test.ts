@@ -1,3 +1,4 @@
+import { mediumSkillBackground, mediumSkillSuffix } from '$lib/data/mediumSkillTiers';
 import { getMediumTier } from '$lib/data/mediumTiers';
 import { LEVEL_1 } from '$lib/types/contracts';
 import { describe, expect, it } from 'vitest';
@@ -27,12 +28,11 @@ describe('sanitizePlayerPrompt', () => {
 });
 
 describe('buildLevel1Prompt', () => {
-	it('appends Level 1 modifiers to a valid prompt', () => {
+	it('appends Level 1 modifiers and the Novice white-background clause', () => {
 		const result = buildLevel1Prompt('a dragon');
-		expect(result).toBe(
-			'a dragon, flat color, simple line art, crayon texture, amateur style, low detail, basic shading'
-		);
-		expect(result.endsWith(LEVEL_1.promptModifiers)).toBe(true);
+		expect(result).toBe(`a dragon, ${LEVEL_1.promptModifiers}, ${mediumSkillBackground(1)}`);
+		expect(result).toContain(LEVEL_1.promptModifiers);
+		expect(result.endsWith(mediumSkillBackground(1))).toBe(true);
 	});
 
 	it('matches buildPrompt with the crayon tier byte-for-byte', () => {
@@ -46,8 +46,29 @@ describe('buildLevel1Prompt', () => {
 });
 
 describe('buildPrompt', () => {
-	it('appends the active tier suffix', () => {
+	it('appends the active tier suffix and Novice background', () => {
 		const oil = getMediumTier('oil');
-		expect(buildPrompt('a dragon', oil)).toBe(`a dragon, ${oil.promptModifierSuffix}`);
+		expect(buildPrompt('a dragon', oil)).toBe(
+			`a dragon, ${oil.promptModifierSuffix}, ${mediumSkillBackground(1)}`
+		);
+	});
+
+	it('uses rank 1 pencil suffix at skillLevel 1', () => {
+		const pencil = getMediumTier('pencil');
+		expect(buildPrompt('an apple', pencil, 1)).toBe(
+			`an apple, ${getMediumTier('pencil').promptModifierSuffix}, ${mediumSkillBackground(1)}`
+		);
+	});
+
+	it('uses the rank 7 pencil suffix and the master presentation background', () => {
+		const pencil = getMediumTier('pencil');
+		const result = buildPrompt('an apple', pencil, 7);
+		expect(result).toBe(`an apple, ${mediumSkillSuffix('pencil', 7)}, ${mediumSkillBackground(7)}`);
+		expect(result).toContain('masterful graphite pencil drawing');
+		expect(result).toContain('three-point lighting');
+	});
+
+	it('defaults crayon skill to the same string as buildLevel1Prompt', () => {
+		expect(buildPrompt('x', getMediumTier('crayon'))).toBe(buildLevel1Prompt('x'));
 	});
 });

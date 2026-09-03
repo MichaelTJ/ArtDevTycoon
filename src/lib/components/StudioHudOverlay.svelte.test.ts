@@ -48,12 +48,78 @@ const base = {
 	ondecline: vi.fn()
 };
 
-test('idle shows waiting copy without invite button', async () => {
-	const screen = render(StudioHudOverlay, { ...base, phase: 'idle' });
-	await expect.element(screen.getByText(/Walk with WASD/)).toBeVisible();
-	await expect.element(screen.getByText('Quiet kitchen.')).toBeVisible();
+test('idle Practice button fires onpractice', async () => {
+	const onpractice = vi.fn();
+	const screen = render(StudioHudOverlay, { ...base, phase: 'idle', onpractice });
+	await screen.getByRole('button', { name: 'Practice at the desk' }).click();
+	expect(onpractice).toHaveBeenCalledTimes(1);
+});
+
+test('idle Practice button is hidden when a client is summoned', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'idle',
+		clientSummoned: true
+	});
+	await expect
+		.element(screen.getByRole('button', { name: 'Practice at the desk' }))
+		.not.toBeInTheDocument();
+});
+
+test('practiceOpen shows Practice desk and hides invite copy', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'idle',
+		practiceOpen: true,
+		skill: {
+			mediumId: 'crayon',
+			xp: 0,
+			level: 1,
+			rankLabel: 'Novice',
+			xpIntoLevel: 0,
+			xpForNext: 60,
+			fill: 0
+		}
+	});
+	await expect.element(screen.getByRole('region', { name: 'Practice desk' })).toBeVisible();
+	await expect.element(screen.getByRole('heading', { name: 'Practice' })).toBeVisible();
+	await expect.element(screen.getByText(/Walk with WASD/)).not.toBeInTheDocument();
 	await expect
 		.element(screen.getByRole('button', { name: 'Wait for a Client' }))
+		.not.toBeInTheDocument();
+});
+
+test('practice desk Done fires onexitpractice', async () => {
+	const onexitpractice = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'idle',
+		practiceOpen: true,
+		onexitpractice,
+		skill: {
+			mediumId: 'crayon',
+			xp: 0,
+			level: 1,
+			rankLabel: 'Novice',
+			xpIntoLevel: 0,
+			xpForNext: 60,
+			fill: 0
+		}
+	});
+	await screen.getByRole('button', { name: 'Finish practising' }).click();
+	expect(onexitpractice).toHaveBeenCalledTimes(1);
+});
+
+test('practiceOpen is ignored during briefing', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		practiceOpen: true
+	});
+	await expect.element(screen.getByLabelText('My idea')).toBeVisible();
+	await expect
+		.element(screen.getByRole('region', { name: 'Practice desk' }))
 		.not.toBeInTheDocument();
 });
 

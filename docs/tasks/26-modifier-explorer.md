@@ -118,3 +118,16 @@ npm run dev
 
 WebGPU required for real engines. Without it, use the game’s mock path separately — the
 explorer MVP does not auto-fall back to mock.
+
+## Sibling: `/modifier-explorer2`
+
+Fresh discovery series (does not replace explorer 1). Code: `src/lib/modifier-explorer2/**`,
+`src/routes/modifier-explorer2/**`, gallery `data/modifier-explorer2/`.
+
+| Round | Goal                                   | Count         |
+| ----- | -------------------------------------- | ------------- |
+| 1     | Object vocabulary (common → very-rare) | 100 × 3 = 300 |
+| 2     | “Simple” style words × working objects | 30 × 3 = 90   |
+
+After Round 1, mark good `subject:*` tags and edit `WORKING_SUBJECT_KEYS` in
+`prompts.ts` before running Round 2.

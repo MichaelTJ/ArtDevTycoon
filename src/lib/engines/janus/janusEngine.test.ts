@@ -72,7 +72,7 @@ describe('JanusEngine', () => {
 
 	it('maps a yes answer on critique targets to accuracyScore 10', async () => {
 		const ask = vi.fn().mockResolvedValue({
-			answers: ['yes'],
+			answers: ['yes', 'yes'],
 			review: 'A charming amateur piece.'
 		});
 		const client = createFakeClient({ ask });
@@ -80,19 +80,20 @@ describe('JanusEngine', () => {
 		await engine.load();
 
 		const artwork = await engine.generate({
-			playerPrompt: 'cat',
-			prompt: 'cat, flat color'
+			playerPrompt: 'cool cat',
+			prompt: 'cool cat, flat color'
 		});
 		const critique = await engine.critique({
 			brief: c1,
-			playerPrompt: 'cat',
+			playerPrompt: 'cool cat',
 			artwork
 		});
 
 		expect(ask).toHaveBeenCalled();
 		const questions = ask.mock.calls[0]?.[1] as string[];
-		expect(questions).toHaveLength(1);
-		expect(questions[0]?.toLowerCase()).toContain('cat');
+		expect(questions).toHaveLength(2);
+		expect(questions.some((q) => q.toLowerCase().includes('cat'))).toBe(true);
+		expect(questions.some((q) => q.toLowerCase().includes('cool'))).toBe(true);
 		expect(critique.accuracyScore).toBe(10);
 		expect(() => critiqueDraftSchema.parse(critique)).not.toThrow();
 	});

@@ -1,4 +1,6 @@
+import { overlayStaffLook } from '$lib/studio-editor/apply';
 import type { RoomDef, TileMarker } from './rooms';
+import { roomClientWaits, roomDesks } from './rooms';
 
 /** Floor-visible staff only. print-shop is intentionally omitted. */
 export const FLOOR_STAFF_ROLE_IDS = ['apprentice', 'marketing-director', 'curator'] as const;
@@ -42,13 +44,15 @@ export function curatorPatrol(room: RoomDef): readonly TileMarker[] {
 /** Stand / work tile for a floor staff role in the given room. */
 export function staffAnchorForRole(roleId: FloorStaffRoleId, room: RoomDef): TileMarker {
 	if (roleId === 'apprentice') {
+		const desks = roomDesks(room);
+		if (desks[1]) return desks[1];
 		if (room.desk.tx + 1 <= room.width - 2) {
 			return { tx: room.desk.tx + 1, ty: room.desk.ty };
 		}
 		return { tx: room.desk.tx - 1, ty: room.desk.ty };
 	}
 	if (roleId === 'marketing-director') {
-		return room.clientWait;
+		return roomClientWaits(room)[1] ?? room.clientWait;
 	}
 	return curatorPatrol(room)[0]!;
 }
@@ -59,13 +63,22 @@ export function receptionistAnchor(room: RoomDef): TileMarker {
 }
 
 /** Tint / frame so each floor role reads apart on the shared clients/staff sheet. */
-export function staffLookForRole(roleId: FloorStaffRoleId): { frame: number; tint: number } {
+export function staffLookForRole(roleId: FloorStaffRoleId): {
+	frame: number;
+	tint: number;
+	spriteKey?: string;
+} {
+	let base: { frame: number; tint: number };
 	switch (roleId) {
 		case 'apprentice':
-			return { frame: 1, tint: 0xa8d4ff };
+			base = { frame: 1, tint: 0xa8d4ff };
+			break;
 		case 'marketing-director':
-			return { frame: 1, tint: 0xffd4a8 };
+			base = { frame: 1, tint: 0xffd4a8 };
+			break;
 		case 'curator':
-			return { frame: 0, tint: 0xd4c4a8 };
+			base = { frame: 0, tint: 0xd4c4a8 };
+			break;
 	}
+	return overlayStaffLook(roleId, base);
 }

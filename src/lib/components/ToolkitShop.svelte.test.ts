@@ -38,7 +38,7 @@ test('owned inactive tier switch button fires onselect', async () => {
 test('locked unaffordable tier button is disabled', async () => {
 	const screen = render(ToolkitShop, {
 		...baseProps,
-		cash: 100,
+		cash: 10,
 		reputation: 5,
 		unlockedTierIds: ['crayon']
 	});

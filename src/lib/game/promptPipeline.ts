@@ -1,4 +1,5 @@
 import { DEFAULT_MEDIUM_TIER_ID, getMediumTier, type MediumTier } from '$lib/data/mediumTiers';
+import { mediumSkillBackground, mediumSkillSuffix } from '$lib/data/mediumSkillTiers';
 
 /** Longest prompt we accept. Matches `generateRequestSchema` in the contract. */
 export const MAX_PROMPT_LENGTH = 500;
@@ -28,20 +29,24 @@ export function sanitizePlayerPrompt(raw: string): string {
 }
 
 /**
- * Append the active medium's hidden quality modifiers to the player's prompt. The player
- * never sees the result — see `MediumTier.promptModifierSuffix`.
+ * Append the hidden quality suffix for this medium at `skillLevel` (Spec 27 rank 1–7)
+ * plus the matching Round 7 studio-background clause. The player never sees the result —
+ * rank names are the only HUD surface.
  *
  * @throws {Error} if the sanitised input is empty
  */
-export function buildPrompt(playerInput: string, tier: MediumTier): string {
+export function buildPrompt(playerInput: string, tier: MediumTier, skillLevel: number = 1): string {
 	const clean = sanitizePlayerPrompt(playerInput);
 	if (clean === '') {
 		throw new Error('Prompt cannot be empty.');
 	}
-	return `${clean}, ${tier.promptModifierSuffix}`;
+	return `${clean}, ${mediumSkillSuffix(tier.id, skillLevel)}, ${mediumSkillBackground(skillLevel)}`;
 }
 
-/** @deprecated Use `buildPrompt(playerInput, tier)`. Kept for existing callers/tests. */
+/**
+ * Crayon wrapper kept for existing callers. Rank 1 crayon style is byte-identical to
+ * `LEVEL_1.promptModifiers`; the full prompt also includes the Novice white-background clause.
+ */
 export function buildLevel1Prompt(playerInput: string): string {
 	return buildPrompt(playerInput, getMediumTier(DEFAULT_MEDIUM_TIER_ID));
 }

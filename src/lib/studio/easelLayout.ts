@@ -1,4 +1,11 @@
-import { markerWalkable, type RoomDef, type TileMarker } from './rooms';
+import {
+	markersEqual,
+	markerWalkable,
+	roomDesks,
+	roomFridgeAnchors,
+	type RoomDef,
+	type TileMarker
+} from './rooms';
 
 export interface EaselSlot {
 	tx: number;
@@ -16,7 +23,7 @@ const VENUE_SLOT_COUNTS: Record<string, number> = {
 };
 
 function isDeskCell(room: RoomDef, tx: number, ty: number): boolean {
-	return tx === room.desk.tx && ty === room.desk.ty;
+	return roomDesks(room).some((desk) => desk.tx === tx && desk.ty === ty);
 }
 
 function scanZoneSlots(
@@ -27,7 +34,8 @@ function scanZoneSlots(
 		x1: number;
 		y1: number;
 	},
-	count: number
+	count: number,
+	occupied: readonly TileMarker[]
 ): TileMarker[] {
 	const found: TileMarker[] = [];
 	for (let ty = zoneBounds.y0; ty <= zoneBounds.y1 && found.length < count; ty++) {
@@ -35,6 +43,7 @@ function scanZoneSlots(
 			const marker = { tx, ty };
 			if (!markerWalkable(room, marker)) continue;
 			if (isDeskCell(room, tx, ty)) continue;
+			if (occupied.some((slot) => markersEqual(slot, marker))) continue;
 			found.push(marker);
 		}
 	}
@@ -63,25 +72,45 @@ export function slotsForVenue(venueId: string, room: RoomDef): EaselSlot[] {
 	const count = VENUE_SLOT_COUNTS[venueId] ?? VENUE_SLOT_COUNTS.fridge;
 	const slots: EaselSlot[] = [];
 	const magnetCount = magnetCountForVenue(venueId, count);
+	const fridgeOrigins = roomFridgeAnchors(room);
 
-	const magnetOrigins = [
-		{ tx: room.fridgeAnchor.tx, ty: room.fridgeAnchor.ty },
-		{ tx: room.fridgeAnchor.tx, ty: room.fridgeAnchor.ty + 1 },
-		{ tx: room.fridgeAnchor.tx + 1, ty: room.fridgeAnchor.ty }
-	];
-	for (let i = 0; i < magnetCount; i++) {
-		const origin = magnetOrigins[i % magnetOrigins.length]!;
-		slots.push({ tx: origin.tx, ty: origin.ty, kind: 'magnet' });
+	const fridgeKind: EaselSlot['kind'] = magnetCount > 0 ? 'magnet' : 'easel';
+	for (const origin of fridgeOrigins) {
+		if (slots.length >= count) break;
+		if (slots.some((slot) => markersEqual(slot, origin))) continue;
+		if (isDeskCell(room, origin.tx, origin.ty)) continue;
+		slots.push({ tx: origin.tx, ty: origin.ty, kind: fridgeKind });
 	}
 
-	if (count <= magnetCount) return finalizeSlots(slots, room);
+	const neighborOffsets = [
+		{ tx: 0, ty: 1 },
+		{ tx: 1, ty: 0 },
+		{ tx: -1, ty: 0 },
+		{ tx: 0, ty: -1 }
+	] as const;
+	let neighborIndex = 0;
+	while (
+		slots.filter((slot) => slot.kind === 'magnet').length < magnetCount &&
+		slots.length < count
+	) {
+		const origin = fridgeOrigins[neighborIndex % fridgeOrigins.length] ?? room.fridgeAnchor;
+		const offset = neighborOffsets[neighborIndex % neighborOffsets.length]!;
+		neighborIndex += 1;
+		if (neighborIndex > magnetCount * 8) break;
+		const marker = { tx: origin.tx + offset.tx, ty: origin.ty + offset.ty };
+		if (isDeskCell(room, marker.tx, marker.ty)) continue;
+		if (slots.some((slot) => markersEqual(slot, marker))) continue;
+		slots.push({ tx: marker.tx, ty: marker.ty, kind: 'magnet' });
+	}
 
-	const easelCount = count - magnetCount;
+	if (slots.length >= count) return finalizeSlots(slots, room);
+
+	const easelCount = count - slots.length;
 	const showZone = room.zones.find((z) => z.id === 'gallery' || z.id === 'window');
 	let easelMarkers: TileMarker[] = [];
 
 	if (showZone) {
-		easelMarkers = scanZoneSlots(room, showZone, easelCount);
+		easelMarkers = scanZoneSlots(room, showZone, easelCount, slots);
 	}
 
 	if (easelMarkers.length < easelCount) {
@@ -96,6 +125,7 @@ export function slotsForVenue(venueId: string, room: RoomDef): EaselSlot[] {
 			if (ty < 1 || ty >= room.height - 1) continue;
 			if (isDeskCell(room, marker.tx, marker.ty)) continue;
 			if (easelMarkers.some((m) => m.tx === marker.tx && m.ty === marker.ty)) continue;
+			if (slots.some((slot) => markersEqual(slot, marker))) continue;
 			// Prefer walkable; fall back to clamped east wall for sparse rooms.
 			if (markerWalkable(room, marker) || marker.tx < room.width) {
 				easelMarkers.push(marker);
@@ -108,6 +138,8 @@ export function slotsForVenue(venueId: string, room: RoomDef): EaselSlot[] {
 			tx: Math.min(room.width - 2, Math.max(1, room.width - 2)),
 			ty: Math.min(room.height - 2, Math.max(1, 2 + i))
 		};
+		if (slots.some((slot) => markersEqual(slot, marker))) continue;
+		if (isDeskCell(room, marker.tx, marker.ty)) continue;
 		slots.push({ tx: marker.tx, ty: marker.ty, kind: 'easel' });
 	}
 
@@ -118,7 +150,7 @@ function finalizeSlots(slots: EaselSlot[], room: RoomDef): EaselSlot[] {
 	return slots.map((slot) => {
 		let tx = Math.max(0, Math.min(slot.tx, room.width - 1));
 		const ty = Math.max(0, Math.min(slot.ty, room.height - 1));
-		if (tx === room.desk.tx && ty === room.desk.ty) {
+		if (isDeskCell(room, tx, ty)) {
 			tx = Math.max(0, Math.min(tx + 1, room.width - 1));
 		}
 		return { ...slot, tx, ty };

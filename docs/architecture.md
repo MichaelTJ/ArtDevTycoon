@@ -131,6 +131,14 @@ commission is collected. Skill levels grant a small payout multiplier
 (`skillPayoutMultiplier`, capped +15%). Pending gains preview on the results panel so
 collecting cash feels like banking progress, not only dollars.
 
+Spec 27 adds a separate **per-medium skill** (Novice → Master, seven ranks) for the
+player and each hired artist. Rank picks the hidden Janus suffix *inside* the active
+Toolkit medium — crayon stays crayon, but `rough pencil sketch` can become
+`masterful pencil portrait`. XP is time-based (player: while generating; artists:
+while hired, faster on assignment). Spec 28 is the idle desk practice canvas that
+grants the same XP while the player actually draws. This does not replace Spec 20
+craft skills or Spec 13 medium unlocks.
+
 Spec 22 stores up to three named `SaveData` slots in `adt.save.slots.v1` with an active
 pointer. Legacy `adt.save.v1` migrates into slot 0. Switching slots reloads meta-progress
 and returns to `idle`; engine choice and audio prefs remain browser-global.
@@ -261,6 +269,8 @@ HUD meters and craft skills are spec 20. Living-studio immersion (spec 21) is sp
 21a–21f; MVP for NPCs, interactables, audio, and VFX (21a–21d) is on the integration tip.
 Ambient barks (21e), floor QoL (21f), and deferred catalog rows (pedestrians, radio prop,
 crowds, etc.) stay in `docs/tasks/21-living-studio.md` until their owning slice lands.
+Per-medium brush ranks (spec 27) and the idle practice desk (spec 28) sit on top of
+specs 13/20/24/25 — they are specified, not yet implemented.
 
 `GameState.reputation` is tracked from Level 1 onward (via `reputationGain` per
 commission). Specs 13–16 gate shops and client tiers on it; Spec 20 surfaces it on the

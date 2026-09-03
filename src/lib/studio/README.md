@@ -38,7 +38,9 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `mega-museum`  | `mega-museum`  | 28×16 | Atelier + gallery + foyer          |
 
 Phaser loads `getRoomForVenue(snapshot.activeVenueId)` on create and rebuilds when the
-venue id changes.
+venue id changes. `/studio-editor` can override the tile atlas, ground, collision,
+furniture, and markers per room via `adt.studio-editor.v1`; `getRoomForVenue` applies
+those drafts. Person looks (player, Mum, clients, staff) overlay the same blob.
 
 ## Invariants
 
@@ -66,6 +68,10 @@ venue id changes.
 | `storefront`   | 8           | easels               |
 | `gallery-hall` | 10          | easels               |
 | `mega-museum`  | 12          | easels               |
+
+Editor extras: each extra fridge marker is another painting slot (magnet on fridge/garage,
+easel on storefront+), capped at the venue count. Extra desks are work spots; extra client
+waits are extra standing tiles (the hired marketing director uses the second wait).
 
 ## Client flow
 
@@ -102,9 +108,9 @@ Furniture may carry an optional `interactableId` (`rooms.ts`). Registry lives in
 
 Interact priority (must not reorder): talk → deliver → desk → easel → look → **prop**.
 Commission talk/deliver always wins when in range. World prompts use
-`interactPromptLabel` (Phaser Text) — e.g. “Talk to Mum”, “Work at desk”,
-“View show”, “Open fridge”. 21b registry `promptLabel` wins when present.
-The `prompt-e` glyph stays loaded but unused (text-only UI approach).
+`interactPromptLabel` (Phaser Text) — e.g. “Talk to Mum”, “Practice at desk” while idle
+(otherwise “Work at desk”), “View show”, “Open fridge”. 21b registry `promptLabel` wins
+when present. The `prompt-e` glyph stays loaded but unused (text-only UI approach).
 
 **Manual check:** kitchen E on fridge swaps frame + bark; garage E on west workbench
 opens ToolkitShop; standing on Mum while armed still Talks, not Open fridge.
@@ -130,7 +136,8 @@ anims so Phaser does not swap her back onto the clients sheet.
 ## Staff & client looks
 
 - Snapshot field `hiredRoleIds` mirrors `GameStore.hiredStaffIds`. Floor sprites spawn
-  for `apprentice` (second desk tile), `marketing-director` (idle at `clientWait`), and
+  for `apprentice` (second desk, or a tile beside the primary desk), `marketing-director`
+  (second client-wait, else the primary wait), and
   `curator` (patrols gallery/window zone, or a short east-wall pace in the kitchen).
   `print-shop` never appears on the floor. Staff are presentation-only — not talk
   targets and never emit `talk-to-client`.
@@ -183,4 +190,6 @@ follow lerp is hard (1) instead of soft (0.12).
 
 ## Assets
 
-See `static/studio/CREDITS.md` (Kenney Tiny Dungeon CC0 + ADT prompt glyph).
+See `static/studio/CREDITS.md` (Kenney Tiny Dungeon / Tiny Town / Tiny Battle CC0, Clint
+Bellanger Tiny Creatures CC0, plus ADT prompt glyph). Extra atlases are chosen in
+`/studio-editor`.

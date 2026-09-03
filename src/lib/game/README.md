@@ -11,7 +11,8 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | Module                       | Exports                                                                                                                                                                                           |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `text.ts`                    | `normalize`, `stem`, `STOPWORDS`                                                                                                                                                                  |
-| `promptPipeline.ts`          | `sanitizePlayerPrompt`, `buildPrompt`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                                                                                   |
+| `promptPipeline.ts`          | `sanitizePlayerPrompt`, `buildPrompt(playerInput, tier, skillLevel?)`, `buildLevel1Prompt`, `MAX_PROMPT_LENGTH`                                                                                   |
+| `mediumSkill.ts`             | Spec 27 — per-medium ranks, time-based XP, `mediumSkillSuffix`, `mediumSkillBackground`, `grantPracticeDrawingMs` seam lives on GameStore                                                         |
 | `scoring.ts`                 | `scorePrompt`, `calculatePayout`, `toGalleryScore`, `reputationGain`, `keywordMatches`, `ScoreBreakdown`                                                                                          |
 | `abstractCritique.ts`        | `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`                                                                                   |
 | `levelRules.ts`              | `isLevelComplete`, `levelProgress`                                                                                                                                                                |
@@ -50,8 +51,11 @@ Import from `$lib/game` via the barrel in `index.ts`.
 - Level 1 completion requires both `LEVEL_1.targetCommissions` and `LEVEL_1.targetCash`.
   Meeting both triggers a one-time career milestone overlay (not a level wipe).
   `careerMilestoneAcknowledged` on `SaveData` prevents re-showing after dismiss.
-- `buildLevel1Prompt` appends hidden modifiers from `LEVEL_1.promptModifiers`; the result
-  must never be shown to the player.
+- `buildPrompt` appends the Spec 27 rank style suffix for the active medium plus the
+  matching Round 7 studio-background clause (`skillLevel` default 1).
+  `buildLevel1Prompt` is still the crayon rank-1 wrapper (style stays
+  `LEVEL_1.promptModifiers`; the full string also includes the Novice white background).
+  The result must never be shown to the player. Rank **names** are the HUD surface.
 - Operational helpers read only shapes from `$lib/types/contracts.ts` and preserve
   newest-first gallery ordering.
 
@@ -64,6 +68,14 @@ under `adt.save.slots.v1`, with the active pointer in `adt.save.activeSlot`.
 into slot 0 on first boot. The in-flight commission does not persist. Load/persist never
 throw — corrupt or unavailable storage falls back to `createDefaultSave`. Specs 13–16/20
 extend `GameStore`'s `#persist()` rather than adding parallel writers.
+
+## Medium skill (`mediumSkill.ts`)
+
+Per-medium Novice→Master ranks (1–7) for the player and each hired artist. Level is derived
+from XP (cap 7, 810 XP to Master). Unlocking a medium does not grant skill. Distinct from
+Spec 20 craft skills (payout) and Spec 24 artist training XP (assignment speed). Artist
+time ticks are floor-only — leftover ms are dropped so idle vs assigned rates cannot share
+a remainder. Spec 28 calls `GameStore.grantPracticeDrawingMs`.
 
 ## Craft skills (`skills.ts`)
 

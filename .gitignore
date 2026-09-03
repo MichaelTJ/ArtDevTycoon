@@ -33,3 +33,4 @@ models
 
 # Modifier explorer output (dev-only batch generations)
 data/modifier-explorer/
+data/modifier-explorer2/

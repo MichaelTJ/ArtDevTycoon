@@ -4,10 +4,12 @@ import { playwright } from '@vitest/browser-playwright';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { modifierExplorerPlugin } from './src/lib/modifier-explorer/vite-plugin';
+import { modifierExplorer2Plugin } from './src/lib/modifier-explorer2/vite-plugin';
 
 export default defineConfig({
 	plugins: [
 		modifierExplorerPlugin(),
+		modifierExplorer2Plugin(),
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {

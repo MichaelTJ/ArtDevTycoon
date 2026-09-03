@@ -282,6 +282,15 @@
 		}
 	});
 
+	$effect(() => {
+		const rankUp = game.lastMediumSkillRankUp;
+		if (!rankUp) return;
+		const handle = setTimeout(() => {
+			game.clearMediumSkillRankUp();
+		}, 2000);
+		return () => clearTimeout(handle);
+	});
+
 	onMount(() => {
 		reducedVfx = queryPrefersReducedMotion();
 		const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -318,6 +327,12 @@
 			}
 			if (event.type === 'open-shop' && event.shop === 'toolkit') {
 				openToolkitNonce += 1;
+				return;
+			}
+			if (event.type === 'interact-desk') {
+				if (game.phase === 'idle' && !clientSummoned) {
+					game.enterPractice();
+				}
 				return;
 			}
 			// prop-bark: Phaser already shows fridge feedback; toast optional in v1
@@ -507,6 +522,12 @@
 					onretry={() => game.retry()}
 					ondismisserror={dismissError}
 					ondecline={declineClient}
+					practiceOpen={game.practiceOpen}
+					skill={game.activeMediumSkillProgress}
+					rankUpLabel={game.lastMediumSkillRankUp?.rankLabel}
+					onpractice={() => game.enterPractice()}
+					onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
+					onexitpractice={() => game.exitPractice()}
 				/>
 				{#if game.phase === 'briefing' && game.currentClient}
 					<button
@@ -565,6 +586,12 @@
 						onretry={() => game.retry()}
 						ondismisserror={() => game.dismissError()}
 						ondecline={declineClient}
+						practiceOpen={game.practiceOpen}
+						skill={game.activeMediumSkillProgress}
+						rankUpLabel={game.lastMediumSkillRankUp?.rankLabel}
+						onpractice={() => game.enterPractice()}
+						onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
+						onexitpractice={() => game.exitPractice()}
 					/>
 				{/snippet}
 			</GameScene>

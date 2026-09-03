@@ -2545,3 +2545,460 @@ src/lib/studio/bridge.test.ts`.
 
 - Manual playthrough not run (unit/component tests only).
 - No dedicated Phaser art for letterbox/computer — tinted furniture placeholder.
+
+## 2026-08-04 — Spec 26 sibling: `/modifier-explorer2` Round 1–2
+
+**Zone:** `src/lib/modifier-explorer2/**`, `src/routes/modifier-explorer2/**`,
+`data/modifier-explorer2/**`, `vite.config.ts` (registers `modifierExplorer2Plugin`),
+`docs/tasks/26-modifier-explorer.md`, `docs/agent-log.md`
+
+**Built:** Duplicated the explorer into a clean series lab. Cleared the old axis/tag
+vocabulary for this route. Round 1 = 100 objects (common → very-rare) × 3 neutral
+framings (300). Round 2 = 30 “simple” style words × 3 working subjects (90). Provisional
+`WORKING_SUBJECT_KEYS` = apple / coffee-mug / cat — replace after Round 1 picks.
+Separate disk gallery + API under `data/modifier-explorer2/`.
+
+**Public surface:** `$lib/modifier-explorer2` — `EXPLORER_PROMPT_CASES`,
+`ROUND1_SUBJECTS`, `ROUND2_SIMPLE_STYLES`, `WORKING_SUBJECT_KEYS`, `runExplorerBatch`
+(optional `categories` filter), browse/good-tag helpers, `wipeExplorerGallery`.
+
+**Tests:** 22 unit tests in `src/lib/modifier-explorer2/*.test.ts`. Commands:
+`npm run check`; `npm run test:unit -- --run src/lib/modifier-explorer2/`.
+
+**Decisions:**
+
+- Facets simplified to `round` / `subject` / `rarity?` / `style?` / `variant` (no old
+  style–lighting–detail ladder).
+- Round 1 prompts stay style-neutral (white background only) so object knowledge is the
+  only variable.
+- Explorer 1 left intact for the prior Janus messy-media battery.
+
+**Requests:** None (`vite.config.ts` already wired for the second plugin).
+
+**Known gaps:**
+
+- Live Janus batch not run in this session — open `/modifier-explorer2` after `npm run dev`.
+- Round 2 subjects are provisional until Round 1 good-tags are chosen.
+
+---
+
+## 2026-08-13 — Orchestrator (specs 27–28: medium skill + practice)
+
+**Zone:** `docs/tasks/27-medium-skill.md`, `docs/tasks/28-practice-station.md`,
+`docs/tasks/README.md`, `docs/architecture.md`, `docs/agent-log.md`
+
+**Built:** Two implementation-ready specs from the explorer finding that Janus quality
+tracks skill adjectives inside a medium (`rough pencil sketch` vs `masterful pencil
+portrait`), not only which Toolkit medium is bought.
+
+- Spec 27 — per-medium Novice→Master ranks (7), time-based XP for the player (while
+  generating) and hired artists (idle + assigned), hidden suffix ladder, save fields,
+  `buildPrompt(..., skillLevel)`, artist background generate with mock fallback,
+  Progress / roster rank UI. Distinct from Spec 20 craft skills and Spec 24 training XP.
+- Spec 28 — idle desk practice mode (no new `GamePhase`); brush-stroke time calls
+  `grantPracticeDrawingMs`; E at desk / Practice button; auto-invite paused.
+
+**Public surface (specified, not coded):** `mediumSkillSuffix`, `mediumSkillProgress`,
+`grantMediumSkillXp`, `applyElapsedSkillMs`, `grantPracticeDrawingMs`,
+`enterPractice` / `exitPractice`, `PracticeDesk`.
+
+**Tests:** None yet — specs include literal XP tables and test cases for the
+implementing agents.
+
+**Decisions:**
+
+- Medium skill is per-medium, not a global drawing stat. Unlocking oil starts you at
+  Novice oil; Spec 13 payout multipliers still pay for the material.
+- Crayon rank 1 stays byte-identical to `LEVEL_1.promptModifiers`.
+- Watercolour / acrylic / oil rank-1 suffixes are rewritten to amateur-in-medium so
+  buying them is not an instant masterpiece.
+- Player generating XP has no overnight catch-up; artist catch-up is capped at 10
+  minutes. Practice XP is stroke-time only (Spec 28).
+- Artist Janus generate uses the employee's suffix but **keeps mock critic scores** so
+  payouts stay deterministic.
+- Specs are serial (Wave N): 28 overlaps 27's `GameStore` / overlay / `+page`.
+
+**Requests:** Implementing agent for 27, then 28 after merge. Grok 4.7 High was
+requested but is not in the spawnable model list this session.
+
+**Known gaps:** Implementation not started. Spec 28 `interact-desk` wiring depends on
+27's `grantPracticeDrawingMs` already existing.
+
+---
+
+## 2026-08-13 — Spec 27 medium skill (implementing)
+
+**Zone:** `src/lib/data/mediumSkillTiers.ts`, `src/lib/game/mediumSkill.ts`, targeted
+edits to `mediumTiers.ts`, `promptPipeline.ts`, `save.ts`, `assignCommission.ts`,
+`gameState.svelte.ts`, `ProgressPanel.svelte`, `TeamRoster.svelte`, `GameMenuBar.svelte`, barrels/READMEs,
+`docs/tasks/27-medium-skill.md`, `docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Persisted per-medium Novice→Master ranks (1–7) for the player and hired
+artists. Rank picks the hidden Janus suffix. Player XP accrues while `generating`;
+artists accrue while hired (faster on assignment, 10-minute catch-up cap). Spec 28
+seam `grantPracticeDrawingMs` is implemented and unit-tested. Watercolour / acrylic /
+oil rank-1 suffixes are amateur-in-medium; crayon rank 1 stays byte-identical to
+`LEVEL_1.promptModifiers`. Artist assign fires engine `generate` in the background and
+falls back to today's SVG mock; late results after skip/fire/reset/slot-switch are
+ignored. Progress panel and team roster show rank **names** only.
+
+**Public surface:**
+
+- `mediumSkillSuffix(mediumId, level)`, `MEDIUM_SKILL_SUFFIXES` (`$lib/data/mediumSkillTiers`)
+- `mediumSkillProgress`, `grantMediumSkillXp`, `applyElapsedSkillMs`,
+  `mediumSkillXpToNext`, `clampArtistSkillCatchupMs`, XP-rate constants (`$lib/game`)
+- `buildPrompt(playerInput, tier, skillLevel = 1)`
+- `GameStore.playerMediumSkillXp`, `mediumSkillProgressList`,
+  `grantPracticeDrawingMs(deltaMs)`, `tickMediumSkillsForTests(elapsedMs)`
+- `ProgressPanel` prop `mediumSkills: MediumSkillProgress[]`
+- `HiredArtistState.mediumSkillXp`
+
+**Tests:** Unit + component cases from the spec. Commands:
+
+```
+npm run test:unit -- --run src/lib/data/mediumTiers.test.ts src/lib/data/mediumSkillTiers.test.ts src/lib/game/mediumSkill.test.ts src/lib/game/promptPipeline.test.ts src/lib/game/save.test.ts src/lib/stores/gameState.svelte.test.ts src/lib/components/ProgressPanel.svelte.test.ts src/lib/components/TeamRoster.svelte.test.ts
+```
+
+Owned-file eslint is clean. Focused Task 27 tests pass.
+
+**Decisions:**
+
+- Artist medium-skill ticks are floor-only (`Math.floor(elapsedMs / msPerXp)`); leftover
+  ms are dropped so idle (60s) and work (2s) rates cannot share a remainder.
+- `ProgressPanel` stays props-in/events-out: `mediumSkills` is required. `GameMenuBar`
+  (store orchestrator) passes `mediumSkills={game.mediumSkillProgressList}`. Team
+  roster ranks flow automatically via `hired={game.hiredArtists}`.
+- `+page.svelte` was not edited — it does not mount ProgressPanel / TeamRoster.
+- Artist generate wraps `engine.generate` in `Promise.resolve()` so tests that pass
+  `vi.fn()` without an implementation still complete assignments.
+
+**Requests:** None (no new dependencies).
+
+**Known gaps:**
+
+- Spec 28 practice-station UI is not implemented (`grantPracticeDrawingMs` only).
+- Repo-wide `npm run check` / `npm run lint` / `npm run test:unit -- --run` are **not**
+  green because of pre-existing work outside this zone. Exact failures:
+  - **check (21 errors, 4 files):** `src/lib/modifier-explorer/prompts.ts` and
+    `timing.ts` "is not a module"; follow-on implicit `any` in `runner.ts`,
+    `index.ts`, `prompts.test.ts`, `timing.test.ts`.
+  - **lint:** `prettier --check .` warns on 40 files, including
+    `src/lib/modifier-explorer/**`, `src/lib/modifier-explorer2/**`,
+    `src/routes/modifier-explorer*/**`, `vite.config.ts`, `docs/architecture.md`, and
+    other uncommitted explorer/docs files. Owned-zone files were formatted.
+  - **test:unit (21 failed / 929 passed):** modifier-explorer prompts/timing (module
+    missing); also `operations.test.ts` (cash-gap / cashRemaining),
+    `critiqueProtocol.test.ts` (c1 keywords `['cat','cool']` vs `['cat']`),
+    `mockEngine.test.ts` (c1 accuracy 6 vs 10), `janusEngine.test.ts` (2 critique
+    questions vs 1), `ToolkitShop.svelte.test.ts` (unaffordable button not disabled).
+    None of those files are in this zone; shop costs/taglines were not changed.
+
+---
+
+## 2026-08-13 — Spec 28 practice station (implementing)
+
+**Zone:** `src/lib/components/PracticeDesk.svelte` (+ test), `SketchCanvas.svelte`,
+`StudioHudOverlay.svelte`, `IdlePanel.svelte`, `index.ts`, `src/lib/stores/gameState.svelte.ts`,
+`src/lib/studio/interactPrompt.ts`, `src/lib/studio/scenes/StudioScene.ts` (desk label only),
+`src/routes/+page.svelte`, component/store/studio READMEs, `docs/tasks/28-practice-station.md`,
+`docs/tasks/README.md`, `docs/agent-log.md`
+
+**Built:** Idle desk practice mode on `phase === 'idle'` (session flag, not a `GamePhase`).
+E at the desk or the HUD **Practice** button opens `PracticeDesk` with the existing
+`SketchCanvas`. Brush movement (≥2px, dt in (0, 250] ms) calls `grantPracticeDrawingMs`;
+eraser, hover, pointer-down-only, and ticks after **Done** grant no XP. Auto-invite is
+paused while `practiceOpen` and resumes on exit. Invite / board accept / skip / reset /
+slot switch close the canvas. Rank name + XP bar are shown; hidden suffixes are not.
+Canvas init failure shows “Canvas unavailable”; **Done** still works.
+
+**Public surface:**
+
+- `GameStore.practiceOpen`, `enterPractice(): boolean`, `exitPractice()`,
+  `grantPracticeDrawingMs(deltaMs)` (no-op unless `practiceOpen`),
+  `lastMediumSkillRankUp`, `clearMediumSkillRankUp()`
+- `SketchCanvas` props `onpracticetick?`, `nowMs?`, `ariaLabel?`
+- `PracticeDesk` (props-in / events-out)
+- `StudioHudOverlay` props `practiceOpen?`, `skill?`, `rankUpLabel?`, `onpractice?`,
+  `onpracticetick?`, `onexitpractice?`
+- `IdlePanel` optional `onpractice?`
+- `interactPromptLabel({ kind: 'desk', deskIsPractice: true })` → `Practice at desk`
+
+**Tests:** Spec cases for canvas ticks, store enter/exit/XP/rank-up/auto-invite, overlay
+Practice/Done, IdlePanel, PracticeDesk picker/Done/rank-up, interactPrompt verbs.
+Existing overlay/canvas/store tests still pass. Commands:
+
+```
+npm run test:unit -- --run src/lib/components/SketchCanvas.svelte.test.ts src/lib/components/PracticeDesk.svelte.test.ts src/lib/components/IdlePanel.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/studio/interactPrompt.test.ts src/lib/stores/gameState.svelte.test.ts
+```
+
+Focused suite: 147 passed. Owned-file eslint + prettier are clean.
+
+**Decisions:**
+
+- Duplicated the briefing medium-picker markup in `PracticeDesk` rather than extracting
+  `MediumPicker.svelte`, so briefing tests stay on the overlay snippet.
+- Rank-up live region is parent-driven (`lastMediumSkillRankUp`); `+page` clears it after
+  2s; `exitPractice` also clears it. No extra celebration animation.
+- `grantPracticeDrawingMs` now no-ops unless `practiceOpen` so a leaked canvas cannot farm XP.
+
+**Requests:** None (no new dependencies or config).
+
+**Known gaps:**
+
+- Manual playthrough not run (unit/component tests only).
+- Repo-wide commands are **not** green because of pre-existing work outside this zone.
+  Exact failures:
+  - **check (21 errors, 4 files):** `src/lib/modifier-explorer/prompts.ts` and
+    `timing.ts` "is not a module"; follow-on implicit `any` in `runner.ts`,
+    `index.ts`, `prompts.test.ts`, `timing.test.ts`. No Task 28 files in the report.
+  - **lint:** `prettier --check .` warns on 32 files, all
+    `src/lib/modifier-explorer/**`, `src/lib/modifier-explorer2/**`,
+    `src/routes/modifier-explorer*/**`, `vite.config.ts`, `docs/architecture.md`,
+    `docs/tasks/04-integration.md`, `docs/tasks/18-abstract-prompts.md`,
+    `docs/tasks/24-artist-team.md`, and `data/modifier-explorer2/manifest.json`.
+    Owned-zone files were formatted; eslint on owned sources is clean.
+  - **test:unit (21 failed / 956 passed):** same unrelated set as Spec 27 —
+    modifier-explorer prompts/timing (module missing); `operations.test.ts`
+    (cash-gap / cashRemaining); `critiqueProtocol.test.ts` (c1 keywords
+    `['cat','cool']` vs `['cat']`); `mockEngine.test.ts` (c1 accuracy 6 vs 10);
+    `janusEngine.test.ts` (2 critique questions vs 1);
+    `ToolkitShop.svelte.test.ts` (unaffordable button not disabled).
+
+---
+
+## 2026-08-13 — Explorer2 Round 5 retries
+
+**Zone:** `src/lib/modifier-explorer2/**`, `src/routes/modifier-explorer2/+page.svelte`, `docs/agent-log.md`
+
+**Built:** Round 5 retries the six Round 4 styles Janus failed (crayon collage, architectural
+graphite, botanical graphite, precise cross-hatch, isometric digital, finger-painted oil).
+New suffixes keep the same skill rank and the same five objects, but switch to medium-texture
+language. `/modifier-explorer2?autorun=round5` starts the Janus batch after the gallery loads;
+`autorun-round.mjs` drives that in headed Chrome so the run does not need a click.
+
+**Public surface:** `$lib/modifier-explorer2` — `ROUND5_RETRY_STYLES`, `ROUND5_CASE_COUNT`,
+category `round5-retries`. Total series size is 655.
+
+**Tests:** `npm run test:unit -- --run --project=node src/lib/modifier-explorer2` — 34 passed.
+
+**Decisions:**
+
+- Did not change Spec 27 `mediumSkillTiers.ts` yet — Round 5 is a discovery pass; game
+  suffixes should wait until the retries are marked good.
+- Reused the failed Round 4 object sets so each retry is an A/B against the original.
+
+**Requests:** None.
+
+**Known gaps:** Round 5 images still need a human pass in the gallery. Playwright uses a
+fresh Chrome profile, so the first unattended run may re-download Janus.
+
+---
+
+## 2026-08-14 — Explorer2 Round 6 backgrounds
+
+**Zone:** `src/lib/modifier-explorer2/**`, `src/routes/modifier-explorer2/+page.svelte`,
+`data/modifier-explorer2/manifest.json` (Round 5 good-tags), `docs/agent-log.md`
+
+**Built:** Marked all 30 Round 5 retries as good (round/subject/medium/style/variant). Added
+Round 6: 7 location-free studio backdrops, one shot per medium × matching skill tier (42).
+Working Round 4 suffixes plus Round 5 replacements. `?autorun=round6` / `autorun-round.mjs round6`.
+
+**Public surface:** `$lib/modifier-explorer2` — `ROUND6_BACKGROUNDS`, `ROUND6_CASE_COUNT`,
+category `round6-backgrounds`, facet `background`. Total series size is 697.
+
+**Tests:** `npm run test:unit -- --run --project=node src/lib/modifier-explorer2`
+
+**Decisions:**
+
+- Backdrop phrase replaces the old `centered on a plain white background` clause rather than
+  stacking two backdrops.
+- One working subject per cell (rotated `WORKING_SUBJECT_KEYS`) so the test is the backdrop,
+  not object recognition.
+
+**Requests:** None.
+
+**Known gaps:** Round 6 still needs a human pass after generation.
+
+---
+
+## 2026-08-14 — Explorer2 autorun uses Edge
+
+**Zone:** `src/lib/modifier-explorer2/autorun-round.mjs`, `src/lib/modifier-explorer2/README.md`
+
+**Built:** Unattended driver now launches Microsoft Edge with the Default profile under
+`%LOCALAPPDATA%\Microsoft\Edge\User Data`, so the Janus Cache API hit from explorer
+sessions is reused. Chrome/tmp profile path is gone.
+
+**Public surface:** `node src/lib/modifier-explorer2/autorun-round.mjs round6`
+
+**Tests:** None (driver-only).
+
+**Decisions:** Edge must be fully closed before the script runs — one process per profile.
+
+**Requests:** None.
+
+**Known gaps:** Round 6 generation still waiting on a manual run.
+
+---
+
+## 2026-08-17 — Explorer2 prompts into the game
+
+**Zone:** `src/lib/data/mediumTiers.ts`, `mediumSkillTiers.ts`, `src/lib/game/promptPipeline.ts`,
+`mediumSkill.ts`, `index.ts`, matching tests, data/game/stores READMEs, `src/lib/dev/cheats.test.ts`,
+`docs/agent-log.md`
+
+**Built:** Replaced Spec 27's invented rank suffixes with explorer2 Round 4 phrases and the
+six Round 5 replacements. `buildPrompt` now appends the matching Round 7 studio-background
+clause: `{player}, {style}, {background}`. Crayon Novice style stays byte-identical to
+`LEVEL_1.promptModifiers`; the full Level 1 prompt also includes the unfinished-flat
+white background. Watercolour Set uses the explorer pastel/copic/gouache ladder.
+
+**Public surface:**
+
+- `mediumSkillSuffix(mediumId, level)` — style only
+- `mediumSkillBackground(level)` — shared Round 7 phrase
+- `buildPrompt` / `buildLevel1Prompt` concatenate both
+
+**Tests:**
+
+```
+npm run test:unit -- --run --project=node src/lib/data/mediumSkillTiers.test.ts src/lib/data/mediumTiers.test.ts src/lib/game/promptPipeline.test.ts src/lib/game/mediumSkill.test.ts src/lib/stores/gameState.svelte.test.ts src/lib/dev/cheats.test.ts
+```
+
+**Decisions:**
+
+- Copied literals into `mediumSkillTiers.ts` rather than importing explorer2, so the lab
+  can change without breaking commissions.
+- Dev peek (`peekLevel1ModifierSuffix`) still returns crayon **style** only, not the
+  background clause.
+- Did not edit `contracts.ts` or `docs/architecture.md` (still mentions
+  `masterful pencil portrait`). Master pencil is now
+  `masterful graphite pencil drawing, museum-quality shading, intricate detail`.
+
+**Requests:** Orchestrator may want `docs/architecture.md` and spec 27's pinned
+`masterful pencil portrait` tests updated to the new Master pencil phrase.
+
+**Known gaps:** Spec 27 markdown still documents the old suffix table. Player UI is
+unchanged (rank names only).
+
+---
+
+## 2026-08-17 — Studio editor (rooms + people)
+
+**Zone:** `src/lib/studio-editor/**`, `src/routes/studio-editor/**`, `static/studio/tiles/tiny-town.png`,
+`static/studio/tiles/tiny-battle.png`, `static/studio/characters/tiny-creatures.png`,
+`src/lib/studio/rooms.ts` (additive `tilesetId`), `venueRooms.ts`, `clientLooks.ts`,
+`staffPresence.ts`, `scenes/BootScene.ts`, `scenes/StudioScene.ts`, `src/lib/studio/README.md`,
+`static/studio/CREDITS.md`, `src/lib/components/DevPanel.svelte`, `docs/agent-log.md`
+
+**Built:** `/studio-editor` page. Rooms tab: pick a venue, pick a CC0 tileset, click a tile,
+choose ground / walkable / furniture / marker, close. People tab: click a role, pick a
+sheet + frame + tint, close. Drafts persist in `adt.studio-editor.v1` and overlay the
+Phaser floor on reload. Added Kenney Tiny Town, Kenney Tiny Battle, and Clint Bellanger
+Tiny Creatures (all CC0).
+
+**Public surface:** `$lib/studio-editor` — `applyTileEdit`, `switchTileset`,
+`resolveRoomForPlay`, `resolvePersonLook`, `overlayClientLook`, `overlayStaffLook`,
+`loadStudioEditorState`. Route `/studio-editor`. Dev panel link **Studio editor**.
+
+**Tests:**
+
+```
+npm run test:unit -- --run src/lib/studio-editor src/lib/studio/venueRooms.test.ts src/lib/studio/clientLooks.test.ts src/lib/studio/staffPresence.test.ts src/lib/components/DevPanel.svelte.test.ts
+```
+
+**Decisions:**
+
+- Room width/height stay locked to authored plans so easels/zones/pathfinding stay valid.
+- Packed Kenney sheets in this repo have 0px spacing (Tilesheet.txt describes the gapped
+  `tilemap.png`); catalog math matches the PNG IHDR.
+- Phaser still boots if editor storage is empty — looks and rooms are unchanged.
+
+**Requests:** None.
+
+**Known gaps:** No room resize, zone painting, or Mum patrol editor. Drafts do not write
+back into `rooms.ts`.
+
+---
+
+## 2026-08-18 — Studio editor walls + home tilesets
+
+**Zone:** `src/lib/studio-editor/**`, `src/lib/studio/rooms.ts` (tilesetId comment),
+`src/lib/studio/scenes/BootScene.ts`, `src/lib/studio/scenes/StudioScene.ts`,
+`static/studio/tiles/home-interior.png`, `static/studio/tiles/home-indoor.png`,
+`static/studio/CREDITS.md`, `docs/agent-log.md`
+
+**Built:** Blocked cells are walls. The editor lists wall kinds and furniture kinds under
+the room grid; clicking a kind remaps every matching sprite. Added Tilation home interior
+(CC BY-SA) and Kenney Roguelike Indoor (CC0) so rooms can leave the dungeon look.
+
+**Public surface:** `$lib/studio-editor` — `listWallKinds`, `listFurnitureKinds`,
+`recolorWalls`, `recolorFurniture`, `FURNITURE_SHEETS`. Route `/studio-editor` unchanged.
+
+**Tests:**
+
+```
+npm run test:unit -- --run src/lib/studio-editor
+```
+
+**Decisions:**
+
+- Furniture-occupied solids stay out of the wall palette so a fridge does not count as a wall.
+- Tilation needs itch.io credit (CC BY-SA 4.0); Kenney indoor is CC0.
+
+**Requests:** None.
+
+**Known gaps:** Authored rooms still default to Tiny Dungeon until a tileset is chosen in
+the editor. No room resize, zone painting, or Mum patrol editor.
+
+---
+
+## 2026-08-18 — Floor palette + mixed tileset floors/walls
+
+**Zone:** `src/lib/studio-editor/**`, `src/lib/studio/rooms.ts` (`groundSheets`),
+`src/lib/studio/scenes/StudioScene.ts`, `docs/agent-log.md`
+
+**Built:** Floors get the same under-grid palette as walls. Floor and wall pickers list every
+tileset so a kind can be re-skinned from another pack without switching the whole room.
+Phaser overlays those cells on the primary tilemap.
+
+**Tests:**
+
+```
+npm run test:unit -- --run src/lib/studio-editor
+```
+
+---
+
+## 2026-08-18 — Repeatable desk, fridge, and client-wait markers
+
+**Zone:** `src/lib/studio-editor/**`, `src/lib/studio/rooms.ts`, `src/lib/studio/easelLayout.ts`,
+`src/lib/studio/staffPresence.ts`, `src/lib/studio/scenes/StudioScene.ts`, `docs/agent-log.md`
+
+**Built:** Fridge, desk, and client-wait can be placed on many tiles instead of relocating the
+only copy. Door and player-spawn stay unique. Each fridge marker is a painting slot. Extra
+desks are work spots (nearest desk for E / sit); extra waits give the marketing director a
+second standing tile.
+
+**Public surface:** `$lib/studio/rooms` — `collectMarkers`, `roomDesks`, `roomFridgeAnchors`,
+`roomClientWaits`. `RoomDef` extras: `desks?`, `fridgeAnchors?`, `clientWaits?`. Editor drafts
+persist the same fields.
+
+**Tests:**
+
+```
+npm run test:unit -- --run src/lib/studio-editor src/lib/studio/rooms.test.ts src/lib/studio/easelLayout.test.ts src/lib/studio/staffPresence.test.ts
+```
+
+**Decisions:**
+
+- Repeatable add: tagging Fridge on a new tile appends `fridgeAnchors` and leaves the original
+  `fridgeAnchor` in place. None on an extra deletes it; None on the primary promotes the next.
+- Neighbor magnet fill still runs so a single fridge still yields three kitchen magnets.
+- Storefront+ extra fridges become easel slots, not magnets.
+
+**Requests:** None.
+
+**Known gaps:** Door visitors still walk to the primary `clientWait`. Extra waits are standing
+tiles for staff, not extra door-client destinations. Work VFX stay at the desk used when the
+emitter was created.

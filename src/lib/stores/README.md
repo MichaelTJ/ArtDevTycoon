@@ -23,7 +23,7 @@ Import from:
 
 | Phase           | UI                                                                                                                                                                                   | Entry                                                         |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
-| `idle`          | {@link IdlePanel}                                                                                                                                                                    | start / after collect                                         |
+| `idle`          | {@link IdlePanel} or Spec 28 PracticeDesk when `practiceOpen`                                                                                                                        | start / after collect                                         |
 | `briefing`      | {@link ClientCard} + {@link PromptComposer} + **Skip**                                                                                                                               | `inviteClient()` / `acceptBoardBrief()`                       |
 | `generating`    | {@link ClientCard} + {@link SketchCanvas} (paint while waiting; stays interactive after AI arrives) + AI preview below canvas + submit-choice until `confirmSubmitChoice` + **Skip** | `createArt()` then player picks                               |
 | `critiquing`    | {@link ClientCard} + {@link ArtworkFrame} + {@link GeneratingPanel}                                                                                                                  | after submit choice                                           |
@@ -39,11 +39,16 @@ before the gallery entry is persisted.
 
 - `GameStore` defaults to `engines.manager`, never a second `EngineManager`.
 - Spec 24 adds `hiredArtists`, `artistAssignment`, `majorProjectProgress` (parallel to spec 16
-  `hiredStaffIds` — idle income unchanged).
+  `hiredStaffIds` — idle income unchanged). Spec 27 adds `playerMediumSkillXp` / per-artist
+  `mediumSkillXp` (look, not speed) and `grantPracticeDrawingMs` for Spec 28. Spec 28 adds
+  session-only `practiceOpen` / `enterPractice` / `exitPractice` (not a `GamePhase`, not in
+  `saveDataSchema`). Auto-invite is paused while practising; leaked canvas ticks grant no XP
+  after **Done**.
 - `createArt()` calls `engines.setSwitchingLocked(true)` until `confirmSubmitChoice` finishes (or generation fails).
 - Playtest P6: `createArt()` runs prompt-only generate, then `pendingSubmitChoice` until the player calls `confirmSubmitChoice('drawing' | 'ai', sketchBlob?)`; critique uses the chosen `imageUrl` (no new `GamePhase` — still `generating` during the choice step).
-- Hidden Level 1 prompt modifiers are applied only inside `createArt()` via
-  `buildLevel1Prompt()`; the UI never displays the built prompt.
+- Hidden prompt modifiers are applied inside `createArt()` via `buildPrompt(..., skillLevel)`
+  (style suffix + Round 7 background) and inside artist assign; the UI never displays the
+  built prompt. Rank names show on Progress, the team roster, and the Spec 28 practice desk.
 - `GameState` does not persist across reloads (intentional for Level 1 testing). Engine
   choice persists via `EngineManager` / `localStorage`.
 - Career milestone overlay (`levelComplete` phase) shows at most once per save slot.

@@ -32,9 +32,9 @@ export const AXIS_DEFS: readonly { id: AxisId; label: string; description: strin
 
 /** One concrete option picked for a given axis on a given prompt case. */
 export interface AxisFacet {
-	/** Stable short key, e.g. "oilpainting". Used for exact filtering. */
+	/** Stable short key, e.g. "oil" / "crayon". Used for exact filtering and unlock mining. */
 	key: string;
-	/** Human label used on chips, e.g. "Oil painting". */
+	/** Short human label used on chips, e.g. "Oil" or "Crayon". */
 	label: string;
 	/** Where this option sits on its axis, 1 (novice) → 5 (expert). */
 	level: AxisLevel;

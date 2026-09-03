@@ -83,3 +83,88 @@ test('prefers-reduced-motion: no obligatory animation', async () => {
 	expect(style.animationName === 'none' || style.animationName === '').toBe(true);
 	expect(style.transitionDuration === '0s' || style.transitionDuration === '').toBe(true);
 });
+
+function mockCanvasRect(el: HTMLCanvasElement): void {
+	el.getBoundingClientRect = () =>
+		({
+			x: 0,
+			y: 0,
+			left: 0,
+			top: 0,
+			right: 384,
+			bottom: 384,
+			width: 384,
+			height: 384,
+			toJSON() {
+				return {};
+			}
+		}) as DOMRect;
+}
+
+test('brush move of at least 2px fires onpracticetick with dt', async () => {
+	let now = 1_000;
+	const onpracticetick = vi.fn();
+	const screen = render(SketchCanvas, {
+		nowMs: () => now,
+		onpracticetick
+	});
+	const el = screen.getByLabelText('Sketch canvas').element() as HTMLCanvasElement;
+	mockCanvasRect(el);
+
+	el.dispatchEvent(
+		new PointerEvent('pointerdown', { clientX: 40, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	expect(onpracticetick).not.toHaveBeenCalled();
+	now = 1_050;
+	el.dispatchEvent(
+		new PointerEvent('pointermove', { clientX: 50, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	expect(onpracticetick).toHaveBeenCalledWith(50);
+});
+
+test('eraser move does not fire onpracticetick', async () => {
+	let now = 1_000;
+	const onpracticetick = vi.fn();
+	const screen = render(SketchCanvas, {
+		nowMs: () => now,
+		onpracticetick
+	});
+	await screen.getByRole('button', { name: 'Eraser' }).click();
+	const el = screen.getByLabelText('Sketch canvas').element() as HTMLCanvasElement;
+	mockCanvasRect(el);
+
+	el.dispatchEvent(
+		new PointerEvent('pointerdown', { clientX: 40, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	now = 1_050;
+	el.dispatchEvent(
+		new PointerEvent('pointermove', { clientX: 80, clientY: 80, bubbles: true, pointerId: 1 })
+	);
+	expect(onpracticetick).not.toHaveBeenCalled();
+});
+
+test('disabled canvas does not fire onpracticetick', async () => {
+	let now = 1_000;
+	const onpracticetick = vi.fn();
+	const screen = render(SketchCanvas, {
+		disabled: true,
+		nowMs: () => now,
+		onpracticetick
+	});
+	const el = screen.getByLabelText('Sketch canvas').element() as HTMLCanvasElement;
+	mockCanvasRect(el);
+
+	el.dispatchEvent(
+		new PointerEvent('pointerdown', { clientX: 40, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	now = 1_050;
+	el.dispatchEvent(
+		new PointerEvent('pointermove', { clientX: 80, clientY: 80, bubbles: true, pointerId: 1 })
+	);
+	expect(onpracticetick).not.toHaveBeenCalled();
+});
+
+test('optional ariaLabel overrides the canvas name', async () => {
+	const screen = render(SketchCanvas, { ariaLabel: 'Practice canvas' });
+	await expect.element(screen.getByLabelText('Practice canvas')).toBeVisible();
+});

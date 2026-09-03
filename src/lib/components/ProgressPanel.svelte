@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { SKILL_DEFS, type NextUnlock, type SkillProgress } from '$lib/game';
+	import { getMediumTier } from '$lib/data/mediumTiers';
+	import {
+		SKILL_DEFS,
+		type MediumSkillProgress,
+		type NextUnlock,
+		type SkillProgress
+	} from '$lib/game';
 	import ProgressMeter from './ProgressMeter.svelte';
 
 	interface Props {
@@ -9,11 +15,21 @@
 		cashMeter: NextUnlock;
 		reputationMeter: NextUnlock;
 		skills: SkillProgress[];
+		/** One row per unlocked medium in MEDIUM_TIERS order. Rank names only — never suffixes. */
+		mediumSkills: MediumSkillProgress[];
 		onclose: () => void;
 	}
 
-	let { cash, reputation, commissions, cashMeter, reputationMeter, skills, onclose }: Props =
-		$props();
+	let {
+		cash,
+		reputation,
+		commissions,
+		cashMeter,
+		reputationMeter,
+		skills,
+		mediumSkills,
+		onclose
+	}: Props = $props();
 
 	function skillHint(skill: SkillProgress): string {
 		const tagline = SKILL_DEFS.find((def) => def.id === skill.id)?.tagline ?? '';
@@ -24,6 +40,19 @@
 		}
 		const xpLine = `Lv ${skill.level} · ${skill.xpIntoLevel}/${skill.xpForNext} XP`;
 		return tagline ? `${tagline} · ${xpLine}` : xpLine;
+	}
+
+	function mediumHint(row: MediumSkillProgress): string {
+		const name = getMediumTier(row.mediumId).name;
+		if (row.xpForNext === 0) {
+			return `${name} · ${row.rankLabel} · Max rank`;
+		}
+		return `${name} · ${row.rankLabel} · ${row.xpIntoLevel}/${row.xpForNext} XP`;
+	}
+
+	function mediumLabel(row: MediumSkillProgress): string {
+		const name = getMediumTier(row.mediumId).name;
+		return `${name} · ${row.rankLabel}`;
 	}
 </script>
 
@@ -90,5 +119,19 @@
 				/>
 			{/each}
 		</section>
+
+		{#if mediumSkills.length > 0}
+			<section class="mt-6 space-y-3" aria-label="Medium skills">
+				<h3 class="text-sm font-semibold tracking-wide text-stone-500 uppercase">Medium skills</h3>
+				{#each mediumSkills as row (row.mediumId)}
+					<ProgressMeter
+						label={mediumLabel(row)}
+						value={row.xpForNext === 0 ? 1 : row.xpIntoLevel}
+						max={row.xpForNext === 0 ? 0 : row.xpForNext}
+						hint={mediumHint(row)}
+					/>
+				{/each}
+			</section>
+		{/if}
 	</div>
 </div>

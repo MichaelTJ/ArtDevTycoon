@@ -27,6 +27,26 @@ export type { ClusterMatch } from './abstractCritique';
 export { isLevelComplete, levelProgress } from './levelRules';
 export { isSketchBlank } from './sketchBlank';
 export {
+	MEDIUM_SKILL_LEVEL_CAP,
+	MEDIUM_SKILL_RANK_LABELS,
+	COMMISSION_PAINT_MS_PER_XP,
+	PRACTICE_MS_PER_XP,
+	ARTIST_IDLE_MS_PER_XP,
+	ARTIST_WORK_MS_PER_XP,
+	MAX_ARTIST_SKILL_CATCHUP_MS,
+	createEmptyMediumSkillXp,
+	mediumSkillXpOf,
+	grantMediumSkillXp,
+	mediumSkillProgress,
+	mediumSkillXpToNext,
+	mediumSkillXpThresholdForLevel,
+	applyElapsedSkillMs,
+	clampArtistSkillCatchupMs,
+	mediumSkillSuffix,
+	mediumSkillBackground
+} from './mediumSkill';
+export type { MediumSkillXpMap, MediumSkillProgress } from './mediumSkill';
+export {
 	applyBrushStrokeStyle,
 	effectiveBrushSize,
 	getBrushProfile,

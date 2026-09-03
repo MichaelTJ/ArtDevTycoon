@@ -2,6 +2,7 @@ import { pickBrief } from '$lib/data/briefs';
 import { getMediumTier } from '$lib/data/mediumTiers';
 import type { ClientBrief } from '$lib/types/contracts';
 import { artistLevel } from './artistTraining';
+import type { MediumSkillXpMap } from './mediumSkill';
 
 /** Base simulated work time before level/medium scaling (ms). */
 export const BASE_ASSIGNMENT_MS = 8_000;
@@ -9,6 +10,8 @@ export const BASE_ASSIGNMENT_MS = 8_000;
 export interface HiredArtistState {
 	catalogId: string;
 	xp: number;
+	/** Spec 27 — per-medium skill XP. Missing keys = 0 = Novice. */
+	mediumSkillXp: MediumSkillXpMap;
 }
 
 export interface ArtistAssignment {

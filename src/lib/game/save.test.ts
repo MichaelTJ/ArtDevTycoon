@@ -90,6 +90,8 @@ describe('save', () => {
 			skillXpPrompting: 0,
 			skillXpImagination: 0,
 			skillXpHustle: 0,
+			playerMediumSkillXp: {},
+			lastMediumSkillTickAt: null,
 			hiredArtists: [],
 			artistAssignment: null,
 			majorProjectProgress: null,
@@ -100,7 +102,8 @@ describe('save', () => {
 
 		expect(loadSave(100, () => 42)).toEqual({
 			...saved,
-			lastIncomeTickAt: 42
+			lastIncomeTickAt: 42,
+			lastMediumSkillTickAt: 42
 		});
 	});
 
@@ -150,6 +153,8 @@ describe('save', () => {
 		expect(loaded.skillXpPrompting).toBe(0);
 		expect(loaded.skillXpImagination).toBe(0);
 		expect(loaded.skillXpHustle).toBe(0);
+		expect(loaded.playerMediumSkillXp).toEqual({});
+		expect(loaded.lastMediumSkillTickAt).toBe(55);
 		expect(loaded.hiredArtists).toEqual([]);
 		expect(loaded.artistAssignment).toBeNull();
 		expect(loaded.majorProjectProgress).toBeNull();
@@ -174,7 +179,7 @@ describe('save', () => {
 
 	it('round-trips spec 24 artist fields through the active slot', () => {
 		const data = createDefaultSave(100, () => 1);
-		data.hiredArtists = [{ catalogId: 'jade-ink', xp: 25 }];
+		data.hiredArtists = [{ catalogId: 'jade-ink', xp: 25, mediumSkillXp: {} }];
 		data.artistAssignment = {
 			artistCatalogId: 'jade-ink',
 			briefId: 'c1',
@@ -197,6 +202,48 @@ describe('save', () => {
 			artistAssignment: data.artistAssignment,
 			majorProjectProgress: data.majorProjectProgress
 		});
+	});
+
+	it('legacy hired artist without mediumSkillXp defaults to {}', () => {
+		const data = createDefaultSave(100, () => 1);
+		persistSave({
+			...data,
+			hiredArtists: [{ catalogId: 'jade-ink', xp: 25, mediumSkillXp: {} }]
+		});
+		expect(loadSave(100, () => 0).hiredArtists[0]?.mediumSkillXp).toEqual({});
+	});
+
+	it('round-trips playerMediumSkillXp { pencil: 60 }', () => {
+		const data = createDefaultSave(100, () => 1);
+		data.playerMediumSkillXp = { pencil: 60 };
+		data.lastMediumSkillTickAt = 1;
+		persistSave(data);
+
+		const loaded = loadSave(100, () => 0);
+		expect(loaded.playerMediumSkillXp).toEqual({ pencil: 60 });
+		expect(loaded.lastMediumSkillTickAt).toBe(1);
+	});
+
+	it('stamps null lastMediumSkillTickAt to now on load', () => {
+		const storage = createMemoryStorage();
+		vi.stubGlobal('localStorage', storage);
+		storage.setItem(
+			SAVE_STORAGE_KEY,
+			JSON.stringify({
+				version: 1,
+				cash: 50,
+				reputation: 0,
+				lifetimeCommissions: 0,
+				galleryHistory: [],
+				savedAt: 10,
+				hiredArtists: [{ catalogId: 'jade-ink', xp: 0 }]
+			})
+		);
+
+		const loaded = loadSave(100, () => 77);
+		expect(loaded.playerMediumSkillXp).toEqual({});
+		expect(loaded.hiredArtists[0]?.mediumSkillXp).toEqual({});
+		expect(loaded.lastMediumSkillTickAt).toBe(77);
 	});
 
 	it('falls back to default when localStorage.getItem throws', () => {
@@ -234,6 +281,7 @@ describe('save', () => {
 		data.reputation = 4;
 		data.lifetimeCommissions = 2;
 		data.lastIncomeTickAt = 55;
+		data.lastMediumSkillTickAt = 55;
 		persistSave(data);
 
 		expect(loadSave(100, () => 0)).toEqual(data);

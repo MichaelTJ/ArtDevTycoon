@@ -72,12 +72,12 @@ describe('MockEngine', () => {
 
 	it('scores c1 cat prompt at 10 and dog at 1', async () => {
 		const goodArt = await engine.generate({
-			playerPrompt: 'cat',
-			prompt: 'cat, flat color'
+			playerPrompt: 'cool cat',
+			prompt: 'cool cat, flat color'
 		});
 		const goodCritique = await engine.critique({
 			brief: c1,
-			playerPrompt: 'cat',
+			playerPrompt: 'cool cat',
 			artwork: goodArt
 		});
 		expect(goodCritique.accuracyScore).toBe(10);

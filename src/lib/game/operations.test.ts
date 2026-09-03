@@ -106,7 +106,7 @@ describe('identifyOperationalNeeds', () => {
 	it('flags waiting payment and win-condition gaps', () => {
 		const needs = identifyOperationalNeeds({
 			phase: 'results',
-			cash: 200,
+			cash: 25,
 			commissionsCompleted: 2,
 			galleryHistory: sampleEntries,
 			errorMessage: null,
@@ -132,7 +132,7 @@ describe('buildOperationsSummary', () => {
 
 		expect(summary.totalEarnings).toBe(275);
 		expect(summary.averageScore).toBe(6.4);
-		expect(summary.cashRemaining).toBe(225);
+		expect(summary.cashRemaining).toBe(0);
 		expect(summary.commissionsRemaining).toBe(2);
 		expect(summary.headline).toContain('3 pieces');
 	});

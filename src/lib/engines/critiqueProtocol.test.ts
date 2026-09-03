@@ -72,7 +72,7 @@ describe('cleanReview', () => {
 
 describe('critiqueTargetsForBrief (re-export)', () => {
 	it('returns preferredKeywords for concrete briefs', () => {
-		expect(critiqueTargetsForBrief(c1, 'a fluffy cat')).toEqual(['cat']);
+		expect(critiqueTargetsForBrief(c1, 'a fluffy cat')).toEqual(['cat', 'cool']);
 	});
 
 	it('returns cluster keywords for a committed abstract reading', () => {

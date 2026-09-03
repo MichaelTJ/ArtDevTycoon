@@ -61,12 +61,15 @@ import {
 	findHiredArtist,
 	getActiveSlotId,
 	grantArtistXp,
+	grantMediumSkillXp,
 	isLevelComplete,
 	levelProgress,
 	listSaveSlots,
 	loadSave as defaultLoadSave,
 	majorProjectPayout,
 	majorProjectRep,
+	mediumSkillProgress,
+	mediumSkillXpOf,
 	mockArtistImageUrl,
 	mockArtistScores,
 	newGameInSlot as newGameInSlotSave,
@@ -87,6 +90,8 @@ import {
 	type ArtistAssignment,
 	type HiredArtistState,
 	type MajorProjectProgress,
+	type MediumSkillProgress,
+	type MediumSkillXpMap,
 	type NextUnlock,
 	type SaveData,
 	type SaveSlotId,
@@ -97,6 +102,15 @@ import {
 } from '$lib/game';
 import { resolveAuction, type AuctionResult } from '$lib/game/auction';
 import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
+import {
+	ARTIST_IDLE_MS_PER_XP,
+	ARTIST_WORK_MS_PER_XP,
+	COMMISSION_PAINT_MS_PER_XP,
+	PRACTICE_MS_PER_XP,
+	applyElapsedSkillMs,
+	clampArtistSkillCatchupMs,
+	createEmptyMediumSkillXp
+} from '$lib/game/mediumSkill';
 import { DEFAULT_WORK_ESTIMATE_MS } from '$lib/studio/workProgress';
 import {
 	captureMumRealCritique,
@@ -215,6 +229,17 @@ export class GameStore {
 
 	/** Spec 20 — lifetime craft XP. */
 	skillXp = $state<SkillXpMap>(createEmptySkillXp());
+	/** Spec 27 — per-medium skill XP. Missing keys = Novice. */
+	playerMediumSkillXp = $state<MediumSkillXpMap>({});
+	/** Spec 27 — last artist/player medium-skill tick (ms). */
+	lastMediumSkillTickAt = $state<number>(0);
+	/**
+	 * Spec 28 — session-only idle practice canvas. Not a GamePhase and not persisted.
+	 * Reloads drop the open canvas; XP stays in `playerMediumSkillXp`.
+	 */
+	practiceOpen = $state(false);
+	/** Spec 28 — last practice rank-up to announce; parent clears after a short delay. */
+	lastMediumSkillRankUp = $state<{ mediumId: string; rankLabel: string } | null>(null);
 	/** Previewed XP while in `results`; cleared on collect / reset. */
 	pendingSkillGains = $state<SkillGainPreview | null>(null);
 	/** One-shot pulse after collect; UI clears via `clearLastCollectedGains`. */
@@ -296,6 +321,20 @@ export class GameStore {
 		SKILL_IDS.map((id) => skillProgress(id, this.skillXp[id]))
 	);
 
+	activeMediumSkillProgress = $derived(
+		mediumSkillProgress(
+			this.activeMediumTierId,
+			mediumSkillXpOf(this.playerMediumSkillXp, this.activeMediumTierId)
+		)
+	);
+
+	/** Unlocked mediums in ladder order — Progress panel rows. */
+	mediumSkillProgressList = $derived.by((): MediumSkillProgress[] =>
+		MEDIUM_TIERS.filter((tier) => this.unlockedMediumTierIds.includes(tier.id)).map((tier) =>
+			mediumSkillProgress(tier.id, mediumSkillXpOf(this.playerMediumSkillXp, tier.id))
+		)
+	);
+
 	progressMeters = $derived.by(() =>
 		buildProgressMeters({
 			cash: this.cash,
@@ -341,6 +380,11 @@ export class GameStore {
 	#incomeTicker: ReturnType<typeof setInterval> | null = null;
 	/** Prevents a double-click from banking the same commission twice while durableizing. */
 	#collectingCash = false;
+	#playerPaintRemainderMs = 0;
+	#practiceRemainderMs = 0;
+	#artistGenerateToken = 0;
+	#pendingArtistArtwork: Artwork | null = null;
+	#artistGenerateLocked = false;
 
 	constructor(deps?: GameStoreDeps) {
 		this.#engine = deps?.engine ?? engines.manager;
@@ -478,6 +522,7 @@ export class GameStore {
 	}
 
 	inviteClient(): void {
+		this.exitPractice();
 		if (this.phase !== 'idle') {
 			return;
 		}
@@ -523,6 +568,7 @@ export class GameStore {
 
 	/** Accept a board brief — same path as invite, but player-chosen. */
 	acceptBoardBrief(brief: ClientBrief): void {
+		this.exitPractice();
 		if (this.phase !== 'idle') return;
 		this.#clearAutoInvite();
 		this.currentClient = brief;
@@ -545,6 +591,7 @@ export class GameStore {
 	 * Reception desk offers are skipped by closing the board before `acceptBoardBrief`.
 	 */
 	declineClient(): void {
+		this.exitPractice();
 		if ((this.phase !== 'briefing' && this.phase !== 'generating') || !this.currentClient) {
 			return;
 		}
@@ -563,9 +610,11 @@ export class GameStore {
 		this.workStartedAt = null;
 		this.artistAssignment = null;
 		this.phase = 'idle';
+		this.#invalidateArtistGenerate();
 		if (wasGenerating) {
 			this.#setSwitchingLocked(false);
 		}
+		this.#unlockArtistGenerateIfNeeded();
 		this.#scheduleAutoInvite();
 		this.#persist();
 	}
@@ -584,7 +633,7 @@ export class GameStore {
 			return false;
 		}
 		this.cash -= entry.hireCost;
-		this.hiredArtists = [...this.hiredArtists, { catalogId, xp: 0 }];
+		this.hiredArtists = [...this.hiredArtists, { catalogId, xp: 0, mediumSkillXp: {} }];
 		this.#persist();
 		return true;
 	}
@@ -594,6 +643,7 @@ export class GameStore {
 		if (this.artistAssignment?.artistCatalogId === catalogId) return false;
 		if (!this.hiredArtists.some((a) => a.catalogId === catalogId)) return false;
 		this.hiredArtists = this.hiredArtists.filter((a) => a.catalogId !== catalogId);
+		this.#invalidateArtistGenerate();
 		if (this.majorProjectProgress) {
 			this.majorProjectProgress = {
 				...this.majorProjectProgress,
@@ -609,13 +659,40 @@ export class GameStore {
 		if (this.phase !== 'briefing' || !this.currentClient || this.artistAssignment) return false;
 		const artist = findHiredArtist(this.hiredArtists, catalogId);
 		if (!artist) return false;
+		const client = this.currentClient;
+		const mediumId = this.activeMediumTierId;
 		this.artistAssignment = {
 			artistCatalogId: catalogId,
-			briefId: this.currentClient.id,
+			briefId: client.id,
 			startedAt: this.#now(),
-			durationMs: workDurationMs(artist.xp, this.activeMediumTierId),
-			mediumTierId: this.activeMediumTierId
+			durationMs: workDurationMs(artist.xp, mediumId),
+			mediumTierId: mediumId
 		};
+		this.#pendingArtistArtwork = null;
+		const token = ++this.#artistGenerateToken;
+		this.#artistGenerateLocked = true;
+		this.#setSwitchingLocked(true);
+
+		const catalog = getArtistCatalogEntry(catalogId);
+		const skillLevel = mediumSkillProgress(
+			mediumId,
+			mediumSkillXpOf(artist.mediumSkillXp, mediumId)
+		).level;
+		const playerPrompt = `[${catalog?.name ?? 'Artist'}] ${client.requestText}`;
+		const prompt = buildPrompt(playerPrompt, getMediumTier(mediumId), skillLevel);
+
+		void Promise.resolve()
+			.then(() => this.#engine.generate({ playerPrompt, prompt }))
+			.then((artwork) => {
+				if (!artwork) return;
+				if (token !== this.#artistGenerateToken) return;
+				if (this.artistAssignment?.artistCatalogId !== catalogId) return;
+				this.#pendingArtistArtwork = artwork;
+			})
+			.catch(() => {
+				// Keep pending null so completion falls back to the SVG mock.
+			});
+
 		this.#persist();
 		return true;
 	}
@@ -692,6 +769,79 @@ export class GameStore {
 		this.draftSketchBlob = blob;
 	}
 
+	/**
+	 * Spec 28: open the idle practice canvas. Pauses auto-invite. Session-only.
+	 */
+	enterPractice(): boolean {
+		if (this.phase !== 'idle') return false;
+		if (this.artistAssignment) return false;
+		if (this.majorProjectProgress?.activeBeatIndex != null) return false;
+		if (this.practiceOpen) return false;
+		this.practiceOpen = true;
+		this.#clearAutoInvite();
+		return true;
+	}
+
+	/**
+	 * Close practice and resume auto-invite while idle.
+	 */
+	exitPractice(): void {
+		if (!this.practiceOpen) return;
+		this.practiceOpen = false;
+		this.lastMediumSkillRankUp = null;
+		if (this.phase === 'idle') this.#scheduleAutoInvite();
+	}
+
+	/** Clears the Spec 28 rank-up announcement after the parent has shown it. */
+	clearMediumSkillRankUp(): void {
+		this.lastMediumSkillRankUp = null;
+	}
+
+	/**
+	 * Spec 28 seam: convert pointer-down drawing time into active-medium skill XP.
+	 * Session remainder is not persisted. No-op when practice is closed or `deltaMs` ≤ 0.
+	 */
+	grantPracticeDrawingMs(deltaMs: number): void {
+		if (!this.practiceOpen) return;
+		if (deltaMs <= 0) return;
+		const mediumId = this.activeMediumTierId;
+		const before = mediumSkillProgress(
+			mediumId,
+			mediumSkillXpOf(this.playerMediumSkillXp, mediumId)
+		);
+		const applied = applyElapsedSkillMs({
+			elapsedMs: deltaMs,
+			msPerXp: PRACTICE_MS_PER_XP,
+			remainderMs: this.#practiceRemainderMs
+		});
+		this.#practiceRemainderMs = applied.remainderMs;
+		if (applied.xpGain > 0) {
+			this.playerMediumSkillXp = grantMediumSkillXp(
+				this.playerMediumSkillXp,
+				mediumId,
+				applied.xpGain
+			);
+			const after = mediumSkillProgress(
+				mediumId,
+				mediumSkillXpOf(this.playerMediumSkillXp, mediumId)
+			);
+			if (after.level > before.level) {
+				this.lastMediumSkillRankUp = { mediumId, rankLabel: after.rankLabel };
+			}
+			this.#persist();
+		}
+	}
+
+	/**
+	 * Spec 27 test seam — apply a fake elapsed window through the same grant path as the ticker.
+	 * Artist ticks are floor-only (no remainder) so idle vs assigned rates cannot leak leftover ms.
+	 */
+	tickMediumSkillsForTests(elapsedMs: number): void {
+		this.#applyMediumSkillElapsed(elapsedMs);
+		this.lastMediumSkillTickAt = this.#now();
+		this.#persist();
+	}
+
 	async createArt(): Promise<void> {
 		if (
 			this.phase !== 'briefing' ||
@@ -703,7 +853,14 @@ export class GameStore {
 		}
 
 		const playerPrompt = this.draftPrompt.trim();
-		const builtPrompt = buildPrompt(playerPrompt, this.activeMediumTier);
+		const builtPrompt = buildPrompt(
+			playerPrompt,
+			this.activeMediumTier,
+			mediumSkillProgress(
+				this.activeMediumTierId,
+				mediumSkillXpOf(this.playerMediumSkillXp, this.activeMediumTierId)
+			).level
+		);
 
 		this.phase = 'generating';
 		this.errorMessage = null;
@@ -1027,6 +1184,7 @@ export class GameStore {
 		}
 
 		this.#catchUpSimulatedWork();
+		this.#tickMediumSkills();
 
 		this.#incomeTicker = setInterval(() => {
 			const { earned } = computeIdleEarnings(
@@ -1040,6 +1198,7 @@ export class GameStore {
 				this.#persist();
 			}
 			this.#tickSimulatedWork();
+			this.#tickMediumSkills();
 		}, this.#tickIntervalMs);
 
 		return () => {
@@ -1143,6 +1302,7 @@ export class GameStore {
 	}
 
 	reset(): void {
+		this.exitPractice();
 		this.#clearAutoInvite();
 		this.#clearIncomeTicker();
 		this.#clearSave();
@@ -1172,6 +1332,15 @@ export class GameStore {
 		this.lastIncomeTickAt = this.#now();
 		this.idleEarningsToShow = null;
 		this.skillXp = createEmptySkillXp();
+		this.playerMediumSkillXp = createEmptyMediumSkillXp();
+		this.lastMediumSkillTickAt = this.#now();
+		this.practiceOpen = false;
+		this.lastMediumSkillRankUp = null;
+		this.hiredArtists = this.hiredArtists.map((artist) => ({
+			...artist,
+			mediumSkillXp: createEmptyMediumSkillXp()
+		}));
+		this.#resetMediumSkillSession();
 		this.pendingSkillGains = null;
 		this.lastCollectedGains = null;
 		this.careerMilestoneAcknowledged = false;
@@ -1181,6 +1350,9 @@ export class GameStore {
 	/** Apply a slot blob and return to idle (aborts any in-flight commission). */
 	#applySlotSave(save: SaveData): void {
 		this.#clearAutoInvite();
+		this.practiceOpen = false;
+		this.lastMediumSkillRankUp = null;
+		this.#resetMediumSkillSession();
 		this.#hydrateFromSave(save);
 		this.phase = 'idle';
 		this.currentClient = null;
@@ -1217,7 +1389,11 @@ export class GameStore {
 		this.activeLayoutId = save.activeLayoutId;
 		this.ownedAtmosphereIds = [...save.ownedAtmosphereIds];
 		this.hiredStaffIds = [...save.hiredStaffIds];
-		this.hiredArtists = save.hiredArtists.map((a) => ({ ...a }));
+		this.hiredArtists = save.hiredArtists.map((a) => ({
+			catalogId: a.catalogId,
+			xp: a.xp,
+			mediumSkillXp: { ...a.mediumSkillXp }
+		}));
 		this.artistAssignment = save.artistAssignment ? { ...save.artistAssignment } : null;
 		this.majorProjectProgress = save.majorProjectProgress
 			? { ...save.majorProjectProgress, crewByBeat: [...save.majorProjectProgress.crewByBeat] }
@@ -1227,7 +1403,9 @@ export class GameStore {
 			imagination: save.skillXpImagination,
 			hustle: save.skillXpHustle
 		};
+		this.playerMediumSkillXp = { ...save.playerMediumSkillXp };
 		this.lastIncomeTickAt = save.lastIncomeTickAt ?? this.#now();
+		this.lastMediumSkillTickAt = save.lastMediumSkillTickAt ?? this.#now();
 		this.careerMilestoneAcknowledged = save.careerMilestoneAcknowledged;
 	}
 
@@ -1254,7 +1432,11 @@ export class GameStore {
 		data.activeLayoutId = this.activeLayoutId;
 		data.ownedAtmosphereIds = [...this.ownedAtmosphereIds];
 		data.hiredStaffIds = [...this.hiredStaffIds];
-		data.hiredArtists = this.hiredArtists.map((a) => ({ ...a }));
+		data.hiredArtists = this.hiredArtists.map((a) => ({
+			catalogId: a.catalogId,
+			xp: a.xp,
+			mediumSkillXp: { ...a.mediumSkillXp }
+		}));
 		data.artistAssignment = this.artistAssignment ? { ...this.artistAssignment } : null;
 		data.majorProjectProgress = this.majorProjectProgress
 			? {
@@ -1263,6 +1445,8 @@ export class GameStore {
 				}
 			: null;
 		data.lastIncomeTickAt = this.lastIncomeTickAt;
+		data.lastMediumSkillTickAt = this.lastMediumSkillTickAt;
+		data.playerMediumSkillXp = { ...this.playerMediumSkillXp };
 		data.skillXpPrompting = this.skillXp.prompting;
 		data.skillXpImagination = this.skillXp.imagination;
 		data.skillXpHustle = this.skillXp.hustle;
@@ -1292,11 +1476,82 @@ export class GameStore {
 		}
 	}
 
+	#tickMediumSkills(): void {
+		const now = this.#now();
+		const prev = this.lastMediumSkillTickAt || now;
+		const rawElapsed = now - prev;
+		this.lastMediumSkillTickAt = now;
+		this.#applyMediumSkillElapsed(rawElapsed);
+		this.#persist();
+	}
+
+	#applyMediumSkillElapsed(rawElapsed: number): void {
+		if (this.phase === 'generating') {
+			const elapsed = Math.max(0, rawElapsed);
+			const applied = applyElapsedSkillMs({
+				elapsedMs: elapsed,
+				msPerXp: COMMISSION_PAINT_MS_PER_XP,
+				remainderMs: this.#playerPaintRemainderMs
+			});
+			this.#playerPaintRemainderMs = applied.remainderMs;
+			if (applied.xpGain > 0) {
+				this.playerMediumSkillXp = grantMediumSkillXp(
+					this.playerMediumSkillXp,
+					this.activeMediumTierId,
+					applied.xpGain
+				);
+			}
+		}
+
+		const artistElapsed = clampArtistSkillCatchupMs(rawElapsed);
+		this.#tickArtistMediumSkills(artistElapsed);
+	}
+
+	/**
+	 * Floor-only artist XP — leftover ms are dropped so idle (60s) and work (2s) rates
+	 * cannot share a remainder.
+	 */
+	#tickArtistMediumSkills(elapsedMs: number): void {
+		if (elapsedMs <= 0 || this.hiredArtists.length === 0) return;
+		const assignment = this.artistAssignment;
+		this.hiredArtists = this.hiredArtists.map((artist) => {
+			const assigned = assignment?.artistCatalogId === artist.catalogId;
+			const mediumId = assigned && assignment ? assignment.mediumTierId : this.activeMediumTierId;
+			const msPerXp = assigned ? ARTIST_WORK_MS_PER_XP : ARTIST_IDLE_MS_PER_XP;
+			const xpGain = Math.floor(elapsedMs / msPerXp);
+			if (xpGain <= 0) return artist;
+			return {
+				...artist,
+				mediumSkillXp: grantMediumSkillXp(artist.mediumSkillXp, mediumId, xpGain)
+			};
+		});
+	}
+
+	#invalidateArtistGenerate(): void {
+		this.#artistGenerateToken += 1;
+		this.#pendingArtistArtwork = null;
+	}
+
+	#unlockArtistGenerateIfNeeded(): void {
+		if (!this.#artistGenerateLocked) return;
+		this.#artistGenerateLocked = false;
+		this.#setSwitchingLocked(false);
+	}
+
+	#resetMediumSkillSession(): void {
+		this.#playerPaintRemainderMs = 0;
+		this.#practiceRemainderMs = 0;
+		this.#invalidateArtistGenerate();
+		this.#unlockArtistGenerateIfNeeded();
+	}
+
 	#completeArtistAssignment(): void {
 		const assignment = this.artistAssignment;
 		const client = this.currentClient;
 		if (!assignment || !client || client.id !== assignment.briefId) {
 			this.artistAssignment = null;
+			this.#invalidateArtistGenerate();
+			this.#unlockArtistGenerateIfNeeded();
 			return;
 		}
 
@@ -1305,6 +1560,9 @@ export class GameStore {
 		const xp = artist?.xp ?? 0;
 		const scores = mockArtistScores(artistLevel(xp));
 		const playerPrompt = `[${catalog?.name ?? 'Artist'}] ${client.requestText}`;
+		const pendingArtwork = this.#pendingArtistArtwork;
+		this.#invalidateArtistGenerate();
+		this.#unlockArtistGenerateIfNeeded();
 
 		if (artist) {
 			this.hiredArtists = this.hiredArtists.map((a) =>
@@ -1314,7 +1572,7 @@ export class GameStore {
 			);
 		}
 
-		const artwork: Artwork = {
+		const artwork: Artwork = pendingArtwork ?? {
 			id: `artist-${assignment.artistCatalogId}-${client.id}-${this.#now()}`,
 			imageUrl: mockArtistImageUrl(catalog?.name ?? 'Studio piece'),
 			playerPrompt,
@@ -1395,6 +1653,7 @@ export class GameStore {
 	#scheduleAutoInvite(): void {
 		this.#clearAutoInvite();
 		if (this.phase !== 'idle') return;
+		if (this.practiceOpen) return;
 
 		const bestMultiplier = this.hiredStaffIds.reduce((best, id) => {
 			const mult = getStaffRole(id)?.autoInviteSpeedMultiplier ?? 1;

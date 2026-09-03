@@ -1,3 +1,4 @@
+import { resolveRoomForPlay } from '$lib/studio-editor/apply';
 import { ROOMS, type RoomDef, type RoomId } from './rooms';
 
 /** Maps progressive gallery venue → floor plan. Unknown → fridge kitchen. */
@@ -19,5 +20,5 @@ export function roomIdForVenue(venueId: string): RoomId {
 
 /** Full authored RoomDef for the active venue (not the Level environment stub). */
 export function getRoomForVenue(venueId: string): RoomDef {
-	return ROOMS[roomIdForVenue(venueId)];
+	return resolveRoomForPlay(ROOMS[roomIdForVenue(venueId)]);
 }

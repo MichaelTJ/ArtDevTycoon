@@ -2,11 +2,11 @@ import type { ExplorerResult, PromptFacets } from './types';
 
 export function makeFacets(overrides: Partial<PromptFacets> = {}): PromptFacets {
 	return {
-		style: { key: 'crayon', label: 'a messy wax crayon drawing', level: 1 },
-		subject: { key: 'fox', label: 'resting fox', level: 3 },
-		lighting: { key: 'flatoverhead', label: 'flat, shadowless overhead lighting', level: 1 },
-		detail: { key: 'roughedges', label: 'rough uneven edges and splotchy color fills', level: 1 },
-		mood: { key: 'serene', label: 'a serene mood' },
+		style: { key: 'crayon', label: 'Crayon', level: 1 },
+		subject: { key: 'fox', label: 'Resting fox', level: 3 },
+		lighting: { key: 'flatoverhead', label: 'Flat overhead', level: 1 },
+		detail: { key: 'roughedges', label: 'Rough edges', level: 1 },
+		mood: { key: 'serene', label: 'Serene' },
 		...overrides
 	};
 }
@@ -17,10 +17,10 @@ export function makeResult(overrides: Partial<ExplorerResult> = {}): ExplorerRes
 		engineId: 'janus-webgpu',
 		category: 'axis-style',
 		categoryLabel: 'Axis — Art style (crayon → oil)',
-		modifier: 'Novice · a messy wax crayon drawing',
+		modifier: 'Novice · Crayon',
 		subject: 'a red fox resting in tall grass',
 		prompt:
-			'a messy wax crayon drawing, a red fox resting in tall grass, flat, shadowless overhead lighting, rough uneven edges and splotchy color fills, a serene mood',
+			'art drawn by a five-year-old child with wax crayons, a red fox resting in tall grass, flat shadowless overhead lighting, rough uneven edges, a serene mood, perfectly centered subject on a flat solid background',
 		facets: makeFacets(),
 		imagePath: 'janus-webgpu/case-a.png',
 		generationMs: 1000,

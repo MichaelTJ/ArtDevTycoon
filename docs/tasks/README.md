@@ -173,12 +173,14 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 23  | [Dev mode](./23-dev-mode.md)                            | `src/lib/dev/**`, `DevPanel`, gated cheats + modifier peek; subsumes `?studioDebug`         | 01–04, 12; **after 22** if both touch GameMenuBar |
 | 26  | [Modifier / engine explorer](./26-modifier-explorer.md) | **MVP shipped:** `/modifier-explorer` batch gen + browse/tags/timing (Janus + SD-Turbo)     | 02, 05 (+ 06 optional); critique pass deferred    |
 
-### Studio ops / late game (24–25)
+### Studio ops / late game (24–25, 27–28)
 
-| #   | Spec                                                 | Owns (new)                                                                                                                              | Depends on           |
-| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| 24  | [Artist team & major projects](./24-artist-team.md)  | Artists + major projects — **MVP shipped**; P25 Skip ✅; P27 letterbox→computer→receptionist (landing)                                  | 16, 21a–21b          |
-| 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP + polish:** briefing medium picker / My idea (P24); ink charcoal B&W (P22); crayon/pencil/ink/watercolour on `SketchCanvas`       | 11, 13; P16 / P22 / P24 |
+| #   | Spec                                                 | Owns (new)                                                                                                                        | Depends on              |
+| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| 24  | [Artist team & major projects](./24-artist-team.md)  | Artists + major projects — **MVP shipped**; P25 Skip ✅; P27 letterbox→computer→receptionist (landing)                            | 16, 21a–21b             |
+| 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP + polish:** briefing medium picker / My idea (P24); ink charcoal B&W (P22); crayon/pencil/ink/watercolour on `SketchCanvas` | 11, 13; P16 / P22 / P24 |
+| 27  | [Medium skill](./27-medium-skill.md)                 | **Shipped:** per-medium Novice→Master ranks; time-based XP; hidden Janus suffix ladder; player + hired artists                    | 13, 20, 24, 25          |
+| 28  | [Practice station](./28-practice-station.md)         | **Shipped:** idle desk practice canvas; stroke-time XP into Spec 27 medium skill                                                  | 27, 17, 25              |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -225,6 +227,11 @@ Wave M  (engine lab — MVP already on main; no implementing agent)
        ├── A/B batch gen + browse/good-tags/timing ✅
        ├── C1/C2 Janus + SD-Turbo generate ✅
        └── C3 Janus critique pass on gallery (next slice)
+
+Wave N  (brush skill — **serial**; 28 overlaps 27's GameStore / overlay)
+   ├── 27 Medium skill ✅   → ../adt-wt-medium-skill      branch agent/medium-skill
+   └── 28 Practice station ✅ → ../adt-wt-practice-station  branch agent/practice-station
+       (refresh from main after 27 merges; do not overlap 27's zone)
 
 Playtest follow-ups (docs/playtest-notes.md — not separate specs)
    ├── Playtest 3 P19–P23 ✅ (engine load, no level wipe, Mum max, abstract gates, ink)
@@ -293,6 +300,19 @@ axis prompts on Janus and/or SD-Turbo, browse/filter results, mark good facet ta
 compare timing. Janus is the focus engine because it can generate **and** critique; the
 next useful slice is **C3** (critique pass over the saved gallery). Not part of the
 player HUD — see [26-modifier-explorer.md](./26-modifier-explorer.md).
+
+Spec 27 is the **per-medium skill ladder** (Novice → Master, 7 ranks). Explorer runs
+showed Janus quality tracks skill adjectives inside a medium (`rough pencil sketch` vs
+`masterful pencil portrait`), not just which Toolkit medium is equipped. XP is
+time-based for the player (while generating) and for hired artists (idle + assigned).
+The hidden suffix stays invisible; rank names show on Progress and the team roster.
+Do **not** conflate this with Spec 20 Prompting / Imagination / Hustle. See
+[27-medium-skill.md](./27-medium-skill.md).
+
+Spec 28 adds a **practice station** at the existing desk: idle E / Practice opens
+`SketchCanvas` with no client; brush strokes grant Spec 27 XP via
+`grantPracticeDrawingMs`. No new `GamePhase`. See
+[28-practice-station.md](./28-practice-station.md). Run 28 only after 27 is on `main`.
 
 ## Worktrees are already set up
 
