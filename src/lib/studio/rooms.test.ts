@@ -154,7 +154,7 @@ describe('rooms', () => {
 		}
 	});
 
-	it('storefront and gallery use carpet floor overlays from home-interior', () => {
+	it('storefront and gallery use carpet fill overlays from home-interior', () => {
 		const studio = ROOMS.studio;
 		expect(studio.groundSheets?.some((sheet) => sheet === SHEET.interior)).toBe(true);
 		const carpetCell = studio.ground[studio.width * 5 + 14];
@@ -163,5 +163,19 @@ describe('rooms', () => {
 		const gallery = ROOMS.gallery;
 		const galleryCarpet = gallery.ground[gallery.width * 5 + 15];
 		expect(galleryCarpet).toBe(INTERIOR.carpetPurple);
+	});
+
+	it('authored rooms paint real wall tiles, not catalog defaultWall decor', () => {
+		for (const room of Object.values(ROOMS)) {
+			const wallFrames = new Set(
+				room.collision
+					.map((solid, i) => (solid === 1 ? room.ground[i] : null))
+					.filter((frame): frame is number => frame != null)
+			);
+			expect(wallFrames.has(22)).toBe(false);
+			expect(wallFrames.has(64)).toBe(false);
+		}
+		expect(ROOMS['home-kitchen'].ground[0]).toBe(INDOOR.wall);
+		expect(ROOMS.gallery.ground[0]).toBe(INTERIOR.wall);
 	});
 });

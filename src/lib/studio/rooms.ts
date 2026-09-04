@@ -200,8 +200,8 @@ function buildKitchen(): RoomDef {
 	const door = { tx: 2, ty: 0 };
 	openCell(width, collision, ground, door.tx, door.ty, INDOOR.floor);
 
-	// Wood floor under desk/work cells (2..3, 3..4) from Tilation pack.
-	paintGroundPatch(width, ground, groundSheets, tilesetId, 2, 3, 3, 4, INTERIOR.woodFloor, SHEET.interior);
+	// Stone work patch under the prep counter run (walkable — decor only).
+	paintGroundPatch(width, ground, groundSheets, tilesetId, 2, 3, 3, 4, INTERIOR.stoneFloor, SHEET.interior);
 
 	const desk = { tx: 3, ty: 3 };
 	const fridgeAnchor = { tx: 1, ty: 1 };
@@ -230,7 +230,7 @@ function buildKitchen(): RoomDef {
 		playerSpawn: { tx: 1, ty: 4 },
 		fridgeAnchor,
 		furniture: [
-			{ frame: INTERIOR.table, tx: 2, ty: 3, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INDOOR.roundTable, tx: 2, ty: 3, solid: true, sheet: SHEET.indoorProps },
 			{
 				frame: INDOOR.cabinet,
 				tx: 1,
@@ -239,7 +239,10 @@ function buildKitchen(): RoomDef {
 				sheet: SHEET.indoorProps,
 				interactableId: 'fridge'
 			},
-			{ frame: INTERIOR.plantTall, tx: 4, ty: 1, solid: false, sheet: SHEET.interiorProps }
+			{ frame: INDOOR.counterL, tx: 3, ty: 1, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.sink, tx: 4, ty: 1, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.counterR, tx: 4, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.plantTall, tx: 4, ty: 3, solid: false, sheet: SHEET.indoorProps }
 		],
 		zones: [],
 		residents: [
@@ -342,7 +345,8 @@ function buildStorefront(): RoomDef {
 	}
 
 	solidAt(width, collision, 4, 6);
-	solidAt(width, collision, 14, 4);
+	solidAt(width, collision, 15, 2);
+	solidAt(width, collision, 15, 7);
 
 	const zones: RoomZone[] = [
 		{ id: 'work', x0: 1, y0: 1, x1: 8, y1: 10, label: 'Work room' },
@@ -364,7 +368,8 @@ function buildStorefront(): RoomDef {
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
 			{ frame: INDOOR.roundTable, tx: 4, ty: 6, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingA, tx: 14, ty: 4, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 15, ty: 2, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 15, ty: 7, solid: true, sheet: SHEET.indoorProps },
 			{ frame: INTERIOR.armchair, tx: 12, ty: 8, solid: true, sheet: SHEET.interiorProps },
 			{ frame: INDOOR.bookshelf, tx: 2, ty: 3, solid: true, sheet: SHEET.indoorProps }
 		],
@@ -412,6 +417,8 @@ function buildGalleryHall(): RoomDef {
 	}
 
 	solidAt(width, collision, 5, 7);
+	solidAt(width, collision, 12, 2);
+	solidAt(width, collision, 17, 2);
 	solidAt(width, collision, 16, 4);
 	solidAt(width, collision, 18, 8);
 
@@ -434,6 +441,8 @@ function buildGalleryHall(): RoomDef {
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
 			{ frame: INTERIOR.table, tx: 5, ty: 7, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INDOOR.paintingA, tx: 12, ty: 2, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 17, ty: 2, solid: true, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingA, tx: 16, ty: 4, solid: true, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingB, tx: 18, ty: 8, solid: true, sheet: SHEET.indoorProps },
 			{ frame: INTERIOR.armchair, tx: 14, ty: 11, solid: true, sheet: SHEET.interiorProps },
