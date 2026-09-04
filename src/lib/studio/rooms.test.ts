@@ -69,30 +69,18 @@ describe('rooms', () => {
 		}
 	});
 
-	it('multi-zone rooms have a walkable doorway on each vertical divider', () => {
-		/** Columns that are mostly solid walls with ≥1 gap = authored dividers. */
-		function verticalDividerGaps(room: (typeof ROOMS)['studio']): number {
-			let dividersWithGap = 0;
-			const interiorH = room.height - 2;
-			for (let tx = 1; tx < room.width - 1; tx++) {
-				let wallCount = 0;
-				let gapCount = 0;
-				for (let ty = 1; ty < room.height - 1; ty++) {
-					if (room.collision[ty * room.width + tx] === 1) wallCount += 1;
-					else gapCount += 1;
-				}
-				if (wallCount >= interiorH - 2 && gapCount >= 1) dividersWithGap += 1;
-			}
-			return dividersWithGap;
-		}
-
-		expect(verticalDividerGaps(ROOMS.studio)).toBeGreaterThanOrEqual(1);
-		expect(verticalDividerGaps(ROOMS.gallery)).toBeGreaterThanOrEqual(1);
-		// Atelier | gallery | foyer needs a gap on both dividers.
-		expect(verticalDividerGaps(ROOMS['mega-museum'])).toBeGreaterThanOrEqual(2);
-
+	it('multi-zone rooms define zones without vertical brick dividers', () => {
 		for (const id of ['studio', 'gallery', 'mega-museum'] as const) {
 			const room = ROOMS[id];
+			expect(room.zones.length).toBeGreaterThanOrEqual(2);
+			// Interior columns must not be full-height solid walls.
+			for (let tx = 1; tx < room.width - 1; tx++) {
+				let solidColumn = true;
+				for (let ty = 2; ty < room.height; ty++) {
+					if (room.collision[ty * room.width + tx] === 0) solidColumn = false;
+				}
+				expect(solidColumn).toBe(false);
+			}
 			expect(markerWalkable(room, room.door)).toBe(true);
 			expect(markerWalkable(room, room.desk)).toBe(true);
 		}
@@ -118,7 +106,7 @@ describe('rooms', () => {
 		const fridge = ROOMS['home-kitchen'].furniture.find((p) => p.interactableId === 'fridge');
 		expect(fridge).toBeDefined();
 		expect(fridge!.tx).toBe(1);
-		expect(fridge!.ty).toBe(1);
+		expect(fridge!.ty).toBe(2);
 		expect(fridge!.sheet).toBe(SHEET.indoorProps);
 
 		const shelf = ROOMS['art-room'].furniture.find((p) => p.interactableId === 'toolkit-shelf');
@@ -165,46 +153,61 @@ describe('rooms', () => {
 		expect(galleryCarpet).toBe(INTERIOR.carpetPurple);
 	});
 
-	it('keeps furniture sparse and perimeter walls on tiny-dungeon autotile', () => {
-		const bannedPerimeter = new Set([22, 64, 116, 144, 157, 168, 169, 170]);
-
+	it('keeps furniture sparse and below the north wall band', () => {
 		for (const [id, cap] of Object.entries(FURNITURE_CAP)) {
 			const room = ROOMS[id as RoomId];
 			expect(room.furniture.length).toBeLessThanOrEqual(cap);
-		}
-
-		for (const room of Object.values(ROOMS)) {
-			for (let i = 0; i < room.collision.length; i++) {
-				if (room.collision[i] !== 1) continue;
-				const tx = i % room.width;
-				const ty = Math.floor(i / room.width);
-				const onPerimeter =
-					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
-				if (!onPerimeter) continue;
-				expect(bannedPerimeter.has(room.ground[i]!)).toBe(false);
-				expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(true);
-				expect(room.groundSheets?.[i]).toBe(SHEET.dungeon);
+			for (const prop of room.furniture) {
+				expect(prop.ty).toBeGreaterThanOrEqual(2);
 			}
 		}
 	});
 
-	it('authored rooms paint tiny-dungeon autotile walls on every perimeter cell', () => {
+	it('uses Pokemon-style north wall band only (y=0..1)', () => {
 		for (const room of Object.values(ROOMS)) {
-			for (let i = 0; i < room.collision.length; i++) {
-				if (room.collision[i] !== 1) continue;
-				const tx = i % room.width;
-				const ty = Math.floor(i / room.width);
-				const onPerimeter =
-					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
-				if (!onPerimeter) continue;
-				expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(true);
-				expect(room.groundSheets?.[i]).toBe(SHEET.dungeon);
+			for (let ty = 0; ty < 2; ty++) {
+				for (let tx = 0; tx < room.width; tx++) {
+					const i = ty * room.width + tx;
+					const isDoorCol = tx === room.door.tx;
+					if (isDoorCol) {
+						expect(room.collision[i]).toBe(0);
+						expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(false);
+					} else {
+						expect(room.collision[i]).toBe(1);
+						expect(room.ground[i]).toBe(DUNGEON.wall);
+						expect(room.groundSheets?.[i]).toBe(SHEET.dungeon);
+					}
+				}
+			}
+
+			for (let ty = 2; ty < room.height; ty++) {
+				for (const tx of [0, room.width - 1]) {
+					const i = ty * room.width + tx;
+					expect(room.collision[i]).toBe(0);
+					expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(false);
+				}
+			}
+			for (let tx = 0; tx < room.width; tx++) {
+				const i = (room.height - 1) * room.width + tx;
+				expect(room.collision[i]).toBe(0);
+				expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(false);
 			}
 		}
+	});
 
-		const kitchen = ROOMS['home-kitchen'];
-		expect(kitchen.ground[0]).toBe(DUNGEON.wall);
-		expect(kitchen.ground[kitchen.width - 1]).toBe(DUNGEON.wall);
-		expect(kitchen.ground[(kitchen.height - 1) * kitchen.width]).toBe(DUNGEON.wall);
+	it('does not use home-indoor frame 0 as floor fill', () => {
+		for (const id of ['home-kitchen', 'art-room', 'studio'] as const) {
+			const room = ROOMS[id];
+			for (let i = 0; i < room.collision.length; i++) {
+				if (DUNGEON_WALL_FRAMES.has(room.ground[i]!)) continue;
+				expect(room.ground[i]).not.toBe(0);
+			}
+		}
+		expect(ROOMS['home-kitchen'].ground[2 * ROOMS['home-kitchen'].width + 2]).toBe(
+			INTERIOR.woodFloor
+		);
+		expect(ROOMS['art-room'].ground[2 * ROOMS['art-room'].width + 2]).toBe(
+			INTERIOR.stoneFloor
+		);
 	});
 });
