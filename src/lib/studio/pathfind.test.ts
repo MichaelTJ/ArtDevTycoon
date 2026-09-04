@@ -15,31 +15,30 @@ function kitchenGrid() {
 }
 
 describe('findPath / findPathInRoom', () => {
-	it('example A: (4,2) → (1,2) along row ty=2', () => {
+	it('example A: (4,2) → (2,2) along row ty=2', () => {
 		const grid = kitchenGrid();
-		const path = findPath(grid, { tx: 4, ty: 2 }, { tx: 1, ty: 2 });
+		const path = findPath(grid, { tx: 4, ty: 2 }, { tx: 2, ty: 2 });
 		expect(path).toEqual([
 			{ tx: 4, ty: 2 },
 			{ tx: 3, ty: 2 },
-			{ tx: 2, ty: 2 },
-			{ tx: 1, ty: 2 }
+			{ tx: 2, ty: 2 }
 		]);
 	});
 
-	it('example B: (1,2) → (3,1) length 4, never fridge', () => {
+	it('example B: (1,3) → (3,2) length 4, never fridge', () => {
 		const grid = kitchenGrid();
-		const path = findPath(grid, { tx: 1, ty: 2 }, { tx: 3, ty: 1 });
+		const path = findPath(grid, { tx: 1, ty: 3 }, { tx: 3, ty: 2 });
 		expect(path).not.toBeNull();
 		expect(path!.length).toBe(4);
 		for (const cell of path!) {
 			expect(grid.collision[cell.ty * grid.width + cell.tx]).toBe(0);
-			expect(cell).not.toEqual({ tx: 1, ty: 1 });
+			expect(cell).not.toEqual({ tx: 1, ty: 2 });
 		}
 	});
 
 	it('example C: blocked goal (fridge) → null', () => {
 		const grid = kitchenGrid();
-		expect(findPath(grid, { tx: 4, ty: 2 }, { tx: 1, ty: 1 })).toBeNull();
+		expect(findPath(grid, { tx: 4, ty: 2 }, { tx: 1, ty: 2 })).toBeNull();
 	});
 
 	it('example D: start === goal → single-tile path', () => {
@@ -84,14 +83,14 @@ describe('findPath / findPathInRoom', () => {
 		const a = findPath(
 			{ width: room.width, height: room.height, collision: room.collision },
 			{ tx: 4, ty: 2 },
-			{ tx: 1, ty: 2 }
+			{ tx: 2, ty: 2 }
 		);
 		const b = findPathInRoom(
 			room.width,
 			room.height,
 			room.collision,
 			{ tx: 4, ty: 2 },
-			{ tx: 1, ty: 2 }
+			{ tx: 2, ty: 2 }
 		);
 		expect(b).toEqual(a);
 	});

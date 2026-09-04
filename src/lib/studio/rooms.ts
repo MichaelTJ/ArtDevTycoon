@@ -123,25 +123,17 @@ function idx(width: number, tx: number, ty: number): number {
 	return ty * width + tx;
 }
 
-function paintOuterWalls(
+function paintNorthWallBand(
 	width: number,
-	height: number,
 	collision: number[],
 	ground: number[],
 	groundSheets: (string | undefined)[],
-	primaryTileset: string
+	primaryTileset: string,
+	bandHeight = 2
 ): void {
 	const sheetTag = SHEET.dungeon !== primaryTileset ? SHEET.dungeon : undefined;
-	for (let x = 0; x < width; x++) {
-		for (const y of [0, height - 1] as const) {
-			const i = idx(width, x, y);
-			collision[i] = 1;
-			ground[i] = DUNGEON.wall;
-			groundSheets[i] = sheetTag;
-		}
-	}
-	for (let y = 1; y < height - 1; y++) {
-		for (const x of [0, width - 1] as const) {
+	for (let y = 0; y < bandHeight; y++) {
+		for (let x = 0; x < width; x++) {
 			const i = idx(width, x, y);
 			collision[i] = 1;
 			ground[i] = DUNGEON.wall;
@@ -150,21 +142,34 @@ function paintOuterWalls(
 	}
 }
 
-function paintDividerWall(
+function openNorthDoor(
 	width: number,
 	collision: number[],
 	ground: number[],
+	groundSheets: (string | undefined)[] | undefined,
+	doorTx: number,
+	floorTile: number,
+	floorSheet?: string,
+	primaryTileset?: string,
+	bandHeight = 2
+): void {
+	for (let y = 0; y < bandHeight; y++) {
+		openCell(width, collision, ground, groundSheets, doorTx, y, floorTile, floorSheet, primaryTileset);
+	}
+}
+
+function fillFloor(
+	width: number,
+	height: number,
+	ground: number[],
 	groundSheets: (string | undefined)[],
 	primaryTileset: string,
-	tx: number,
-	y0: number,
-	y1: number
+	floorTile: number,
+	floorSheet: string
 ): void {
-	const sheetTag = SHEET.dungeon !== primaryTileset ? SHEET.dungeon : undefined;
-	for (let y = y0; y <= y1; y++) {
-		const i = idx(width, tx, y);
-		collision[i] = 1;
-		ground[i] = DUNGEON.wall;
+	const sheetTag = floorSheet !== primaryTileset ? floorSheet : undefined;
+	for (let i = 0; i < width * height; i++) {
+		ground[i] = floorTile;
 		groundSheets[i] = sheetTag;
 	}
 }
@@ -227,21 +232,31 @@ function buildKitchen(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INDOOR.floor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
+	fillFloor(width, height, ground, groundSheets, tilesetId, INDOOR.floor, SHEET.interior);
+	paintNorthWallBand(width, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 2, ty: 0 };
-	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floor, undefined, tilesetId);
+	openNorthDoor(
+		width,
+		collision,
+		ground,
+		groundSheets,
+		door.tx,
+		INDOOR.floor,
+		SHEET.interior,
+		tilesetId
+	);
 
 	const desk = { tx: 3, ty: 3 };
-	const fridgeAnchor = { tx: 1, ty: 1 };
-	solidAt(width, collision, 1, 1); // fridge cabinet
+	const fridgeAnchor = { tx: 1, ty: 2 };
+	solidAt(width, collision, 1, 2); // fridge cabinet
 
 	const patrol = [
 		{ tx: 4, ty: 2 },
 		{ tx: 4, ty: 4 },
 		{ tx: 1, ty: 4 },
-		{ tx: 1, ty: 2 },
-		{ tx: 3, ty: 1 }
+		{ tx: 3, ty: 2 },
+		{ tx: 2, ty: 3 }
 	] as const;
 
 	return {
@@ -253,7 +268,7 @@ function buildKitchen(): RoomDef {
 		groundSheets: compactGroundSheets(groundSheets),
 		tilesetId,
 		door,
-		clientWait: { tx: 2, ty: 1 },
+		clientWait: { tx: 2, ty: 2 },
 		desk,
 		playerSpawn: { tx: 1, ty: 4 },
 		fridgeAnchor,
@@ -261,13 +276,13 @@ function buildKitchen(): RoomDef {
 			{
 				frame: INDOOR.cabinet,
 				tx: 1,
-				ty: 1,
+				ty: 2,
 				solid: true,
 				sheet: SHEET.indoorProps,
 				interactableId: 'fridge'
 			},
-			{ frame: INDOOR.counterL, tx: 3, ty: 1, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.sink, tx: 4, ty: 1, solid: false, sheet: SHEET.indoorProps }
+			{ frame: INDOOR.counterL, tx: 3, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.sink, tx: 4, ty: 2, solid: false, sheet: SHEET.indoorProps }
 		],
 		zones: [],
 		residents: [
@@ -292,10 +307,20 @@ function buildGarage(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INDOOR.floorGrey);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
+	fillFloor(width, height, ground, groundSheets, tilesetId, INDOOR.floorGrey, SHEET.interior);
+	paintNorthWallBand(width, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 5, ty: 0 };
-	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floorGrey, undefined, tilesetId);
+	openNorthDoor(
+		width,
+		collision,
+		ground,
+		groundSheets,
+		door.tx,
+		INDOOR.floorGrey,
+		SHEET.interior,
+		tilesetId
+	);
 
 	// Workbench on wood-toned floor patch.
 	for (let x = 3; x <= 4; x++) {
@@ -341,14 +366,20 @@ function buildStorefront(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INDOOR.floor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
+	fillFloor(width, height, ground, groundSheets, tilesetId, INDOOR.floor, SHEET.interior);
+	paintNorthWallBand(width, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 4, ty: 0 };
-	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floor, undefined, tilesetId);
-
-	// Internal wall between work (W) and window (E) at tx=9, doorway at ty=5.
-	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 9, 1, height - 2);
-	openCell(width, collision, ground, groundSheets, 9, 5, INDOOR.floor, undefined, tilesetId);
+	openNorthDoor(
+		width,
+		collision,
+		ground,
+		groundSheets,
+		door.tx,
+		INDOOR.floor,
+		SHEET.interior,
+		tilesetId
+	);
 
 	// Small blue carpet mat in window display zone.
 	for (let y = 7; y <= 9; y++) {
@@ -380,7 +411,7 @@ function buildStorefront(): RoomDef {
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
 			{ frame: INDOOR.counterL, tx: 14, ty: 8, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingA, tx: 15, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 15, ty: 3, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingB, tx: 15, ty: 7, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.plantMed, tx: 12, ty: 3, solid: false, sheet: SHEET.indoorProps }
 		],
@@ -398,24 +429,19 @@ function buildGalleryHall(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
+	paintNorthWallBand(width, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 5, ty: 0 };
-	openCell(
+	openNorthDoor(
 		width,
 		collision,
 		ground,
 		groundSheets,
 		door.tx,
-		door.ty,
 		INTERIOR.woodFloor,
 		undefined,
 		tilesetId
 	);
-
-	// Divider between atelier (W) and show gallery (E) at tx=10.
-	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 10, 1, height - 2);
-	openCell(width, collision, ground, groundSheets, 10, 6, INTERIOR.woodFloor, undefined, tilesetId);
 
 	// Small purple carpet mat in show gallery.
 	for (let y = 5; y <= 8; y++) {
@@ -445,8 +471,8 @@ function buildGalleryHall(): RoomDef {
 		playerSpawn: { tx: 2, ty: 11 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: INDOOR.paintingA, tx: 12, ty: 2, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingB, tx: 17, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 12, ty: 3, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 17, ty: 3, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingA, tx: 19, ty: 5, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INTERIOR.plantMed, tx: 16, ty: 3, solid: false, sheet: SHEET.interiorProps }
 		],
@@ -464,26 +490,19 @@ export function buildMegaMuseum(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
+	paintNorthWallBand(width, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 6, ty: 0 };
-	openCell(
+	openNorthDoor(
 		width,
 		collision,
 		ground,
 		groundSheets,
 		door.tx,
-		door.ty,
 		INTERIOR.woodFloor,
 		undefined,
 		tilesetId
 	);
-
-	// Vertical dividers: atelier | gallery | foyer at tx=9 and tx=18.
-	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 9, 1, height - 2);
-	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 18, 1, height - 2);
-	openCell(width, collision, ground, groundSheets, 9, 7, INTERIOR.woodFloor, undefined, tilesetId);
-	openCell(width, collision, ground, groundSheets, 18, 7, INTERIOR.woodFloor, undefined, tilesetId);
 
 	// Small gallery carpet mat.
 	for (let y = 6; y <= 9; y++) {

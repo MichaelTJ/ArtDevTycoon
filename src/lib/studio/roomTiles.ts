@@ -3,49 +3,16 @@
  * and Kenney Tiny Dungeon `walls-floors`.
  * Indices match Phaser spritesheet frames (see `studio-editor/catalog.ts`).
  *
- * **Hybrid walls:** perimeter and divider walls use Tiny Dungeon frame 40
- * (plain stone brick) via `groundSheets: 'tiny-dungeon'`. Indices 12–20 on this
- * sheet are floor/decor tiles — not a wall autotile block.
+ * **Pokémon-style walls:** north band only (y=0..1), Tiny Dungeon frame 40 via
+ * `groundSheets: 'tiny-dungeon'`. Left/right/bottom edges stay open floor.
  *
- * `home-indoor.png` is furniture/props only (no structural walls).
- * `home-interior` frames 144/157/168 are wood furniture panels — not walls.
+ * **Floors:** home-indoor frame 0 is a tabletop — use home-interior plank fills.
+ * Furniture props still come from home-indoor / home-interior prop sheets.
  */
-
-/** Kenney Roguelike Indoors (`home-indoor.png`, 26 cols, spacing 1) — floors + props only. */
-export const INDOOR = {
-	/** r0c0 — tan plank floor */
-	floor: 0,
-	/** r1c0 — darker wood plank floor (garage tone) */
-	floorGrey: 26,
-	/** r13c0 — kitchen counter, two doors */
-	counterL: 338,
-	/** r13c1 — kitchen counter, drawers */
-	counterR: 339,
-	/** r14c8 — kitchen sink basin */
-	sink: 372,
-	/** r10c0 — bookshelf left segment */
-	bookshelf: 260,
-	/** r10c6 — stool with orange seat */
-	stool: 266,
-	/** r2c6 — round wooden table */
-	roundTable: 58,
-	/** r4c0 — wooden chair, front view */
-	chair: 104,
-	/** r16c20 — vertical framed painting, warm tones */
-	paintingA: 436,
-	/** r16c21 — vertical framed painting, teal tones */
-	paintingB: 437,
-	/** r14c0 — single-door cabinet (fridge stand-in) */
-	cabinet: 364,
-	/** r0c16 — tall potted plant */
-	plantTall: 16,
-	/** r0c17 — medium potted plant */
-	plantMed: 17
-} as const;
 
 /**
  * Tilation Indoor RPG (`home-interior.png`, 8 cols).
- * Walls/floors block starts at 144 (see `walls_floor_doors.png`).
+ * Verified floor fills from PNG crop — not furniture.
  */
 export const INTERIOR = {
 	/** r2c4 — red carpet center fill (no orange border) */
@@ -78,7 +45,39 @@ export const INTERIOR = {
 	stove: 192
 } as const;
 
-/** Kenney Tiny Dungeon (`walls-floors.png`, 12 cols, spacing 0) — structural walls. */
+/** Kenney Roguelike Indoors (`home-indoor.png`, 26 cols, spacing 1) — props only. */
+export const INDOOR = {
+	/** home-interior wood plank — NOT home-indoor frame 0 (tabletop) */
+	floor: INTERIOR.woodFloor,
+	/** home-interior stone — NOT home-indoor frame 26 (table edge) */
+	floorGrey: INTERIOR.stoneFloor,
+	/** r13c0 — kitchen counter, two doors */
+	counterL: 338,
+	/** r13c1 — kitchen counter, drawers */
+	counterR: 339,
+	/** r14c8 — kitchen sink basin */
+	sink: 372,
+	/** r10c0 — bookshelf left segment */
+	bookshelf: 260,
+	/** r10c6 — stool with orange seat */
+	stool: 266,
+	/** r2c6 — round wooden table */
+	roundTable: 58,
+	/** r4c0 — wooden chair, front view */
+	chair: 104,
+	/** r16c20 — vertical framed painting, warm tones */
+	paintingA: 436,
+	/** r16c21 — vertical framed painting, teal tones */
+	paintingB: 437,
+	/** r14c0 — single-door cabinet (fridge stand-in) */
+	cabinet: 364,
+	/** r0c16 — tall potted plant */
+	plantTall: 16,
+	/** r0c17 — medium potted plant */
+	plantMed: 17
+} as const;
+
+/** Kenney Tiny Dungeon (`walls-floors.png`, 12 cols, spacing 0) — north wall band. */
 export const DUNGEON = {
 	/** r3c4 — plain grey stone brick (verified PNG crop; no faces/doors/decor) */
 	wall: 40
