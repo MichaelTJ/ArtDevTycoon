@@ -1,5 +1,5 @@
 import type { InteractableId } from './interactables';
-import { INDOOR, INTERIOR, SHEET } from './roomTiles';
+import { DUNGEON, INDOOR, INTERIOR, SHEET } from './roomTiles';
 
 export type RoomId = 'home-kitchen' | 'art-room' | 'studio' | 'gallery' | 'mega-museum';
 
@@ -123,32 +123,46 @@ function idx(width: number, tx: number, ty: number): number {
 	return ty * width + tx;
 }
 
+function outerWallTile(x: number, y: number, width: number, height: number): number {
+	const onTop = y === 0;
+	const onBottom = y === height - 1;
+	const onLeft = x === 0;
+	const onRight = x === width - 1;
+	if (onTop && onLeft) return DUNGEON.cornerNW;
+	if (onTop && onRight) return DUNGEON.cornerNE;
+	if (onBottom && onLeft) return DUNGEON.cornerSW;
+	if (onBottom && onRight) return DUNGEON.cornerSE;
+	if (onTop) return DUNGEON.edgeN;
+	if (onBottom) return DUNGEON.edgeS;
+	if (onLeft) return DUNGEON.edgeW;
+	if (onRight) return DUNGEON.edgeE;
+	return DUNGEON.fill;
+}
+
 function paintOuterWalls(
 	width: number,
 	height: number,
 	collision: number[],
 	ground: number[],
 	groundSheets: (string | undefined)[],
-	primaryTileset: string,
-	wallTile: number,
-	wallSheet: string = SHEET.interior
+	primaryTileset: string
 ): void {
-	const sheetTag = wallSheet !== primaryTileset ? wallSheet : undefined;
+	const sheetTag = SHEET.dungeon !== primaryTileset ? SHEET.dungeon : undefined;
 	for (let x = 0; x < width; x++) {
-		collision[idx(width, x, 0)] = 1;
-		collision[idx(width, x, height - 1)] = 1;
-		ground[idx(width, x, 0)] = wallTile;
-		ground[idx(width, x, height - 1)] = wallTile;
-		groundSheets[idx(width, x, 0)] = sheetTag;
-		groundSheets[idx(width, x, height - 1)] = sheetTag;
+		for (const y of [0, height - 1] as const) {
+			const i = idx(width, x, y);
+			collision[i] = 1;
+			ground[i] = outerWallTile(x, y, width, height);
+			groundSheets[i] = sheetTag;
+		}
 	}
-	for (let y = 0; y < height; y++) {
-		collision[idx(width, 0, y)] = 1;
-		collision[idx(width, width - 1, y)] = 1;
-		ground[idx(width, 0, y)] = wallTile;
-		ground[idx(width, width - 1, y)] = wallTile;
-		groundSheets[idx(width, 0, y)] = sheetTag;
-		groundSheets[idx(width, width - 1, y)] = sheetTag;
+	for (let y = 1; y < height - 1; y++) {
+		for (const x of [0, width - 1] as const) {
+			const i = idx(width, x, y);
+			collision[i] = 1;
+			ground[i] = outerWallTile(x, y, width, height);
+			groundSheets[i] = sheetTag;
+		}
 	}
 }
 
@@ -160,15 +174,14 @@ function paintDividerWall(
 	primaryTileset: string,
 	tx: number,
 	y0: number,
-	y1: number,
-	wallTile: number,
-	wallSheet: string = SHEET.interior
+	y1: number
 ): void {
-	const sheetTag = wallSheet !== primaryTileset ? wallSheet : undefined;
+	const sheetTag = SHEET.dungeon !== primaryTileset ? SHEET.dungeon : undefined;
 	for (let y = y0; y <= y1; y++) {
-		collision[idx(width, tx, y)] = 1;
-		ground[idx(width, tx, y)] = wallTile;
-		groundSheets[idx(width, tx, y)] = sheetTag;
+		const i = idx(width, tx, y);
+		collision[i] = 1;
+		ground[i] = DUNGEON.edgeW;
+		groundSheets[i] = sheetTag;
 	}
 }
 
@@ -230,15 +243,7 @@ function buildKitchen(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INDOOR.floor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(
-		width,
-		height,
-		collision,
-		ground,
-		groundSheets,
-		tilesetId,
-		INTERIOR.wallPerimeter
-	);
+	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 2, ty: 0 };
 	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floor, undefined, tilesetId);
@@ -303,15 +308,7 @@ function buildGarage(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INDOOR.floorGrey);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(
-		width,
-		height,
-		collision,
-		ground,
-		groundSheets,
-		tilesetId,
-		INTERIOR.wallPerimeter
-	);
+	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 5, ty: 0 };
 	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floorGrey, undefined, tilesetId);
@@ -360,31 +357,13 @@ function buildStorefront(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INDOOR.floor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(
-		width,
-		height,
-		collision,
-		ground,
-		groundSheets,
-		tilesetId,
-		INTERIOR.wallPerimeter
-	);
+	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 4, ty: 0 };
 	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floor, undefined, tilesetId);
 
 	// Internal wall between work (W) and window (E) at tx=9, doorway at ty=5.
-	paintDividerWall(
-		width,
-		collision,
-		ground,
-		groundSheets,
-		tilesetId,
-		9,
-		1,
-		height - 2,
-		INTERIOR.wall
-	);
+	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 9, 1, height - 2);
 	openCell(width, collision, ground, groundSheets, 9, 5, INDOOR.floor, undefined, tilesetId);
 
 	// Small blue carpet mat in window display zone.
@@ -435,7 +414,7 @@ function buildGalleryHall(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId, INTERIOR.wallPerimeter);
+	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 5, ty: 0 };
 	openCell(
@@ -451,17 +430,7 @@ function buildGalleryHall(): RoomDef {
 	);
 
 	// Divider between atelier (W) and show gallery (E) at tx=10.
-	paintDividerWall(
-		width,
-		collision,
-		ground,
-		groundSheets,
-		tilesetId,
-		10,
-		1,
-		height - 2,
-		INTERIOR.wall
-	);
+	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 10, 1, height - 2);
 	openCell(width, collision, ground, groundSheets, 10, 6, INTERIOR.woodFloor, undefined, tilesetId);
 
 	// Small purple carpet mat in show gallery.
@@ -511,7 +480,7 @@ export function buildMegaMuseum(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId, INTERIOR.wallPerimeter);
+	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 6, ty: 0 };
 	openCell(
@@ -527,28 +496,8 @@ export function buildMegaMuseum(): RoomDef {
 	);
 
 	// Vertical dividers: atelier | gallery | foyer at tx=9 and tx=18.
-	paintDividerWall(
-		width,
-		collision,
-		ground,
-		groundSheets,
-		tilesetId,
-		9,
-		1,
-		height - 2,
-		INTERIOR.wall
-	);
-	paintDividerWall(
-		width,
-		collision,
-		ground,
-		groundSheets,
-		tilesetId,
-		18,
-		1,
-		height - 2,
-		INTERIOR.wall
-	);
+	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 9, 1, height - 2);
+	paintDividerWall(width, collision, ground, groundSheets, tilesetId, 18, 1, height - 2);
 	openCell(width, collision, ground, groundSheets, 9, 7, INTERIOR.woodFloor, undefined, tilesetId);
 	openCell(width, collision, ground, groundSheets, 18, 7, INTERIOR.woodFloor, undefined, tilesetId);
 

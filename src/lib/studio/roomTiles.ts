@@ -1,13 +1,13 @@
 /**
- * Frame indices for venue room art — Kenney `home-indoor` and Tilation `home-interior`.
+ * Frame indices for venue room art — Kenney `home-indoor`, Tilation `home-interior`,
+ * and Kenney Tiny Dungeon `walls-floors`.
  * Indices match Phaser spritesheet frames (see `studio-editor/catalog.ts`).
  *
- * **Important:** `home-indoor.png` is a furniture/prop pack only (tables, beds,
- * counters, candles, paintings). It has NO structural wall tiles — perimeter
- * walls for every venue must come from `home-interior` via `groundSheets`.
+ * **Hybrid walls:** perimeter and divider walls use Tiny Dungeon autotile indices
+ * via `groundSheets: 'tiny-dungeon'`. Floors and furniture stay on home packs.
  *
- * Structural walls live in `home-interior` from index 144 (= `walls_floor_doors` 0+).
- * Do NOT use 168–170 (cabinets/dressers) as walls.
+ * `home-indoor.png` is furniture/props only (no structural walls).
+ * `home-interior` frames 144/157/168 are wood furniture panels — not walls.
  */
 
 /** Kenney Roguelike Indoors (`home-indoor.png`, 26 cols, spacing 1) — floors + props only. */
@@ -57,10 +57,6 @@ export const INTERIOR = {
 	woodFloor: 148,
 	/** r19c1 — grey stone floor */
 	stoneFloor: 153,
-	/** r18c0 — vertical wood panel face (wfd 0); dividers */
-	wall: 144,
-	/** r19c5 — wall-top lip for top-down perimeter (wfd 13); NOT 168 (cabinet) */
-	wallPerimeter: 157,
 	/** r23c7 — square wooden table */
 	table: 191,
 	/** r23c6 — wooden chair */
@@ -81,9 +77,26 @@ export const INTERIOR = {
 	stove: 192
 } as const;
 
+/** Kenney Tiny Dungeon (`walls-floors.png`, 12 cols, spacing 0) — perimeter autotile. */
+export const DUNGEON = {
+	cornerNW: 12,
+	cornerNE: 14,
+	cornerSW: 18,
+	cornerSE: 20,
+	edgeN: 13,
+	edgeW: 15,
+	edgeE: 17,
+	edgeS: 19,
+	fill: 16
+} as const;
+
+/** All valid Tiny Dungeon wall autotile frame indices. */
+export const DUNGEON_WALL_FRAMES = new Set<number>(Object.values(DUNGEON));
+
 export const SHEET = {
 	indoor: 'home-indoor',
 	interior: 'home-interior',
+	dungeon: 'tiny-dungeon',
 	indoorProps: 'home-indoor-props',
 	interiorProps: 'home-interior-props'
 } as const;

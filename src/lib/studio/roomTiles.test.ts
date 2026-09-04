@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TILESETS } from '$lib/studio-editor/catalog';
-import { INDOOR, INTERIOR } from './roomTiles';
+import { DUNGEON, DUNGEON_WALL_FRAMES, INDOOR, INTERIOR } from './roomTiles';
 
 describe('roomTiles', () => {
 	it('does not define wall frames on home-indoor (furniture-only pack)', () => {
@@ -8,17 +8,23 @@ describe('roomTiles', () => {
 		expect('wallAlt' in INDOOR).toBe(false);
 	});
 
-	it('uses verified home-interior wall indices from walls_floor_doors block', () => {
-		expect(INTERIOR.wall).toBe(144);
-		expect(INTERIOR.wallPerimeter).toBe(157);
-		expect(INTERIOR.wall).not.toBe(TILESETS['home-interior'].defaultWall);
-		expect('wallTop' in INTERIOR).toBe(false);
+	it('does not define home-interior wall frames (furniture panels, not walls)', () => {
+		expect('wall' in INTERIOR).toBe(false);
+		expect('wallPerimeter' in INTERIOR).toBe(false);
 	});
 
-	it('does not use cabinet/dresser frames as walls', () => {
-		expect(INTERIOR.wallPerimeter).not.toBe(168);
-		expect(INTERIOR.wallPerimeter).not.toBe(169);
-		expect(INTERIOR.wall).not.toBe(168);
+	it('uses Tiny Dungeon autotile indices for structural walls', () => {
+		expect(DUNGEON.cornerNW).toBe(12);
+		expect(DUNGEON.cornerNE).toBe(14);
+		expect(DUNGEON.cornerSW).toBe(18);
+		expect(DUNGEON.cornerSE).toBe(20);
+		expect(DUNGEON.edgeN).toBe(13);
+		expect(DUNGEON.edgeW).toBe(15);
+		expect(DUNGEON.edgeE).toBe(17);
+		expect(DUNGEON.edgeS).toBe(19);
+		expect(DUNGEON.fill).toBe(16);
+		expect(DUNGEON_WALL_FRAMES.size).toBe(9);
+		expect(DUNGEON.cornerNW).toBe(TILESETS['tiny-dungeon'].defaultWall);
 	});
 
 	it('uses carpet center fills without orange border tiles', () => {
