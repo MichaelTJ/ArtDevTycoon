@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '$lib/studio/rooms';
+import { INDOOR, INTERIOR, SHEET } from '$lib/studio/roomTiles';
 import {
 	applyTileEdit,
 	authoredDraft,
@@ -20,15 +21,16 @@ describe('studio-editor drafts', () => {
 		expect(roleAt(kitchen, kitchen.door.tx, kitchen.door.ty)).toBe('door');
 
 		const painted = applyTileEdit(kitchen, 2, 2, {
-			ground: 48,
+			ground: INTERIOR.woodFloor,
 			walkable: false,
-			furnitureFrame: 1,
+			furnitureFrame: INDOOR.stool,
+			furnitureSheet: SHEET.indoorProps,
 			role: 'desk'
 		});
 
-		expect(painted.ground[2 * painted.width + 2]).toBe(48);
+		expect(painted.ground[2 * painted.width + 2]).toBe(INTERIOR.woodFloor);
 		expect(painted.collision[2 * painted.width + 2]).toBe(1);
-		expect(furnitureAt(painted, 2, 2)?.frame).toBe(1);
+		expect(furnitureAt(painted, 2, 2)?.frame).toBe(INDOOR.stool);
 		expect(painted.desk).toEqual(kitchen.desk);
 		expect(painted.desks).toEqual([{ tx: 2, ty: 2 }]);
 		expect(roleAt(painted, 2, 2)).toBe('desk');
@@ -98,14 +100,15 @@ describe('studio-editor drafts', () => {
 
 	it('lists wall kinds separately from furniture solids', () => {
 		const kitchen = authoredDraft(ROOMS['home-kitchen']);
-		expect(listWallKinds(kitchen)).toEqual([{ ground: 12, sheet: 'tiny-dungeon', count: 19 }]);
+		expect(listWallKinds(kitchen)).toEqual([{ ground: INDOOR.wall, sheet: SHEET.indoor, count: 19 }]);
 		expect(listFloorKinds(kitchen)).toEqual([
-			{ ground: 0, sheet: 'tiny-dungeon', count: 12 },
-			{ ground: 48, sheet: 'tiny-dungeon', count: 3 }
+			{ ground: INDOOR.floor, sheet: SHEET.indoor, count: 12 },
+			{ ground: INTERIOR.woodFloor, sheet: SHEET.interior, count: 3 }
 		]);
 		expect(listFurnitureKinds(kitchen)).toEqual([
-			{ frame: 0, sheet: 'furniture', count: 1 },
-			{ frame: 2, sheet: 'furniture', count: 1 }
+			{ frame: INDOOR.cabinet, sheet: SHEET.indoorProps, count: 1 },
+			{ frame: INTERIOR.table, sheet: SHEET.interiorProps, count: 1 },
+			{ frame: INTERIOR.plantTall, sheet: SHEET.interiorProps, count: 1 }
 		]);
 	});
 
@@ -114,12 +117,14 @@ describe('studio-editor drafts', () => {
 		const fridgeGround = kitchen.ground[1 * kitchen.width + 1];
 		const painted = recolorWalls(
 			kitchen,
-			{ ground: 12, sheet: 'tiny-dungeon' },
-			{ ground: 13, sheet: 'tiny-dungeon' }
+			{ ground: INDOOR.wall, sheet: SHEET.indoor },
+			{ ground: INDOOR.wallAlt, sheet: SHEET.indoor }
 		);
-		expect(listWallKinds(painted)).toEqual([{ ground: 13, sheet: 'tiny-dungeon', count: 19 }]);
+		expect(listWallKinds(painted)).toEqual([
+			{ ground: INDOOR.wallAlt, sheet: SHEET.indoor, count: 19 }
+		]);
 		expect(painted.ground[1 * painted.width + 1]).toBe(fridgeGround);
-		expect(kitchen.ground[0]).toBe(12);
+		expect(kitchen.ground[0]).toBe(INDOOR.wall);
 	});
 
 	it('recolors every matching floor and can pull from another tileset', () => {
@@ -127,30 +132,30 @@ describe('studio-editor drafts', () => {
 		const wood = kitchen.ground[3 * kitchen.width + 3];
 		const painted = recolorFloors(
 			kitchen,
-			{ ground: 0, sheet: 'tiny-dungeon' },
-			{ ground: 8, sheet: 'home-interior' }
+			{ ground: INDOOR.floor, sheet: SHEET.indoor },
+			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior }
 		);
 		expect(listFloorKinds(painted)).toEqual([
-			{ ground: 8, sheet: 'home-interior', count: 12 },
-			{ ground: 48, sheet: 'tiny-dungeon', count: 3 }
+			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior, count: 12 },
+			{ ground: INTERIOR.woodFloor, sheet: SHEET.interior, count: 3 }
 		]);
 		expect(painted.ground[3 * painted.width + 3]).toBe(wood);
-		expect(painted.groundSheet?.[2]).toBe('home-interior');
+		expect(painted.groundSheet?.[2]).toBe(SHEET.interior);
 	});
 
 	it('recolors every matching furniture sprite and keeps interactable ids', () => {
 		const kitchen = authoredDraft(ROOMS['home-kitchen']);
 		const swapped = recolorFurniture(
 			kitchen,
-			{ frame: 2, sheet: 'furniture' },
-			{ frame: 4, sheet: 'home-indoor-props' }
+			{ frame: INDOOR.cabinet, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.sink, sheet: SHEET.indoorProps }
 		);
 		expect(furnitureAt(swapped, 1, 1)).toMatchObject({
-			frame: 4,
-			sheet: 'home-indoor-props',
+			frame: INDOOR.sink,
+			sheet: SHEET.indoorProps,
 			interactableId: 'fridge'
 		});
-		expect(furnitureAt(swapped, 2, 3)?.frame).toBe(0);
-		expect(furnitureAt(swapped, 2, 3)?.sheet).toBeUndefined();
+		expect(furnitureAt(swapped, 2, 3)?.frame).toBe(INTERIOR.table);
+		expect(furnitureAt(swapped, 2, 3)?.sheet).toBe(SHEET.interiorProps);
 	});
 });

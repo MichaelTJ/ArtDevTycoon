@@ -4,8 +4,10 @@ import {
 	getRoomForEnvironment,
 	markerWalkable,
 	roomDesks,
-	roomFridgeAnchors
+	roomFridgeAnchors,
+	type RoomId
 } from './rooms';
+import { INDOOR, INTERIOR, SHEET } from './roomTiles';
 
 describe('rooms', () => {
 	it('home-kitchen is 6×6 with Mum resident and walkable markers', () => {
@@ -117,15 +119,49 @@ describe('rooms', () => {
 		expect(fridge).toBeDefined();
 		expect(fridge!.tx).toBe(1);
 		expect(fridge!.ty).toBe(1);
+		expect(fridge!.sheet).toBe(SHEET.indoorProps);
 
 		const shelf = ROOMS['art-room'].furniture.find((p) => p.interactableId === 'toolkit-shelf');
 		expect(shelf).toBeDefined();
 		expect(shelf!.tx).toBe(3);
 		expect(shelf!.ty).toBe(5);
+		expect(shelf!.sheet).toBe(SHEET.indoorProps);
 
 		for (const id of ['studio', 'gallery', 'mega-museum'] as const) {
 			const tagged = ROOMS[id].furniture.filter((p) => p.interactableId != null);
 			expect(tagged).toHaveLength(0);
 		}
+	});
+
+	it('authored rooms use home packs — never tiny-dungeon', () => {
+		const expected: Record<RoomId, string> = {
+			'home-kitchen': SHEET.indoor,
+			'art-room': SHEET.indoor,
+			studio: SHEET.indoor,
+			gallery: SHEET.interior,
+			'mega-museum': SHEET.interior
+		};
+		for (const [id, tilesetId] of Object.entries(expected)) {
+			expect(ROOMS[id as RoomId].tilesetId).toBe(tilesetId);
+		}
+		for (const room of Object.values(ROOMS)) {
+			expect(room.tilesetId).not.toBe('tiny-dungeon');
+			expect(room.tilesetId).toBeDefined();
+			for (const prop of room.furniture) {
+				expect(prop.sheet).toBeDefined();
+				expect(prop.sheet).not.toBe('furniture');
+			}
+		}
+	});
+
+	it('storefront and gallery use carpet floor overlays from home-interior', () => {
+		const studio = ROOMS.studio;
+		expect(studio.groundSheets?.some((sheet) => sheet === SHEET.interior)).toBe(true);
+		const carpetCell = studio.ground[studio.width * 5 + 14];
+		expect(carpetCell).toBe(INTERIOR.carpetBlue);
+
+		const gallery = ROOMS.gallery;
+		const galleryCarpet = gallery.ground[gallery.width * 5 + 15];
+		expect(galleryCarpet).toBe(INTERIOR.carpetPurple);
 	});
 });
