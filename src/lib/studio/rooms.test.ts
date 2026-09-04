@@ -165,17 +165,40 @@ describe('rooms', () => {
 		expect(galleryCarpet).toBe(INTERIOR.carpetPurple);
 	});
 
-	it('authored rooms paint real wall tiles, not catalog defaultWall decor', () => {
-		for (const room of Object.values(ROOMS)) {
-			const wallFrames = new Set(
-				room.collision
-					.map((solid, i) => (solid === 1 ? room.ground[i] : null))
-					.filter((frame): frame is number => frame != null)
-			);
-			expect(wallFrames.has(22)).toBe(false);
-			expect(wallFrames.has(64)).toBe(false);
+	it('authored rooms paint home-interior wall tiles on every perimeter cell', () => {
+		const indoorRooms = ['home-kitchen', 'art-room', 'studio'] as const;
+		for (const id of indoorRooms) {
+			const room = ROOMS[id];
+			expect(room.tilesetId).toBe(SHEET.indoor);
+			for (let i = 0; i < room.collision.length; i++) {
+				if (room.collision[i] !== 1) continue;
+				const tx = i % room.width;
+				const ty = Math.floor(i / room.width);
+				const onPerimeter =
+					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
+				if (!onPerimeter) continue;
+				expect(room.ground[i]).toBe(INTERIOR.wallTop);
+				expect(room.groundSheets?.[i]).toBe(SHEET.interior);
+			}
 		}
-		expect(ROOMS['home-kitchen'].ground[0]).toBe(INDOOR.wall);
-		expect(ROOMS.gallery.ground[0]).toBe(INTERIOR.wall);
+
+		for (const id of ['gallery', 'mega-museum'] as const) {
+			const room = ROOMS[id];
+			expect(room.ground[0]).toBe(INTERIOR.wallTop);
+		}
+
+		for (const room of Object.values(ROOMS)) {
+			for (let i = 0; i < room.collision.length; i++) {
+				if (room.collision[i] !== 1) continue;
+				const tx = i % room.width;
+				const ty = Math.floor(i / room.width);
+				const onPerimeter =
+					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
+				if (!onPerimeter) continue;
+				expect(room.ground[i]).not.toBe(22);
+				expect(room.ground[i]).not.toBe(64);
+				expect(room.ground[i]).not.toBe(116);
+			}
+		}
 	});
 });

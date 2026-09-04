@@ -100,7 +100,9 @@ describe('studio-editor drafts', () => {
 
 	it('lists wall kinds separately from furniture solids', () => {
 		const kitchen = authoredDraft(ROOMS['home-kitchen']);
-		expect(listWallKinds(kitchen)).toEqual([{ ground: INDOOR.wall, sheet: SHEET.indoor, count: 19 }]);
+		expect(listWallKinds(kitchen)).toEqual([
+			{ ground: INTERIOR.wallTop, sheet: SHEET.interior, count: 19 }
+		]);
 		expect(listFloorKinds(kitchen)).toEqual([
 			{ ground: INDOOR.floor, sheet: SHEET.indoor, count: 12 },
 			{ ground: INTERIOR.stoneFloor, sheet: SHEET.interior, count: 3 }
@@ -120,14 +122,14 @@ describe('studio-editor drafts', () => {
 		const fridgeGround = kitchen.ground[1 * kitchen.width + 1];
 		const painted = recolorWalls(
 			kitchen,
-			{ ground: INDOOR.wall, sheet: SHEET.indoor },
-			{ ground: INDOOR.wallAlt, sheet: SHEET.indoor }
+			{ ground: INTERIOR.wallTop, sheet: SHEET.interior },
+			{ ground: INTERIOR.wall, sheet: SHEET.interior }
 		);
 		expect(listWallKinds(painted)).toEqual([
-			{ ground: INDOOR.wallAlt, sheet: SHEET.indoor, count: 19 }
+			{ ground: INTERIOR.wall, sheet: SHEET.interior, count: 19 }
 		]);
 		expect(painted.ground[1 * painted.width + 1]).toBe(fridgeGround);
-		expect(kitchen.ground[0]).toBe(INDOOR.wall);
+		expect(kitchen.ground[0]).toBe(INTERIOR.wallTop);
 	});
 
 	it('recolors every matching floor and can pull from another tileset', () => {
