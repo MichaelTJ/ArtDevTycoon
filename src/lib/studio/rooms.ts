@@ -1,5 +1,5 @@
-import { TILE } from './config';
 import type { InteractableId } from './interactables';
+import { INDOOR, INTERIOR, SHEET } from './roomTiles';
 
 export type RoomId = 'home-kitchen' | 'art-room' | 'studio' | 'gallery' | 'mega-museum';
 
@@ -160,28 +160,53 @@ function solidAt(width: number, collision: number[], tx: number, ty: number): vo
 	collision[idx(width, tx, ty)] = 1;
 }
 
+function compactGroundSheets(
+	sheets: (string | undefined)[]
+): readonly (string | undefined)[] | undefined {
+	return sheets.some((sheet) => sheet !== undefined) ? sheets : undefined;
+}
+
+function paintGroundPatch(
+	width: number,
+	ground: number[],
+	groundSheets: (string | undefined)[],
+	primaryTileset: string,
+	x0: number,
+	y0: number,
+	x1: number,
+	y1: number,
+	frame: number,
+	sheet?: string
+): void {
+	for (let y = y0; y <= y1; y++) {
+		for (let x = x0; x <= x1; x++) {
+			const i = idx(width, x, y);
+			ground[i] = frame;
+			groundSheets[i] = sheet && sheet !== primaryTileset ? sheet : undefined;
+		}
+	}
+}
+
 function buildKitchen(): RoomDef {
 	const width = 6;
 	const height = 6;
+	const tilesetId = SHEET.indoor;
 	const collision = new Array<number>(width * height).fill(0);
-	const ground = new Array<number>(width * height).fill(TILE.floor);
+	const ground = new Array<number>(width * height).fill(INDOOR.floor);
+	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground, INDOOR.wall);
 
 	const door = { tx: 2, ty: 0 };
-	openCell(width, collision, ground, door.tx, door.ty, TILE.floor);
+	openCell(width, collision, ground, door.tx, door.ty, INDOOR.floor);
 
-	// Wood floor under desk/work cells (2..3, 3..4).
-	for (let y = 3; y <= 4; y++) {
-		for (let x = 2; x <= 3; x++) {
-			ground[idx(width, x, y)] = TILE.woodFloor;
-		}
-	}
+	// Wood floor under desk/work cells (2..3, 3..4) from Tilation pack.
+	paintGroundPatch(width, ground, groundSheets, tilesetId, 2, 3, 3, 4, INTERIOR.woodFloor, SHEET.interior);
 
 	const desk = { tx: 3, ty: 3 };
 	const fridgeAnchor = { tx: 1, ty: 1 };
 	solidAt(width, collision, 2, 3); // table
-	solidAt(width, collision, 1, 1); // fridge
+	solidAt(width, collision, 1, 1); // fridge cabinet
 
 	const patrol = [
 		{ tx: 4, ty: 2 },
@@ -197,14 +222,24 @@ function buildKitchen(): RoomDef {
 		height,
 		collision,
 		ground,
+		groundSheets: compactGroundSheets(groundSheets),
+		tilesetId,
 		door,
 		clientWait: { tx: 2, ty: 1 },
 		desk,
 		playerSpawn: { tx: 1, ty: 4 },
 		fridgeAnchor,
 		furniture: [
-			{ frame: 0, tx: 2, ty: 3, solid: true },
-			{ frame: 2, tx: 1, ty: 1, solid: true, interactableId: 'fridge' }
+			{ frame: INTERIOR.table, tx: 2, ty: 3, solid: true, sheet: SHEET.interiorProps },
+			{
+				frame: INDOOR.cabinet,
+				tx: 1,
+				ty: 1,
+				solid: true,
+				sheet: SHEET.indoorProps,
+				interactableId: 'fridge'
+			},
+			{ frame: INTERIOR.plantTall, tx: 4, ty: 1, solid: false, sheet: SHEET.interiorProps }
 		],
 		zones: [],
 		residents: [
@@ -224,17 +259,18 @@ function buildKitchen(): RoomDef {
 function buildGarage(): RoomDef {
 	const width = 12;
 	const height = 10;
+	const tilesetId = SHEET.indoor;
 	const collision = new Array<number>(width * height).fill(0);
-	const ground = new Array<number>(width * height).fill(TILE.concrete);
+	const ground = new Array<number>(width * height).fill(INDOOR.floorGrey);
 
-	paintOuterWalls(width, height, collision, ground, TILE.garageWall);
+	paintOuterWalls(width, height, collision, ground, INDOOR.wall);
 
 	const door = { tx: 5, ty: 0 };
-	openCell(width, collision, ground, door.tx, door.ty, TILE.concrete);
+	openCell(width, collision, ground, door.tx, door.ty, INDOOR.floorGrey);
 
-	// Workbench block (solid) on wood patch.
+	// Workbench block (solid) on wood-toned floor patch.
 	for (let x = 3; x <= 5; x++) {
-		ground[idx(width, x, 5)] = TILE.woodFloor;
+		ground[idx(width, x, 5)] = INDOOR.floor;
 	}
 	solidAt(width, collision, 3, 5);
 	solidAt(width, collision, 4, 5);
@@ -249,17 +285,25 @@ function buildGarage(): RoomDef {
 		height,
 		collision,
 		ground,
+		tilesetId,
 		door,
 		clientWait: { tx: 5, ty: 2 },
 		desk: { tx: 5, ty: 5 },
 		playerSpawn: { tx: 2, ty: 7 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: 0, tx: 3, ty: 5, solid: true, interactableId: 'toolkit-shelf' },
-			{ frame: 0, tx: 4, ty: 5, solid: true },
-			{ frame: 4, tx: 10, ty: 3, solid: true },
-			{ frame: 4, tx: 10, ty: 6, solid: true },
-			{ frame: 1, tx: 8, ty: 8, solid: true }
+			{
+				frame: INDOOR.counterL,
+				tx: 3,
+				ty: 5,
+				solid: true,
+				sheet: SHEET.indoorProps,
+				interactableId: 'toolkit-shelf'
+			},
+			{ frame: INDOOR.counterR, tx: 4, ty: 5, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 10, ty: 3, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 10, ty: 6, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.stool, tx: 8, ty: 8, solid: true, sheet: SHEET.indoorProps }
 		],
 		zones: [],
 		residents: [],
@@ -270,26 +314,29 @@ function buildGarage(): RoomDef {
 function buildStorefront(): RoomDef {
 	const width = 18;
 	const height = 12;
+	const tilesetId = SHEET.indoor;
 	const collision = new Array<number>(width * height).fill(0);
-	const ground = new Array<number>(width * height).fill(TILE.woodFloor);
+	const ground = new Array<number>(width * height).fill(INDOOR.floor);
+	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground, INDOOR.wall);
 
 	const door = { tx: 4, ty: 0 };
-	openCell(width, collision, ground, door.tx, door.ty, TILE.woodFloor);
+	openCell(width, collision, ground, door.tx, door.ty, INDOOR.floor);
 
 	// Internal wall between work (W) and window (E) at tx=9, doorway at ty=5.
 	for (let y = 1; y < height - 1; y++) {
 		collision[idx(width, 9, y)] = 1;
-		ground[idx(width, 9, y)] = TILE.wall;
+		ground[idx(width, 9, y)] = INDOOR.wall;
 	}
-	openCell(width, collision, ground, 9, 5, TILE.woodFloor);
+	openCell(width, collision, ground, 9, 5, INDOOR.floor);
 
-	// Carpet strip in window display zone.
+	// Carpet strip in window display zone (Tilation blue carpet).
 	for (let y = 2; y <= 9; y++) {
 		for (let x = 11; x <= 16; x++) {
 			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.carpet;
+				ground[idx(width, x, y)] = INTERIOR.carpetBlue;
+				groundSheets[idx(width, x, y)] = SHEET.interior;
 			}
 		}
 	}
@@ -308,16 +355,18 @@ function buildStorefront(): RoomDef {
 		height,
 		collision,
 		ground,
+		groundSheets: compactGroundSheets(groundSheets),
+		tilesetId,
 		door,
 		clientWait: { tx: 4, ty: 2 },
 		desk: { tx: 5, ty: 6 },
 		playerSpawn: { tx: 2, ty: 9 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: 0, tx: 4, ty: 6, solid: true },
-			{ frame: 4, tx: 14, ty: 4, solid: true },
-			{ frame: 1, tx: 12, ty: 8, solid: true },
-			{ frame: 2, tx: 2, ty: 3, solid: true }
+			{ frame: INDOOR.roundTable, tx: 4, ty: 6, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 14, ty: 4, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INTERIOR.armchair, tx: 12, ty: 8, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INDOOR.bookshelf, tx: 2, ty: 3, solid: true, sheet: SHEET.indoorProps }
 		],
 		zones,
 		residents: [],
@@ -328,26 +377,36 @@ function buildStorefront(): RoomDef {
 function buildGalleryHall(): RoomDef {
 	const width = 22;
 	const height = 14;
+	const tilesetId = SHEET.interior;
 	const collision = new Array<number>(width * height).fill(0);
-	const ground = new Array<number>(width * height).fill(TILE.museumFloor);
+	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground, INTERIOR.wall);
 
 	const door = { tx: 5, ty: 0 };
-	openCell(width, collision, ground, door.tx, door.ty, TILE.museumFloor);
+	openCell(width, collision, ground, door.tx, door.ty, INTERIOR.woodFloor);
 
 	// Divider between atelier (W) and show gallery (E) at tx=10.
 	for (let y = 1; y < height - 1; y++) {
 		collision[idx(width, 10, y)] = 1;
-		ground[idx(width, 10, y)] = TILE.wall;
+		ground[idx(width, 10, y)] = INTERIOR.wallWood;
 	}
-	openCell(width, collision, ground, 10, 6, TILE.museumFloor);
+	openCell(width, collision, ground, 10, 6, INTERIOR.woodFloor);
 
 	// Wood work patch in atelier.
 	for (let y = 5; y <= 8; y++) {
 		for (let x = 3; x <= 7; x++) {
 			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.woodFloor;
+				ground[idx(width, x, y)] = INTERIOR.woodFloor;
+			}
+		}
+	}
+
+	// Show gallery carpet.
+	for (let y = 2; y <= 11; y++) {
+		for (let x = 12; x <= 19; x++) {
+			if (collision[idx(width, x, y)] === 0) {
+				ground[idx(width, x, y)] = INTERIOR.carpetPurple;
 			}
 		}
 	}
@@ -367,17 +426,19 @@ function buildGalleryHall(): RoomDef {
 		height,
 		collision,
 		ground,
+		tilesetId,
 		door,
 		clientWait: { tx: 5, ty: 2 },
 		desk: { tx: 6, ty: 7 },
 		playerSpawn: { tx: 2, ty: 11 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: 0, tx: 5, ty: 7, solid: true },
-			{ frame: 4, tx: 16, ty: 4, solid: true },
-			{ frame: 4, tx: 18, ty: 8, solid: true },
-			{ frame: 1, tx: 14, ty: 11, solid: true },
-			{ frame: 2, tx: 3, ty: 3, solid: true }
+			{ frame: INTERIOR.table, tx: 5, ty: 7, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INDOOR.paintingA, tx: 16, ty: 4, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 18, ty: 8, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INTERIOR.armchair, tx: 14, ty: 11, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INTERIOR.bookshelf, tx: 3, ty: 3, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INTERIOR.plantMed, tx: 17, ty: 3, solid: false, sheet: SHEET.interiorProps }
 		],
 		zones,
 		residents: [],
@@ -388,38 +449,48 @@ function buildGalleryHall(): RoomDef {
 export function buildMegaMuseum(): RoomDef {
 	const width = 28;
 	const height = 16;
+	const tilesetId = SHEET.interior;
 	const collision = new Array<number>(width * height).fill(0);
-	const ground = new Array<number>(width * height).fill(TILE.museumFloor);
+	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground, INTERIOR.wall);
 
 	const door = { tx: 6, ty: 0 };
-	openCell(width, collision, ground, door.tx, door.ty, TILE.museumFloor);
+	openCell(width, collision, ground, door.tx, door.ty, INTERIOR.woodFloor);
 
 	// Vertical dividers: atelier | gallery | foyer at tx=9 and tx=18.
 	for (let y = 1; y < height - 1; y++) {
 		collision[idx(width, 9, y)] = 1;
-		ground[idx(width, 9, y)] = TILE.wall;
+		ground[idx(width, 9, y)] = INTERIOR.wallWood;
 		collision[idx(width, 18, y)] = 1;
-		ground[idx(width, 18, y)] = TILE.wall;
+		ground[idx(width, 18, y)] = INTERIOR.wallWood;
 	}
-	openCell(width, collision, ground, 9, 7, TILE.museumFloor);
-	openCell(width, collision, ground, 18, 7, TILE.museumFloor);
+	openCell(width, collision, ground, 9, 7, INTERIOR.woodFloor);
+	openCell(width, collision, ground, 18, 7, INTERIOR.woodFloor);
 
 	// Atelier wood patch.
 	for (let y = 5; y <= 9; y++) {
 		for (let x = 3; x <= 7; x++) {
 			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.woodFloor;
+				ground[idx(width, x, y)] = INTERIOR.woodFloor;
 			}
 		}
 	}
 
-	// Foyer carpet mat (flavour).
+	// Gallery carpet.
+	for (let y = 2; y <= 13; y++) {
+		for (let x = 11; x <= 16; x++) {
+			if (collision[idx(width, x, y)] === 0) {
+				ground[idx(width, x, y)] = INTERIOR.carpetBlue;
+			}
+		}
+	}
+
+	// Foyer carpet mat.
 	for (let y = 12; y <= 14; y++) {
 		for (let x = 20; x <= 25; x++) {
 			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.carpet;
+				ground[idx(width, x, y)] = INTERIOR.carpetRed;
 			}
 		}
 	}
@@ -442,20 +513,21 @@ export function buildMegaMuseum(): RoomDef {
 		height,
 		collision,
 		ground,
+		tilesetId,
 		door,
 		clientWait: { tx: 6, ty: 2 },
 		desk: { tx: 6, ty: 7 },
 		playerSpawn: { tx: 2, ty: 13 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: 0, tx: 5, ty: 7, solid: true },
-			{ frame: 4, tx: 13, ty: 4, solid: true },
-			{ frame: 4, tx: 15, ty: 9, solid: true },
-			{ frame: 4, tx: 22, ty: 5, solid: true },
-			{ frame: 4, tx: 24, ty: 10, solid: true },
-			{ frame: 1, tx: 12, ty: 13, solid: true },
-			{ frame: 2, tx: 3, ty: 3, solid: true },
-			{ frame: 1, tx: 21, ty: 3, solid: true }
+			{ frame: INTERIOR.table, tx: 5, ty: 7, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INDOOR.paintingA, tx: 13, ty: 4, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 15, ty: 9, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 22, ty: 5, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 24, ty: 10, solid: true, sheet: SHEET.indoorProps },
+			{ frame: INTERIOR.armchair, tx: 12, ty: 13, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INTERIOR.bookshelf, tx: 3, ty: 3, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INTERIOR.plantTall, tx: 21, ty: 3, solid: false, sheet: SHEET.interiorProps }
 		],
 		zones,
 		residents: [],
