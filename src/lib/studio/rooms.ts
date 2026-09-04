@@ -123,22 +123,6 @@ function idx(width: number, tx: number, ty: number): number {
 	return ty * width + tx;
 }
 
-function outerWallTile(x: number, y: number, width: number, height: number): number {
-	const onTop = y === 0;
-	const onBottom = y === height - 1;
-	const onLeft = x === 0;
-	const onRight = x === width - 1;
-	if (onTop && onLeft) return DUNGEON.cornerNW;
-	if (onTop && onRight) return DUNGEON.cornerNE;
-	if (onBottom && onLeft) return DUNGEON.cornerSW;
-	if (onBottom && onRight) return DUNGEON.cornerSE;
-	if (onTop) return DUNGEON.edgeN;
-	if (onBottom) return DUNGEON.edgeS;
-	if (onLeft) return DUNGEON.edgeW;
-	if (onRight) return DUNGEON.edgeE;
-	return DUNGEON.fill;
-}
-
 function paintOuterWalls(
 	width: number,
 	height: number,
@@ -152,7 +136,7 @@ function paintOuterWalls(
 		for (const y of [0, height - 1] as const) {
 			const i = idx(width, x, y);
 			collision[i] = 1;
-			ground[i] = outerWallTile(x, y, width, height);
+			ground[i] = DUNGEON.wall;
 			groundSheets[i] = sheetTag;
 		}
 	}
@@ -160,7 +144,7 @@ function paintOuterWalls(
 		for (const x of [0, width - 1] as const) {
 			const i = idx(width, x, y);
 			collision[i] = 1;
-			ground[i] = outerWallTile(x, y, width, height);
+			ground[i] = DUNGEON.wall;
 			groundSheets[i] = sheetTag;
 		}
 	}
@@ -180,7 +164,7 @@ function paintDividerWall(
 	for (let y = y0; y <= y1; y++) {
 		const i = idx(width, tx, y);
 		collision[i] = 1;
-		ground[i] = DUNGEON.edgeW;
+		ground[i] = DUNGEON.wall;
 		groundSheets[i] = sheetTag;
 	}
 }

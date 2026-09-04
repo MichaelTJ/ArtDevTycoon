@@ -13,18 +13,14 @@ describe('roomTiles', () => {
 		expect('wallPerimeter' in INTERIOR).toBe(false);
 	});
 
-	it('uses Tiny Dungeon autotile indices for structural walls', () => {
-		expect(DUNGEON.cornerNW).toBe(12);
-		expect(DUNGEON.cornerNE).toBe(14);
-		expect(DUNGEON.cornerSW).toBe(18);
-		expect(DUNGEON.cornerSE).toBe(20);
-		expect(DUNGEON.edgeN).toBe(13);
-		expect(DUNGEON.edgeW).toBe(15);
-		expect(DUNGEON.edgeE).toBe(17);
-		expect(DUNGEON.edgeS).toBe(19);
-		expect(DUNGEON.fill).toBe(16);
-		expect(DUNGEON_WALL_FRAMES.size).toBe(9);
-		expect(DUNGEON.cornerNW).toBe(TILESETS['tiny-dungeon'].defaultWall);
+	it('uses plain stone brick (frame 40) for Tiny Dungeon walls', () => {
+		expect(DUNGEON.wall).toBe(40);
+		expect(DUNGEON_WALL_FRAMES).toEqual(new Set([40]));
+		expect(DUNGEON.wall).toBe(TILESETS['tiny-dungeon'].defaultWall);
+		// Row-1 indices 12–20 are floor/decor on this sheet — not walls.
+		expect(DUNGEON.wall).not.toBe(12);
+		expect(DUNGEON.wall).not.toBe(19);
+		expect(DUNGEON.wall).not.toBe(20);
 	});
 
 	it('uses carpet center fills without orange border tiles', () => {

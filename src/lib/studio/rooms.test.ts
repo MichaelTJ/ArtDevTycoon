@@ -203,8 +203,8 @@ describe('rooms', () => {
 		}
 
 		const kitchen = ROOMS['home-kitchen'];
-		expect(kitchen.ground[0]).toBe(DUNGEON.cornerNW);
-		expect(kitchen.ground[kitchen.width - 1]).toBe(DUNGEON.cornerNE);
-		expect(kitchen.ground[(kitchen.height - 1) * kitchen.width]).toBe(DUNGEON.cornerSW);
+		expect(kitchen.ground[0]).toBe(DUNGEON.wall);
+		expect(kitchen.ground[kitchen.width - 1]).toBe(DUNGEON.wall);
+		expect(kitchen.ground[(kitchen.height - 1) * kitchen.width]).toBe(DUNGEON.wall);
 	});
 });

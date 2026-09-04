@@ -3,8 +3,9 @@
  * and Kenney Tiny Dungeon `walls-floors`.
  * Indices match Phaser spritesheet frames (see `studio-editor/catalog.ts`).
  *
- * **Hybrid walls:** perimeter and divider walls use Tiny Dungeon autotile indices
- * via `groundSheets: 'tiny-dungeon'`. Floors and furniture stay on home packs.
+ * **Hybrid walls:** perimeter and divider walls use Tiny Dungeon frame 40
+ * (plain stone brick) via `groundSheets: 'tiny-dungeon'`. Indices 12–20 on this
+ * sheet are floor/decor tiles — not a wall autotile block.
  *
  * `home-indoor.png` is furniture/props only (no structural walls).
  * `home-interior` frames 144/157/168 are wood furniture panels — not walls.
@@ -77,21 +78,13 @@ export const INTERIOR = {
 	stove: 192
 } as const;
 
-/** Kenney Tiny Dungeon (`walls-floors.png`, 12 cols, spacing 0) — perimeter autotile. */
+/** Kenney Tiny Dungeon (`walls-floors.png`, 12 cols, spacing 0) — structural walls. */
 export const DUNGEON = {
-	cornerNW: 12,
-	cornerNE: 14,
-	cornerSW: 18,
-	cornerSE: 20,
-	edgeN: 13,
-	edgeW: 15,
-	edgeE: 17,
-	edgeS: 19,
-	fill: 16
+	/** r3c4 — plain grey stone brick (verified PNG crop; no faces/doors/decor) */
+	wall: 40
 } as const;
 
-/** All valid Tiny Dungeon wall autotile frame indices. */
-export const DUNGEON_WALL_FRAMES = new Set<number>(Object.values(DUNGEON));
+export const DUNGEON_WALL_FRAMES = new Set<number>([DUNGEON.wall]);
 
 export const SHEET = {
 	indoor: 'home-indoor',

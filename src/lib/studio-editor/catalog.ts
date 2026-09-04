@@ -140,7 +140,7 @@ export const TILESETS: Record<TilesetId, TilesetSpec> = {
 		imageWidth: 192,
 		imageHeight: 176,
 		defaultFloor: 0,
-		defaultWall: 12,
+		defaultWall: 40,
 		framePhaserKey: 'tiny-dungeon-folk'
 	},
 	'tiny-town': {
