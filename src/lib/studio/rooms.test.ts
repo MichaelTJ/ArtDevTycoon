@@ -7,7 +7,7 @@ import {
 	roomFridgeAnchors,
 	type RoomId
 } from './rooms';
-import { INDOOR, INTERIOR, FURNITURE_CAP, SHEET } from './roomTiles';
+import { INDOOR, INTERIOR, DUNGEON, DUNGEON_WALL_FRAMES, FURNITURE_CAP, SHEET } from './roomTiles';
 
 describe('rooms', () => {
 	it('home-kitchen is 6×6 with Mum resident and walkable markers', () => {
@@ -133,7 +133,7 @@ describe('rooms', () => {
 		}
 	});
 
-	it('authored rooms use home packs — never tiny-dungeon', () => {
+	it('authored rooms use home packs for floors — tiny-dungeon only on walls', () => {
 		const expected: Record<RoomId, string> = {
 			'home-kitchen': SHEET.indoor,
 			'art-room': SHEET.indoor,
@@ -165,8 +165,8 @@ describe('rooms', () => {
 		expect(galleryCarpet).toBe(INTERIOR.carpetPurple);
 	});
 
-	it('keeps furniture sparse and perimeter walls off cabinet/bed indices', () => {
-		const bannedPerimeter = new Set([22, 64, 116, 168, 169, 170]);
+	it('keeps furniture sparse and perimeter walls on tiny-dungeon autotile', () => {
+		const bannedPerimeter = new Set([22, 64, 116, 144, 157, 168, 169, 170]);
 
 		for (const [id, cap] of Object.entries(FURNITURE_CAP)) {
 			const room = ROOMS[id as RoomId];
@@ -182,16 +182,14 @@ describe('rooms', () => {
 					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
 				if (!onPerimeter) continue;
 				expect(bannedPerimeter.has(room.ground[i]!)).toBe(false);
-				expect(room.ground[i]).toBe(INTERIOR.wallPerimeter);
+				expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(true);
+				expect(room.groundSheets?.[i]).toBe(SHEET.dungeon);
 			}
 		}
 	});
 
-	it('authored rooms paint home-interior wall tiles on every perimeter cell', () => {
-		const indoorRooms = ['home-kitchen', 'art-room', 'studio'] as const;
-		for (const id of indoorRooms) {
-			const room = ROOMS[id];
-			expect(room.tilesetId).toBe(SHEET.indoor);
+	it('authored rooms paint tiny-dungeon autotile walls on every perimeter cell', () => {
+		for (const room of Object.values(ROOMS)) {
 			for (let i = 0; i < room.collision.length; i++) {
 				if (room.collision[i] !== 1) continue;
 				const tx = i % room.width;
@@ -199,14 +197,14 @@ describe('rooms', () => {
 				const onPerimeter =
 					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
 				if (!onPerimeter) continue;
-				expect(room.ground[i]).toBe(INTERIOR.wallPerimeter);
-				expect(room.groundSheets?.[i]).toBe(SHEET.interior);
+				expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(true);
+				expect(room.groundSheets?.[i]).toBe(SHEET.dungeon);
 			}
 		}
 
-		for (const id of ['gallery', 'mega-museum'] as const) {
-			const room = ROOMS[id];
-			expect(room.ground[0]).toBe(INTERIOR.wallPerimeter);
-		}
+		const kitchen = ROOMS['home-kitchen'];
+		expect(kitchen.ground[0]).toBe(DUNGEON.cornerNW);
+		expect(kitchen.ground[kitchen.width - 1]).toBe(DUNGEON.cornerNE);
+		expect(kitchen.ground[(kitchen.height - 1) * kitchen.width]).toBe(DUNGEON.cornerSW);
 	});
 });
