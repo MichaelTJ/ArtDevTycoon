@@ -7,7 +7,7 @@ import {
 	roomFridgeAnchors,
 	type RoomId
 } from './rooms';
-import { INDOOR, INTERIOR, SHEET } from './roomTiles';
+import { INDOOR, INTERIOR, FURNITURE_CAP, SHEET } from './roomTiles';
 
 describe('rooms', () => {
 	it('home-kitchen is 6×6 with Mum resident and walkable markers', () => {
@@ -154,15 +154,37 @@ describe('rooms', () => {
 		}
 	});
 
-	it('storefront and gallery use carpet fill overlays from home-interior', () => {
+	it('storefront and gallery use small carpet fill overlays from home-interior', () => {
 		const studio = ROOMS.studio;
 		expect(studio.groundSheets?.some((sheet) => sheet === SHEET.interior)).toBe(true);
-		const carpetCell = studio.ground[studio.width * 5 + 14];
+		const carpetCell = studio.ground[studio.width * 8 + 14];
 		expect(carpetCell).toBe(INTERIOR.carpetBlue);
 
 		const gallery = ROOMS.gallery;
-		const galleryCarpet = gallery.ground[gallery.width * 5 + 15];
+		const galleryCarpet = gallery.ground[gallery.width * 6 + 15];
 		expect(galleryCarpet).toBe(INTERIOR.carpetPurple);
+	});
+
+	it('keeps furniture sparse and perimeter walls off cabinet/bed indices', () => {
+		const bannedPerimeter = new Set([22, 64, 116, 168, 169, 170]);
+
+		for (const [id, cap] of Object.entries(FURNITURE_CAP)) {
+			const room = ROOMS[id as RoomId];
+			expect(room.furniture.length).toBeLessThanOrEqual(cap);
+		}
+
+		for (const room of Object.values(ROOMS)) {
+			for (let i = 0; i < room.collision.length; i++) {
+				if (room.collision[i] !== 1) continue;
+				const tx = i % room.width;
+				const ty = Math.floor(i / room.width);
+				const onPerimeter =
+					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
+				if (!onPerimeter) continue;
+				expect(bannedPerimeter.has(room.ground[i]!)).toBe(false);
+				expect(room.ground[i]).toBe(INTERIOR.wallPerimeter);
+			}
+		}
 	});
 
 	it('authored rooms paint home-interior wall tiles on every perimeter cell', () => {
@@ -177,28 +199,14 @@ describe('rooms', () => {
 				const onPerimeter =
 					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
 				if (!onPerimeter) continue;
-				expect(room.ground[i]).toBe(INTERIOR.wallTop);
+				expect(room.ground[i]).toBe(INTERIOR.wallPerimeter);
 				expect(room.groundSheets?.[i]).toBe(SHEET.interior);
 			}
 		}
 
 		for (const id of ['gallery', 'mega-museum'] as const) {
 			const room = ROOMS[id];
-			expect(room.ground[0]).toBe(INTERIOR.wallTop);
-		}
-
-		for (const room of Object.values(ROOMS)) {
-			for (let i = 0; i < room.collision.length; i++) {
-				if (room.collision[i] !== 1) continue;
-				const tx = i % room.width;
-				const ty = Math.floor(i / room.width);
-				const onPerimeter =
-					tx === 0 || ty === 0 || tx === room.width - 1 || ty === room.height - 1;
-				if (!onPerimeter) continue;
-				expect(room.ground[i]).not.toBe(22);
-				expect(room.ground[i]).not.toBe(64);
-				expect(room.ground[i]).not.toBe(116);
-			}
+			expect(room.ground[0]).toBe(INTERIOR.wallPerimeter);
 		}
 	});
 });

@@ -5,6 +5,9 @@
  * **Important:** `home-indoor.png` is a furniture/prop pack only (tables, beds,
  * counters, candles, paintings). It has NO structural wall tiles — perimeter
  * walls for every venue must come from `home-interior` via `groundSheets`.
+ *
+ * Structural walls live in `home-interior` from index 144 (= `walls_floor_doors` 0+).
+ * Do NOT use 168–170 (cabinets/dressers) as walls.
  */
 
 /** Kenney Roguelike Indoors (`home-indoor.png`, 26 cols, spacing 1) — floors + props only. */
@@ -41,7 +44,7 @@ export const INDOOR = {
 
 /**
  * Tilation Indoor RPG (`home-interior.png`, 8 cols).
- * Structural walls/floors live in the block from index 144 (= `walls_floor_doors.png` 0+).
+ * Walls/floors block starts at 144 (see `walls_floor_doors.png`).
  */
 export const INTERIOR = {
 	/** r2c4 — red carpet center fill (no orange border) */
@@ -54,12 +57,10 @@ export const INTERIOR = {
 	woodFloor: 148,
 	/** r19c1 — grey stone floor */
 	stoneFloor: 153,
-	/** r18c0 — vertical wood panel (walls_floor_doors 0) */
+	/** r18c0 — vertical wood panel face (wfd 0); dividers */
 	wall: 144,
-	/** r20c0 — horizontal wood panel (interior dividers) */
-	wallWood: 160,
-	/** r21c0 — wall-top / baseboard strip for top-down perimeter lip (wfd 24) */
-	wallTop: 168,
+	/** r19c5 — wall-top lip for top-down perimeter (wfd 13); NOT 168 (cabinet) */
+	wallPerimeter: 157,
 	/** r23c7 — square wooden table */
 	table: 191,
 	/** r23c6 — wooden chair */
@@ -85,4 +86,13 @@ export const SHEET = {
 	interior: 'home-interior',
 	indoorProps: 'home-indoor-props',
 	interiorProps: 'home-interior-props'
+} as const;
+
+/** Hard max furniture props per authored room (sparse layouts). */
+export const FURNITURE_CAP = {
+	'home-kitchen': 3,
+	'art-room': 3,
+	studio: 4,
+	gallery: 4,
+	'mega-museum': 5
 } as const;
