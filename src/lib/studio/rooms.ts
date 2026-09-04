@@ -237,18 +237,14 @@ function buildKitchen(): RoomDef {
 		ground,
 		groundSheets,
 		tilesetId,
-		INTERIOR.wallTop
+		INTERIOR.wallPerimeter
 	);
 
 	const door = { tx: 2, ty: 0 };
 	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floor, undefined, tilesetId);
 
-	// Stone work patch under the prep counter run (walkable — decor only).
-	paintGroundPatch(width, ground, groundSheets, tilesetId, 2, 3, 3, 4, INTERIOR.stoneFloor, SHEET.interior);
-
 	const desk = { tx: 3, ty: 3 };
 	const fridgeAnchor = { tx: 1, ty: 1 };
-	solidAt(width, collision, 2, 3); // table
 	solidAt(width, collision, 1, 1); // fridge cabinet
 
 	const patrol = [
@@ -273,7 +269,6 @@ function buildKitchen(): RoomDef {
 		playerSpawn: { tx: 1, ty: 4 },
 		fridgeAnchor,
 		furniture: [
-			{ frame: INDOOR.roundTable, tx: 2, ty: 3, solid: true, sheet: SHEET.indoorProps },
 			{
 				frame: INDOOR.cabinet,
 				tx: 1,
@@ -283,9 +278,7 @@ function buildKitchen(): RoomDef {
 				interactableId: 'fridge'
 			},
 			{ frame: INDOOR.counterL, tx: 3, ty: 1, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.sink, tx: 4, ty: 1, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.counterR, tx: 4, ty: 2, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.plantTall, tx: 4, ty: 3, solid: false, sheet: SHEET.indoorProps }
+			{ frame: INDOOR.sink, tx: 4, ty: 1, solid: false, sheet: SHEET.indoorProps }
 		],
 		zones: [],
 		residents: [
@@ -317,22 +310,17 @@ function buildGarage(): RoomDef {
 		ground,
 		groundSheets,
 		tilesetId,
-		INTERIOR.wallTop
+		INTERIOR.wallPerimeter
 	);
 
 	const door = { tx: 5, ty: 0 };
 	openCell(width, collision, ground, groundSheets, door.tx, door.ty, INDOOR.floorGrey, undefined, tilesetId);
 
-	// Workbench block (solid) on wood-toned floor patch.
-	for (let x = 3; x <= 5; x++) {
+	// Workbench on wood-toned floor patch.
+	for (let x = 3; x <= 4; x++) {
 		ground[idx(width, x, 5)] = INDOOR.floor;
 	}
 	solidAt(width, collision, 3, 5);
-	solidAt(width, collision, 4, 5);
-
-	// Wall easel props along east interior.
-	solidAt(width, collision, 10, 3);
-	solidAt(width, collision, 10, 6);
 
 	return {
 		id: 'art-room',
@@ -356,10 +344,7 @@ function buildGarage(): RoomDef {
 				sheet: SHEET.indoorProps,
 				interactableId: 'toolkit-shelf'
 			},
-			{ frame: INDOOR.counterR, tx: 4, ty: 5, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingA, tx: 10, ty: 3, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingB, tx: 10, ty: 6, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.stool, tx: 8, ty: 8, solid: true, sheet: SHEET.indoorProps }
+			{ frame: INDOOR.paintingA, tx: 10, ty: 3, solid: false, sheet: SHEET.indoorProps }
 		],
 		zones: [],
 		residents: [],
@@ -382,7 +367,7 @@ function buildStorefront(): RoomDef {
 		ground,
 		groundSheets,
 		tilesetId,
-		INTERIOR.wallTop
+		INTERIOR.wallPerimeter
 	);
 
 	const door = { tx: 4, ty: 0 };
@@ -402,19 +387,15 @@ function buildStorefront(): RoomDef {
 	);
 	openCell(width, collision, ground, groundSheets, 9, 5, INDOOR.floor, undefined, tilesetId);
 
-	// Carpet strip in window display zone (Tilation blue carpet).
-	for (let y = 2; y <= 9; y++) {
-		for (let x = 11; x <= 16; x++) {
+	// Small blue carpet mat in window display zone.
+	for (let y = 7; y <= 9; y++) {
+		for (let x = 13; x <= 15; x++) {
 			if (collision[idx(width, x, y)] === 0) {
 				ground[idx(width, x, y)] = INTERIOR.carpetBlue;
 				groundSheets[idx(width, x, y)] = SHEET.interior;
 			}
 		}
 	}
-
-	solidAt(width, collision, 4, 6);
-	solidAt(width, collision, 15, 2);
-	solidAt(width, collision, 15, 7);
 
 	const zones: RoomZone[] = [
 		{ id: 'work', x0: 1, y0: 1, x1: 8, y1: 10, label: 'Work room' },
@@ -435,11 +416,10 @@ function buildStorefront(): RoomDef {
 		playerSpawn: { tx: 2, ty: 9 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: INDOOR.roundTable, tx: 4, ty: 6, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingA, tx: 15, ty: 2, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingB, tx: 15, ty: 7, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INTERIOR.armchair, tx: 12, ty: 8, solid: true, sheet: SHEET.interiorProps },
-			{ frame: INDOOR.bookshelf, tx: 2, ty: 3, solid: true, sheet: SHEET.indoorProps }
+			{ frame: INDOOR.counterL, tx: 14, ty: 8, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 15, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 15, ty: 7, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.plantMed, tx: 12, ty: 3, solid: false, sheet: SHEET.indoorProps }
 		],
 		zones,
 		residents: [],
@@ -455,7 +435,7 @@ function buildGalleryHall(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId, INTERIOR.wallTop);
+	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId, INTERIOR.wallPerimeter);
 
 	const door = { tx: 5, ty: 0 };
 	openCell(
@@ -480,33 +460,18 @@ function buildGalleryHall(): RoomDef {
 		10,
 		1,
 		height - 2,
-		INTERIOR.wallWood
+		INTERIOR.wall
 	);
 	openCell(width, collision, ground, groundSheets, 10, 6, INTERIOR.woodFloor, undefined, tilesetId);
 
-	// Wood work patch in atelier.
+	// Small purple carpet mat in show gallery.
 	for (let y = 5; y <= 8; y++) {
-		for (let x = 3; x <= 7; x++) {
-			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = INTERIOR.woodFloor;
-			}
-		}
-	}
-
-	// Show gallery carpet.
-	for (let y = 2; y <= 11; y++) {
-		for (let x = 12; x <= 19; x++) {
+		for (let x = 14; x <= 17; x++) {
 			if (collision[idx(width, x, y)] === 0) {
 				ground[idx(width, x, y)] = INTERIOR.carpetPurple;
 			}
 		}
 	}
-
-	solidAt(width, collision, 5, 7);
-	solidAt(width, collision, 12, 2);
-	solidAt(width, collision, 17, 2);
-	solidAt(width, collision, 16, 4);
-	solidAt(width, collision, 18, 8);
 
 	const zones: RoomZone[] = [
 		{ id: 'work', x0: 1, y0: 1, x1: 9, y1: 12, label: 'Atelier' },
@@ -527,14 +492,10 @@ function buildGalleryHall(): RoomDef {
 		playerSpawn: { tx: 2, ty: 11 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: INTERIOR.table, tx: 5, ty: 7, solid: true, sheet: SHEET.interiorProps },
-			{ frame: INDOOR.paintingA, tx: 12, ty: 2, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingB, tx: 17, ty: 2, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingA, tx: 16, ty: 4, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingB, tx: 18, ty: 8, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INTERIOR.armchair, tx: 14, ty: 11, solid: true, sheet: SHEET.interiorProps },
-			{ frame: INTERIOR.bookshelf, tx: 3, ty: 3, solid: true, sheet: SHEET.interiorProps },
-			{ frame: INTERIOR.plantMed, tx: 17, ty: 3, solid: false, sheet: SHEET.interiorProps }
+			{ frame: INDOOR.paintingA, tx: 12, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 17, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 19, ty: 5, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INTERIOR.plantMed, tx: 16, ty: 3, solid: false, sheet: SHEET.interiorProps }
 		],
 		zones,
 		residents: [],
@@ -550,7 +511,7 @@ export function buildMegaMuseum(): RoomDef {
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
-	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId, INTERIOR.wallTop);
+	paintOuterWalls(width, height, collision, ground, groundSheets, tilesetId, INTERIOR.wallPerimeter);
 
 	const door = { tx: 6, ty: 0 };
 	openCell(
@@ -575,7 +536,7 @@ export function buildMegaMuseum(): RoomDef {
 		9,
 		1,
 		height - 2,
-		INTERIOR.wallWood
+		INTERIOR.wall
 	);
 	paintDividerWall(
 		width,
@@ -586,43 +547,28 @@ export function buildMegaMuseum(): RoomDef {
 		18,
 		1,
 		height - 2,
-		INTERIOR.wallWood
+		INTERIOR.wall
 	);
 	openCell(width, collision, ground, groundSheets, 9, 7, INTERIOR.woodFloor, undefined, tilesetId);
 	openCell(width, collision, ground, groundSheets, 18, 7, INTERIOR.woodFloor, undefined, tilesetId);
 
-	// Atelier wood patch.
-	for (let y = 5; y <= 9; y++) {
-		for (let x = 3; x <= 7; x++) {
-			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = INTERIOR.woodFloor;
-			}
-		}
-	}
-
-	// Gallery carpet.
-	for (let y = 2; y <= 13; y++) {
-		for (let x = 11; x <= 16; x++) {
+	// Small gallery carpet mat.
+	for (let y = 6; y <= 9; y++) {
+		for (let x = 12; x <= 15; x++) {
 			if (collision[idx(width, x, y)] === 0) {
 				ground[idx(width, x, y)] = INTERIOR.carpetBlue;
 			}
 		}
 	}
 
-	// Foyer carpet mat.
-	for (let y = 12; y <= 14; y++) {
-		for (let x = 20; x <= 25; x++) {
+	// Small foyer carpet mat.
+	for (let y = 12; y <= 13; y++) {
+		for (let x = 22; x <= 24; x++) {
 			if (collision[idx(width, x, y)] === 0) {
 				ground[idx(width, x, y)] = INTERIOR.carpetRed;
 			}
 		}
 	}
-
-	solidAt(width, collision, 5, 7);
-	solidAt(width, collision, 13, 4);
-	solidAt(width, collision, 15, 9);
-	solidAt(width, collision, 22, 5);
-	solidAt(width, collision, 24, 10);
 
 	const zones: RoomZone[] = [
 		{ id: 'work', x0: 1, y0: 1, x1: 8, y1: 14, label: 'Atelier' },
@@ -644,13 +590,10 @@ export function buildMegaMuseum(): RoomDef {
 		playerSpawn: { tx: 2, ty: 13 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
-			{ frame: INTERIOR.table, tx: 5, ty: 7, solid: true, sheet: SHEET.interiorProps },
-			{ frame: INDOOR.paintingA, tx: 13, ty: 4, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingB, tx: 15, ty: 9, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingA, tx: 22, ty: 5, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.paintingB, tx: 24, ty: 10, solid: true, sheet: SHEET.indoorProps },
-			{ frame: INTERIOR.armchair, tx: 12, ty: 13, solid: true, sheet: SHEET.interiorProps },
-			{ frame: INTERIOR.bookshelf, tx: 3, ty: 3, solid: true, sheet: SHEET.interiorProps },
+			{ frame: INDOOR.paintingA, tx: 13, ty: 4, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 15, ty: 4, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingA, tx: 22, ty: 5, solid: false, sheet: SHEET.indoorProps },
+			{ frame: INDOOR.paintingB, tx: 24, ty: 10, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INTERIOR.plantTall, tx: 21, ty: 3, solid: false, sheet: SHEET.interiorProps }
 		],
 		zones,

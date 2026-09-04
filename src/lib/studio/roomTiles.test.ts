@@ -8,10 +8,17 @@ describe('roomTiles', () => {
 		expect('wallAlt' in INDOOR).toBe(false);
 	});
 
-	it('uses home-interior structural wall indices, not catalog carpet corners', () => {
+	it('uses verified home-interior wall indices from walls_floor_doors block', () => {
 		expect(INTERIOR.wall).toBe(144);
-		expect(INTERIOR.wallTop).toBe(168);
+		expect(INTERIOR.wallPerimeter).toBe(157);
 		expect(INTERIOR.wall).not.toBe(TILESETS['home-interior'].defaultWall);
+		expect('wallTop' in INTERIOR).toBe(false);
+	});
+
+	it('does not use cabinet/dresser frames as walls', () => {
+		expect(INTERIOR.wallPerimeter).not.toBe(168);
+		expect(INTERIOR.wallPerimeter).not.toBe(169);
+		expect(INTERIOR.wall).not.toBe(168);
 	});
 
 	it('uses carpet center fills without orange border tiles', () => {
@@ -26,6 +33,5 @@ describe('roomTiles', () => {
 		expect(INDOOR.counterL).toBe(338);
 		expect(INDOOR.sink).toBe(372);
 		expect(INDOOR.paintingA).toBe(436);
-		expect(INTERIOR.armchair).toBe(200);
 	});
 });
