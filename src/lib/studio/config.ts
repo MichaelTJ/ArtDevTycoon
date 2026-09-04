@@ -8,19 +8,19 @@ export const INTERACT_RANGE_PX = 28;
 /** Keyboard interact. Also accept Space later — not required for v1. */
 export const INTERACT_KEYS = ['E', 'e'] as const;
 
-/** Tiny Dungeon packed sheet uses 1px gaps between 16×16 tiles. */
-export const TILESET_SPACING = 1;
+/** Tiny Dungeon `walls-floors.png` is a 12-column grid with spacing 0 (see catalog). */
+export const TILESET_SPACING = 0;
 export const TILESET_MARGIN = 0;
 
-/** Ground tile indices into `walls-floors.png` (Kenney Tiny Dungeon packed sheet). */
+/** Ground tile indices into `walls-floors.png` (Kenney Tiny Dungeon, 12 cols, spacing 0). */
 export const TILE = {
 	floor: 0,
-	wall: 12,
+	/** r3c4 — plain grey stone brick (not 12, which is brown floor on this sheet) */
+	wall: 40,
 	woodFloor: 48,
 	/** Cool grey concrete for garage. */
 	concrete: 1,
-	/** Darker wall variant if the packed sheet has one; else reuse `wall`. */
-	garageWall: 12,
+	garageWall: 40,
 	/** Light stone / marble for museum floors. */
 	museumFloor: 2,
 	/** Carpet / rug strip for storefront window zone. */

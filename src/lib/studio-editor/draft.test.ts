@@ -100,10 +100,9 @@ describe('studio-editor drafts', () => {
 
 	it('lists wall kinds separately from furniture solids', () => {
 		const kitchen = authoredDraft(ROOMS['home-kitchen']);
-		const walls = listWallKinds(kitchen);
-		expect(walls.every((kind) => kind.sheet === SHEET.dungeon)).toBe(true);
-		expect(walls.every((kind) => Object.values(DUNGEON).includes(kind.ground as (typeof DUNGEON)[keyof typeof DUNGEON]))).toBe(true);
-		expect(walls.reduce((sum, kind) => sum + kind.count, 0)).toBe(19);
+		expect(listWallKinds(kitchen)).toEqual([
+			{ ground: DUNGEON.wall, sheet: SHEET.dungeon, count: 19 }
+		]);
 		expect(listFloorKinds(kitchen)).toEqual([
 			{ ground: INDOOR.floor, sheet: SHEET.indoor, count: 16 }
 		]);
@@ -119,12 +118,12 @@ describe('studio-editor drafts', () => {
 		const fridgeGround = kitchen.ground[1 * kitchen.width + 1];
 		const painted = recolorWalls(
 			kitchen,
-			{ ground: DUNGEON.cornerNW, sheet: SHEET.dungeon },
-			{ ground: DUNGEON.fill, sheet: SHEET.dungeon }
+			{ ground: DUNGEON.wall, sheet: SHEET.dungeon },
+			{ ground: 14, sheet: SHEET.dungeon }
 		);
-		expect(painted.ground[0]).toBe(DUNGEON.fill);
+		expect(listWallKinds(painted)).toEqual([{ ground: 14, sheet: SHEET.dungeon, count: 19 }]);
 		expect(painted.ground[1 * painted.width + 1]).toBe(fridgeGround);
-		expect(kitchen.ground[0]).toBe(DUNGEON.cornerNW);
+		expect(kitchen.ground[0]).toBe(DUNGEON.wall);
 	});
 
 	it('recolors every matching floor and can pull from another tileset', () => {
