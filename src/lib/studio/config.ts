@@ -12,10 +12,22 @@ export const INTERACT_KEYS = ['E', 'e'] as const;
 export const TILESET_SPACING = 1;
 export const TILESET_MARGIN = 0;
 
-/** Ground tile indices into `walls-floors.png` (Kenney Tiny Dungeon packed sheet). */
+/**
+ * Ground tile indices into `walls-floors.png` (Kenney Tiny Dungeon packed sheet).
+ * Row-1 autotile block (cols 0–2): corners 12/14/18/20, edges 13/15/17/19, fill 16.
+ */
 export const TILE = {
 	floor: 0,
+	/** NW outer corner — same index as legacy `wall`. */
 	wall: 12,
+	wallN: 13,
+	wallNE: 14,
+	wallW: 15,
+	wallFill: 16,
+	wallE: 17,
+	wallSW: 18,
+	wallS: 19,
+	wallSE: 20,
 	woodFloor: 48,
 	/** Cool grey concrete for garage. */
 	concrete: 1,
@@ -24,5 +36,7 @@ export const TILE = {
 	/** Light stone / marble for museum floors. */
 	museumFloor: 2,
 	/** Carpet / rug strip for storefront window zone. */
-	carpet: 49
+	carpet: 49,
+	/** Warm kitchen tile — second earth tone from row 0. */
+	kitchenFloor: 3
 } as const;

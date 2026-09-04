@@ -123,24 +123,86 @@ function idx(width: number, tx: number, ty: number): number {
 	return ty * width + tx;
 }
 
+/** Perimeter ring with Kenney autotile corners and edge pieces (not one tile everywhere). */
 function paintOuterWalls(
 	width: number,
 	height: number,
 	collision: number[],
-	ground: number[],
-	wallTile: number
+	ground: number[]
 ): void {
 	for (let x = 0; x < width; x++) {
-		collision[idx(width, x, 0)] = 1;
-		collision[idx(width, x, height - 1)] = 1;
-		ground[idx(width, x, 0)] = wallTile;
-		ground[idx(width, x, height - 1)] = wallTile;
+		for (const y of [0, height - 1]) {
+			collision[idx(width, x, y)] = 1;
+			const north = y === 0;
+			const south = y === height - 1;
+			const west = x === 0;
+			const east = x === width - 1;
+			if (north && west) ground[idx(width, x, y)] = TILE.wall;
+			else if (north && east) ground[idx(width, x, y)] = TILE.wallNE;
+			else if (south && west) ground[idx(width, x, y)] = TILE.wallSW;
+			else if (south && east) ground[idx(width, x, y)] = TILE.wallSE;
+			else if (north || south) ground[idx(width, x, y)] = north ? TILE.wallN : TILE.wallS;
+			else ground[idx(width, x, y)] = west ? TILE.wallW : TILE.wallE;
+		}
 	}
-	for (let y = 0; y < height; y++) {
+	for (let y = 1; y < height - 1; y++) {
 		collision[idx(width, 0, y)] = 1;
 		collision[idx(width, width - 1, y)] = 1;
-		ground[idx(width, 0, y)] = wallTile;
-		ground[idx(width, width - 1, y)] = wallTile;
+		ground[idx(width, 0, y)] = TILE.wallW;
+		ground[idx(width, width - 1, y)] = TILE.wallE;
+	}
+}
+
+/** Solid interior column with brick fill; `doorYs` are walkable gaps. */
+function paintVerticalDivider(
+	width: number,
+	height: number,
+	collision: number[],
+	ground: number[],
+	tx: number,
+	doorYs: readonly number[],
+	floorTile: number
+): void {
+	const doorSet = new Set(doorYs);
+	for (let y = 1; y < height - 1; y++) {
+		if (doorSet.has(y)) {
+			openCell(width, collision, ground, tx, y, floorTile);
+		} else {
+			collision[idx(width, tx, y)] = 1;
+		}
+	}
+	for (let y = 1; y < height - 1; y++) {
+		if (doorSet.has(y)) continue;
+		const aboveWall = y === 1 || collision[idx(width, tx, y - 1)] === 1;
+		const belowWall = y === height - 2 || collision[idx(width, tx, y + 1)] === 1;
+		if (aboveWall && belowWall) {
+			ground[idx(width, tx, y)] = TILE.wallFill;
+		} else if (aboveWall) {
+			ground[idx(width, tx, y)] = TILE.wallS;
+		} else if (belowWall) {
+			ground[idx(width, tx, y)] = TILE.wallN;
+		} else {
+			ground[idx(width, tx, y)] = TILE.wallFill;
+		}
+	}
+}
+
+function paintFloorRect(
+	width: number,
+	collision: number[],
+	ground: number[],
+	x0: number,
+	y0: number,
+	x1: number,
+	y1: number,
+	floorTile: number
+): void {
+	for (let y = y0; y <= y1; y++) {
+		for (let x = x0; x <= x1; x++) {
+			if (collision[idx(width, x, y)] === 0) {
+				ground[idx(width, x, y)] = floorTile;
+			}
+		}
 	}
 }
 
@@ -164,24 +226,23 @@ function buildKitchen(): RoomDef {
 	const width = 6;
 	const height = 6;
 	const collision = new Array<number>(width * height).fill(0);
-	const ground = new Array<number>(width * height).fill(TILE.floor);
+	const ground = new Array<number>(width * height).fill(TILE.kitchenFloor);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground);
 
 	const door = { tx: 2, ty: 0 };
-	openCell(width, collision, ground, door.tx, door.ty, TILE.floor);
+	openCell(width, collision, ground, door.tx, door.ty, TILE.kitchenFloor);
 
-	// Wood floor under desk/work cells (2..3, 3..4).
-	for (let y = 3; y <= 4; y++) {
-		for (let x = 2; x <= 3; x++) {
-			ground[idx(width, x, y)] = TILE.woodFloor;
-		}
-	}
+	// Eating nook — wood planks under table and desk.
+	paintFloorRect(width, collision, ground, 2, 3, 3, 4, TILE.woodFloor);
+	// Entry mat by the door.
+	paintFloorRect(width, collision, ground, 1, 1, 3, 1, TILE.carpet);
 
 	const desk = { tx: 3, ty: 3 };
 	const fridgeAnchor = { tx: 1, ty: 1 };
 	solidAt(width, collision, 2, 3); // table
 	solidAt(width, collision, 1, 1); // fridge
+	solidAt(width, collision, 4, 1); // pantry shelf
 
 	const patrol = [
 		{ tx: 4, ty: 2 },
@@ -204,7 +265,9 @@ function buildKitchen(): RoomDef {
 		fridgeAnchor,
 		furniture: [
 			{ frame: 0, tx: 2, ty: 3, solid: true },
-			{ frame: 2, tx: 1, ty: 1, solid: true, interactableId: 'fridge' }
+			{ frame: 2, tx: 1, ty: 1, solid: true, interactableId: 'fridge' },
+			{ frame: 4, tx: 4, ty: 1, solid: true },
+			{ frame: 1, tx: 3, ty: 4, solid: true }
 		],
 		zones: [],
 		residents: [
@@ -227,21 +290,26 @@ function buildGarage(): RoomDef {
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(TILE.concrete);
 
-	paintOuterWalls(width, height, collision, ground, TILE.garageWall);
+	paintOuterWalls(width, height, collision, ground);
 
 	const door = { tx: 5, ty: 0 };
 	openCell(width, collision, ground, door.tx, door.ty, TILE.concrete);
 
-	// Workbench block (solid) on wood patch.
-	for (let x = 3; x <= 5; x++) {
-		ground[idx(width, x, 5)] = TILE.woodFloor;
-	}
+	// Central workbench island on wood.
+	paintFloorRect(width, collision, ground, 2, 4, 6, 6, TILE.woodFloor);
+	// Paint-stained corner near easels.
+	paintFloorRect(width, collision, ground, 8, 2, 10, 7, TILE.woodFloor);
+
 	solidAt(width, collision, 3, 5);
 	solidAt(width, collision, 4, 5);
-
-	// Wall easel props along east interior.
+	solidAt(width, collision, 2, 5);
+	solidAt(width, collision, 6, 5);
+	solidAt(width, collision, 1, 2);
+	solidAt(width, collision, 1, 7);
 	solidAt(width, collision, 10, 3);
 	solidAt(width, collision, 10, 6);
+	solidAt(width, collision, 8, 8);
+	solidAt(width, collision, 3, 2);
 
 	return {
 		id: 'art-room',
@@ -252,14 +320,19 @@ function buildGarage(): RoomDef {
 		door,
 		clientWait: { tx: 5, ty: 2 },
 		desk: { tx: 5, ty: 5 },
-		playerSpawn: { tx: 2, ty: 7 },
+		playerSpawn: { tx: 2, ty: 8 },
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
 			{ frame: 0, tx: 3, ty: 5, solid: true, interactableId: 'toolkit-shelf' },
 			{ frame: 0, tx: 4, ty: 5, solid: true },
+			{ frame: 0, tx: 2, ty: 5, solid: true },
+			{ frame: 4, tx: 6, ty: 5, solid: true },
+			{ frame: 2, tx: 1, ty: 2, solid: true },
+			{ frame: 1, tx: 1, ty: 7, solid: true },
 			{ frame: 4, tx: 10, ty: 3, solid: true },
 			{ frame: 4, tx: 10, ty: 6, solid: true },
-			{ frame: 1, tx: 8, ty: 8, solid: true }
+			{ frame: 1, tx: 8, ty: 8, solid: true },
+			{ frame: 2, tx: 3, ty: 2, solid: true }
 		],
 		zones: [],
 		residents: [],
@@ -273,29 +346,29 @@ function buildStorefront(): RoomDef {
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(TILE.woodFloor);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground);
 
 	const door = { tx: 4, ty: 0 };
 	openCell(width, collision, ground, door.tx, door.ty, TILE.woodFloor);
 
-	// Internal wall between work (W) and window (E) at tx=9, doorway at ty=5.
-	for (let y = 1; y < height - 1; y++) {
-		collision[idx(width, 9, y)] = 1;
-		ground[idx(width, 9, y)] = TILE.wall;
-	}
-	openCell(width, collision, ground, 9, 5, TILE.woodFloor);
+	paintVerticalDivider(width, height, collision, ground, 9, [5], TILE.woodFloor);
 
-	// Carpet strip in window display zone.
-	for (let y = 2; y <= 9; y++) {
-		for (let x = 11; x <= 16; x++) {
-			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.carpet;
-			}
-		}
-	}
+	// Work-room work mat behind the desk.
+	paintFloorRect(width, collision, ground, 3, 5, 7, 8, TILE.carpet);
+	// Window display — plush carpet and spotlight strip.
+	paintFloorRect(width, collision, ground, 10, 2, 16, 9, TILE.carpet);
+	paintFloorRect(width, collision, ground, 11, 1, 16, 1, TILE.museumFloor);
 
+	// Reception counter, display plinths, back-room storage.
 	solidAt(width, collision, 4, 6);
+	solidAt(width, collision, 2, 3);
+	solidAt(width, collision, 2, 8);
+	solidAt(width, collision, 7, 3);
+	solidAt(width, collision, 12, 3);
 	solidAt(width, collision, 14, 4);
+	solidAt(width, collision, 15, 7);
+	solidAt(width, collision, 13, 8);
+	solidAt(width, collision, 16, 6);
 
 	const zones: RoomZone[] = [
 		{ id: 'work', x0: 1, y0: 1, x1: 8, y1: 10, label: 'Work room' },
@@ -315,9 +388,14 @@ function buildStorefront(): RoomDef {
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
 			{ frame: 0, tx: 4, ty: 6, solid: true },
+			{ frame: 2, tx: 2, ty: 3, solid: true },
+			{ frame: 1, tx: 2, ty: 8, solid: true },
+			{ frame: 4, tx: 7, ty: 3, solid: true },
+			{ frame: 4, tx: 12, ty: 3, solid: true },
 			{ frame: 4, tx: 14, ty: 4, solid: true },
-			{ frame: 1, tx: 12, ty: 8, solid: true },
-			{ frame: 2, tx: 2, ty: 3, solid: true }
+			{ frame: 0, tx: 15, ty: 7, solid: true },
+			{ frame: 1, tx: 13, ty: 8, solid: true },
+			{ frame: 2, tx: 16, ty: 6, solid: true }
 		],
 		zones,
 		residents: [],
@@ -331,30 +409,30 @@ function buildGalleryHall(): RoomDef {
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(TILE.museumFloor);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground);
 
 	const door = { tx: 5, ty: 0 };
 	openCell(width, collision, ground, door.tx, door.ty, TILE.museumFloor);
 
-	// Divider between atelier (W) and show gallery (E) at tx=10.
-	for (let y = 1; y < height - 1; y++) {
-		collision[idx(width, 10, y)] = 1;
-		ground[idx(width, 10, y)] = TILE.wall;
-	}
-	openCell(width, collision, ground, 10, 6, TILE.museumFloor);
+	paintVerticalDivider(width, height, collision, ground, 10, [6], TILE.museumFloor);
 
-	// Wood work patch in atelier.
-	for (let y = 5; y <= 8; y++) {
-		for (let x = 3; x <= 7; x++) {
-			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.woodFloor;
-			}
-		}
-	}
+	// Atelier work island.
+	paintFloorRect(width, collision, ground, 3, 5, 7, 9, TILE.woodFloor);
+	// Gallery aisle runner.
+	paintFloorRect(width, collision, ground, 12, 3, 19, 11, TILE.carpet);
+	// Entry foyer strip inside the door.
+	paintFloorRect(width, collision, ground, 3, 1, 8, 2, TILE.woodFloor);
 
 	solidAt(width, collision, 5, 7);
+	solidAt(width, collision, 3, 3);
+	solidAt(width, collision, 7, 4);
+	solidAt(width, collision, 2, 9);
+	solidAt(width, collision, 14, 4);
 	solidAt(width, collision, 16, 4);
 	solidAt(width, collision, 18, 8);
+	solidAt(width, collision, 17, 10);
+	solidAt(width, collision, 13, 11);
+	solidAt(width, collision, 19, 5);
 
 	const zones: RoomZone[] = [
 		{ id: 'work', x0: 1, y0: 1, x1: 9, y1: 12, label: 'Atelier' },
@@ -374,10 +452,15 @@ function buildGalleryHall(): RoomDef {
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
 			{ frame: 0, tx: 5, ty: 7, solid: true },
+			{ frame: 2, tx: 3, ty: 3, solid: true },
+			{ frame: 4, tx: 7, ty: 4, solid: true },
+			{ frame: 1, tx: 2, ty: 9, solid: true },
+			{ frame: 4, tx: 14, ty: 4, solid: true },
 			{ frame: 4, tx: 16, ty: 4, solid: true },
 			{ frame: 4, tx: 18, ty: 8, solid: true },
-			{ frame: 1, tx: 14, ty: 11, solid: true },
-			{ frame: 2, tx: 3, ty: 3, solid: true }
+			{ frame: 0, tx: 17, ty: 10, solid: true },
+			{ frame: 1, tx: 13, ty: 11, solid: true },
+			{ frame: 2, tx: 19, ty: 5, solid: true }
 		],
 		zones,
 		residents: [],
@@ -391,44 +474,35 @@ export function buildMegaMuseum(): RoomDef {
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(TILE.museumFloor);
 
-	paintOuterWalls(width, height, collision, ground, TILE.wall);
+	paintOuterWalls(width, height, collision, ground);
 
 	const door = { tx: 6, ty: 0 };
 	openCell(width, collision, ground, door.tx, door.ty, TILE.museumFloor);
 
-	// Vertical dividers: atelier | gallery | foyer at tx=9 and tx=18.
-	for (let y = 1; y < height - 1; y++) {
-		collision[idx(width, 9, y)] = 1;
-		ground[idx(width, 9, y)] = TILE.wall;
-		collision[idx(width, 18, y)] = 1;
-		ground[idx(width, 18, y)] = TILE.wall;
-	}
-	openCell(width, collision, ground, 9, 7, TILE.museumFloor);
-	openCell(width, collision, ground, 18, 7, TILE.museumFloor);
+	paintVerticalDivider(width, height, collision, ground, 9, [7], TILE.museumFloor);
+	paintVerticalDivider(width, height, collision, ground, 18, [7], TILE.museumFloor);
 
-	// Atelier wood patch.
-	for (let y = 5; y <= 9; y++) {
-		for (let x = 3; x <= 7; x++) {
-			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.woodFloor;
-			}
-		}
-	}
-
-	// Foyer carpet mat (flavour).
-	for (let y = 12; y <= 14; y++) {
-		for (let x = 20; x <= 25; x++) {
-			if (collision[idx(width, x, y)] === 0) {
-				ground[idx(width, x, y)] = TILE.carpet;
-			}
-		}
-	}
+	// Atelier bench zone.
+	paintFloorRect(width, collision, ground, 3, 5, 7, 10, TILE.woodFloor);
+	// Gallery runner between plinths.
+	paintFloorRect(width, collision, ground, 11, 3, 16, 12, TILE.carpet);
+	// Foyer welcome mat and reception carpet.
+	paintFloorRect(width, collision, ground, 19, 10, 26, 14, TILE.carpet);
+	paintFloorRect(width, collision, ground, 20, 2, 25, 4, TILE.woodFloor);
 
 	solidAt(width, collision, 5, 7);
-	solidAt(width, collision, 13, 4);
+	solidAt(width, collision, 3, 3);
+	solidAt(width, collision, 7, 5);
+	solidAt(width, collision, 2, 12);
+	solidAt(width, collision, 12, 4);
+	solidAt(width, collision, 14, 4);
 	solidAt(width, collision, 15, 9);
+	solidAt(width, collision, 13, 12);
 	solidAt(width, collision, 22, 5);
 	solidAt(width, collision, 24, 10);
+	solidAt(width, collision, 21, 3);
+	solidAt(width, collision, 25, 8);
+	solidAt(width, collision, 23, 12);
 
 	const zones: RoomZone[] = [
 		{ id: 'work', x0: 1, y0: 1, x1: 8, y1: 14, label: 'Atelier' },
@@ -449,13 +523,18 @@ export function buildMegaMuseum(): RoomDef {
 		fridgeAnchor: { tx: 2, ty: 2 },
 		furniture: [
 			{ frame: 0, tx: 5, ty: 7, solid: true },
-			{ frame: 4, tx: 13, ty: 4, solid: true },
+			{ frame: 2, tx: 3, ty: 3, solid: true },
+			{ frame: 4, tx: 7, ty: 5, solid: true },
+			{ frame: 1, tx: 2, ty: 12, solid: true },
+			{ frame: 4, tx: 12, ty: 4, solid: true },
+			{ frame: 4, tx: 14, ty: 4, solid: true },
 			{ frame: 4, tx: 15, ty: 9, solid: true },
+			{ frame: 0, tx: 13, ty: 12, solid: true },
 			{ frame: 4, tx: 22, ty: 5, solid: true },
 			{ frame: 4, tx: 24, ty: 10, solid: true },
-			{ frame: 1, tx: 12, ty: 13, solid: true },
-			{ frame: 2, tx: 3, ty: 3, solid: true },
-			{ frame: 1, tx: 21, ty: 3, solid: true }
+			{ frame: 2, tx: 21, ty: 3, solid: true },
+			{ frame: 1, tx: 25, ty: 8, solid: true },
+			{ frame: 1, tx: 23, ty: 12, solid: true }
 		],
 		zones,
 		residents: [],
@@ -489,4 +568,20 @@ export function markerWalkable(room: RoomDef, marker: TileMarker): boolean {
 		return false;
 	}
 	return room.collision[marker.ty * room.width + marker.tx] === 0;
+}
+
+/** True when the perimeter uses distinct corner / edge autotiles (not one index on every border cell). */
+export function roomUsesWallAutotiles(room: RoomDef): boolean {
+	const corners = [
+		{ tx: 0, ty: 0 },
+		{ tx: room.width - 1, ty: 0 },
+		{ tx: 0, ty: room.height - 1 },
+		{ tx: room.width - 1, ty: room.height - 1 }
+	];
+	const cornerTiles = new Set(corners.map((c) => room.ground[c.ty * room.width + c.tx]));
+	if (cornerTiles.size < 4) return false;
+
+	const northEdge = room.ground[1]; // (1, 0)
+	const westEdge = room.ground[room.width]; // (0, 1)
+	return northEdge !== westEdge;
 }

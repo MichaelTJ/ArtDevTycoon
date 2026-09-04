@@ -4,8 +4,10 @@ import {
 	getRoomForEnvironment,
 	markerWalkable,
 	roomDesks,
-	roomFridgeAnchors
+	roomFridgeAnchors,
+	roomUsesWallAutotiles
 } from './rooms';
+import { TILE } from './config';
 
 describe('rooms', () => {
 	it('home-kitchen is 6×6 with Mum resident and walkable markers', () => {
@@ -127,5 +129,30 @@ describe('rooms', () => {
 			const tagged = ROOMS[id].furniture.filter((p) => p.interactableId != null);
 			expect(tagged).toHaveLength(0);
 		}
+	});
+
+	it('every venue uses perimeter corner and edge autotiles', () => {
+		for (const id of [
+			'home-kitchen',
+			'art-room',
+			'studio',
+			'gallery',
+			'mega-museum'
+		] as const) {
+			const room = ROOMS[id];
+			expect(roomUsesWallAutotiles(room)).toBe(true);
+			expect(room.ground[0]).toBe(TILE.wall);
+			expect(room.ground[room.width - 1]).toBe(TILE.wallNE);
+			expect(room.ground[(room.height - 1) * room.width]).toBe(TILE.wallSW);
+			expect(room.ground[room.width * room.height - 1]).toBe(TILE.wallSE);
+		}
+	});
+
+	it('higher venues place denser furniture than before', () => {
+		expect(ROOMS['home-kitchen'].furniture.length).toBeGreaterThanOrEqual(4);
+		expect(ROOMS['art-room'].furniture.length).toBeGreaterThanOrEqual(8);
+		expect(ROOMS.studio.furniture.length).toBeGreaterThanOrEqual(8);
+		expect(ROOMS.gallery.furniture.length).toBeGreaterThanOrEqual(8);
+		expect(ROOMS['mega-museum'].furniture.length).toBeGreaterThanOrEqual(10);
 	});
 });

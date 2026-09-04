@@ -98,14 +98,26 @@ describe('studio-editor drafts', () => {
 
 	it('lists wall kinds separately from furniture solids', () => {
 		const kitchen = authoredDraft(ROOMS['home-kitchen']);
-		expect(listWallKinds(kitchen)).toEqual([{ ground: 12, sheet: 'tiny-dungeon', count: 19 }]);
+		expect(listWallKinds(kitchen)).toEqual([
+			{ ground: 12, sheet: 'tiny-dungeon', count: 1 },
+			{ ground: 13, sheet: 'tiny-dungeon', count: 3 },
+			{ ground: 14, sheet: 'tiny-dungeon', count: 1 },
+			{ ground: 15, sheet: 'tiny-dungeon', count: 4 },
+			{ ground: 17, sheet: 'tiny-dungeon', count: 4 },
+			{ ground: 18, sheet: 'tiny-dungeon', count: 1 },
+			{ ground: 19, sheet: 'tiny-dungeon', count: 4 },
+			{ ground: 20, sheet: 'tiny-dungeon', count: 1 }
+		]);
 		expect(listFloorKinds(kitchen)).toEqual([
-			{ ground: 0, sheet: 'tiny-dungeon', count: 12 },
-			{ ground: 48, sheet: 'tiny-dungeon', count: 3 }
+			{ ground: 3, sheet: 'tiny-dungeon', count: 9 },
+			{ ground: 48, sheet: 'tiny-dungeon', count: 3 },
+			{ ground: 49, sheet: 'tiny-dungeon', count: 2 }
 		]);
 		expect(listFurnitureKinds(kitchen)).toEqual([
 			{ frame: 0, sheet: 'furniture', count: 1 },
-			{ frame: 2, sheet: 'furniture', count: 1 }
+			{ frame: 1, sheet: 'furniture', count: 1 },
+			{ frame: 2, sheet: 'furniture', count: 1 },
+			{ frame: 4, sheet: 'furniture', count: 1 }
 		]);
 	});
 
@@ -117,7 +129,15 @@ describe('studio-editor drafts', () => {
 			{ ground: 12, sheet: 'tiny-dungeon' },
 			{ ground: 13, sheet: 'tiny-dungeon' }
 		);
-		expect(listWallKinds(painted)).toEqual([{ ground: 13, sheet: 'tiny-dungeon', count: 19 }]);
+		expect(listWallKinds(painted)).toEqual([
+			{ ground: 13, sheet: 'tiny-dungeon', count: 4 },
+			{ ground: 14, sheet: 'tiny-dungeon', count: 1 },
+			{ ground: 15, sheet: 'tiny-dungeon', count: 4 },
+			{ ground: 17, sheet: 'tiny-dungeon', count: 4 },
+			{ ground: 18, sheet: 'tiny-dungeon', count: 1 },
+			{ ground: 19, sheet: 'tiny-dungeon', count: 4 },
+			{ ground: 20, sheet: 'tiny-dungeon', count: 1 }
+		]);
 		expect(painted.ground[1 * painted.width + 1]).toBe(fridgeGround);
 		expect(kitchen.ground[0]).toBe(12);
 	});
@@ -127,12 +147,13 @@ describe('studio-editor drafts', () => {
 		const wood = kitchen.ground[3 * kitchen.width + 3];
 		const painted = recolorFloors(
 			kitchen,
-			{ ground: 0, sheet: 'tiny-dungeon' },
+			{ ground: 3, sheet: 'tiny-dungeon' },
 			{ ground: 8, sheet: 'home-interior' }
 		);
 		expect(listFloorKinds(painted)).toEqual([
-			{ ground: 8, sheet: 'home-interior', count: 12 },
-			{ ground: 48, sheet: 'tiny-dungeon', count: 3 }
+			{ ground: 8, sheet: 'home-interior', count: 9 },
+			{ ground: 48, sheet: 'tiny-dungeon', count: 3 },
+			{ ground: 49, sheet: 'tiny-dungeon', count: 2 }
 		]);
 		expect(painted.ground[3 * painted.width + 3]).toBe(wood);
 		expect(painted.groundSheet?.[2]).toBe('home-interior');

@@ -31,7 +31,8 @@ and requires the credit below. We credit every author here.
   - `characters/mum.png` — Kenney Tiny Dungeon character strip (same source as clients; dedicated Mum key)
 - `characters/staff.png` — Kenney Tiny Dungeon character strip for hired floor staff
 - Ground indices used for venue palettes: `0` floor, `1` concrete, `2` museum stone,
-  `12` wall, `48` wood floor, `49` carpet (storefront / foyer strip)
+  `3` kitchen earth, `12–20` wall autotile (corners/edges/fill), `48` wood floor,
+  `49` carpet (storefront / foyer strip)
 
 ## Kenney — Tiny Town (1.1)
 
