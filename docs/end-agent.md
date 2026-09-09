@@ -81,12 +81,12 @@ Get-ChildItem "C:\Users\JensenM\Documents\My Apps" -Directory | Where-Object { $
 
 Classify every `adt-wt-*` folder and every registered worktree as exactly one of:
 
-| Class | Meaning | This `/end-agent` |
-| ----- | ------- | ----------------- |
-| **Ship** | User named it as ready (or the current finished slice) | Commit, merge, push, then **delete the worktree** |
-| **Active** | Another agent is still implementing (e.g. a tutorial still in kickoff) | **MUST NOT** touch |
-| **Leftover** | Merged, abandoned, empty, or a folder with no unique commits | **MUST delete** in Step 10 |
-| **Unknown** | Unique uncommitted work, not named by the user | **MUST STOP** and ask |
+| Class        | Meaning                                                                | This `/end-agent`                                 |
+| ------------ | ---------------------------------------------------------------------- | ------------------------------------------------- |
+| **Ship**     | User named it as ready (or the current finished slice)                 | Commit, merge, push, then **delete the worktree** |
+| **Active**   | Another agent is still implementing (e.g. a tutorial still in kickoff) | **MUST NOT** touch                                |
+| **Leftover** | Merged, abandoned, empty, or a folder with no unique commits           | **MUST delete** in Step 10                        |
+| **Unknown**  | Unique uncommitted work, not named by the user                         | **MUST STOP** and ask                             |
 
 If the user named **several** ready slices, wrap them **one at a time** (Steps 3–9
 per slice). **MUST NOT** squash two ownership zones into one commit.

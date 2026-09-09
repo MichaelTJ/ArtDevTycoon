@@ -31,9 +31,9 @@ Do **not** read every spec.
 
 From the index, choose a **short** reading list:
 
-| Always | Why |
-| ------ | --- |
-| [`docs/architecture.md`](./architecture.md) | How layers fit; which decisions are load-bearing |
+| Always                                                        | Why                                                                                          |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`docs/architecture.md`](./architecture.md)                   | How layers fit; which decisions are load-bearing                                             |
 | [`src/lib/types/contracts.ts`](../src/lib/types/contracts.ts) | Frozen shared types — **only if** the request might touch data, phases, save, or engine DTOs |
 
 Then add **only**:
@@ -217,8 +217,8 @@ handoff with known gaps):
 - **MUST NOT** commit, merge, push, or remove the worktree here.
 - Print this hand-off line:
 
-  *Implementation complete. Run `/end-agent` when you want to test, clean up, commit,
-  merge, push, and remove the worktree.*
+  _Implementation complete. Run `/end-agent` when you want to test, clean up, commit,
+  merge, push, and remove the worktree._
 
 - Also print a copy-paste command to enter the worktree and start the app. **MUST NOT**
   hardcode a port.
@@ -278,10 +278,10 @@ Use this skeleton. Delete unused headings; do not leave “TBD” in a locked ru
 ## Ownership zone
 
 New:
-  <paths>
+<paths>
 
 Edit:
-  <paths>
+<paths>
 
 **MUST NOT** edit: package.json, lockfiles, vite/tsconfig/eslint/prettier/svelte/
 playwright config, .gitignore, src/lib/types/**, best-practices.md,
