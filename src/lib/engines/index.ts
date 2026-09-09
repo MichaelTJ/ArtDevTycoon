@@ -1,5 +1,10 @@
 export { EngineManager, type EngineManagerDeps } from './manager';
-export { ENGINE_REGISTRY, type EngineDescriptor } from './registry';
+export {
+	ENGINE_REGISTRY,
+	PLAYER_ENGINE_IDS,
+	isPlayerEngineId,
+	type EngineDescriptor
+} from './registry';
 export { detectCapability, meetsRequirements } from './capability';
 export { EngineError, toEngineError } from './errors';
 export {

@@ -19,24 +19,6 @@ const options: EngineOption[] = [
 		available: true,
 		requiresDownload: true,
 		approxDownloadMb: 1000
-	},
-	{
-		id: 'sdturbo-webgpu',
-		displayName: 'SD-Turbo',
-		description: 'Desktop-only painter.',
-		available: false,
-		unavailableReason: 'Requires a desktop GPU.',
-		requiresDownload: true,
-		approxDownloadMb: 1500
-	},
-	{
-		id: 'remote',
-		displayName: 'My PC',
-		description: 'JanusLink on your home GPU.',
-		available: false,
-		unavailableReason: 'Not connected.',
-		requiresDownload: false,
-		approxDownloadMb: 0
 	}
 ];
 
@@ -46,36 +28,7 @@ test('renders one radio per option', async () => {
 		activeId: 'mock',
 		onselect: vi.fn()
 	});
-	expect(screen.getByRole('radio').elements().length).toBe(4);
-});
-
-test('Set up My PC calls onconfigure without selecting', async () => {
-	const onselect = vi.fn();
-	const onconfigure = vi.fn();
-	const screen = render(EnginePicker, {
-		options,
-		activeId: 'mock',
-		onselect,
-		onconfigure
-	});
-	await screen.getByRole('button', { name: 'Set up My PC' }).click();
-	expect(onconfigure).toHaveBeenCalledWith('remote');
-	expect(onselect).not.toHaveBeenCalled();
-});
-
-test('available remote shows Change My PC server', async () => {
-	const onconfigure = vi.fn();
-	const connected = options.map((option) =>
-		option.id === 'remote' ? { ...option, available: true, unavailableReason: undefined } : option
-	);
-	const screen = render(EnginePicker, {
-		options: connected,
-		activeId: 'remote',
-		onselect: vi.fn(),
-		onconfigure
-	});
-	await screen.getByRole('button', { name: 'Change My PC server' }).click();
-	expect(onconfigure).toHaveBeenCalledWith('remote');
+	expect(screen.getByRole('radio').elements().length).toBe(2);
 });
 
 test('active option is checked', async () => {
@@ -101,13 +54,26 @@ test('clicking an available option calls onselect with its id', async () => {
 
 test('disabled option does not call onselect', async () => {
 	const onselect = vi.fn();
+	const unavailableJanus: EngineOption[] = [
+		options[0],
+		{
+			...options[1],
+			available: false,
+			unavailableReason: 'Needs WebGPU. Try Chrome or Edge on a computer.',
+			requiresDownload: false
+		}
+	];
 	const screen = render(EnginePicker, {
-		options,
+		options: unavailableJanus,
 		activeId: 'mock',
 		onselect
 	});
-	const disabled = screen.getByRole('radio', { name: /SD-Turbo/ });
+	const disabled = screen.getByRole('radio', { name: /Janus Pro/ });
 	expect(disabled.element()).toHaveProperty('disabled', true);
+	await expect.element(screen.getByText('Needs WebGPU', { exact: true })).toBeVisible();
+	await expect
+		.element(screen.getByText('Needs WebGPU. Try Chrome or Edge on a computer.'))
+		.toBeVisible();
 	await disabled.click({ force: true });
 	expect(onselect).not.toHaveBeenCalled();
 });

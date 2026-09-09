@@ -46,7 +46,7 @@ export function meetsRequirements(
 	requirements: EngineRequirements
 ): { ok: true } | { ok: false; reason: string } {
 	if (requirements.webgpu && !capability.webgpu) {
-		return { ok: false, reason: 'This device does not support WebGPU.' };
+		return { ok: false, reason: 'Needs WebGPU. Try Chrome or Edge on a computer.' };
 	}
 
 	if (requirements.desktopOnly && capability.isMobile) {

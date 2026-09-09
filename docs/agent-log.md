@@ -3054,3 +3054,33 @@ Owned-file Prettier + ESLint are clean; repo-wide `npm run lint` still flags unr
 not exported) and `src/lib/modifier-explorer/index.ts` (`UNLOCK_STYLE_KEYS`). Inherited Prettier
 drift in `docs/architecture.md`, specs 04/18/24, `docs/tasks/README.md`, modifier-explorer files.
 No browser playtest (agents verify with tests, not a shared `npm run dev`).
+
+---
+
+## 2026-09-10 — Engine picker player list
+
+**Zone:** `src/lib/engines/registry.ts`, `manager.ts`, `capability.ts`, `src/lib/stores/engineStore.svelte.ts`,
+`src/lib/components/EnginePicker.svelte`, `src/routes/+page.svelte`
+
+**Built:** The in-game engine menu lists only Crayon Mode and Janus Pro. SD-Turbo and My PC stay
+in `ENGINE_REGISTRY` for explorer tools but are filtered from picker options and ignored if a
+save still stores those ids. Unavailable Janus shows a **Needs WebGPU** badge plus the reason
+`Needs WebGPU. Try Chrome or Edge on a computer.` Restoring a stored engine now requires it to
+be a player id and already cached (not merely previously selected).
+
+**Public surface:** `PLAYER_ENGINE_IDS`, `isPlayerEngineId`. `EnginePicker` no longer takes
+`onconfigure`. `+page` no longer opens `MyPcSetup` from the player menu.
+
+**Tests:**
+
+```
+npm run test:unit -- --run src/lib/components/EnginePicker.svelte.test.ts src/lib/engines/manager.test.ts src/lib/engines/capability.svelte.test.ts src/lib/stores/engineStore.svelte.test.ts
+```
+
+**Decisions:** My PC setup UI remains in the component library for explorer/dev paths; the
+player picker does not offer it.
+
+**Requests:** None.
+
+**Known gaps:** Modifier-explorer can still select SD-Turbo / remote. No in-game path to
+reconnect My PC.

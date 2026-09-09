@@ -8,7 +8,6 @@
 		loadingLabel?: string;
 		loadProgress?: LoadProgress | null;
 		onselect: (id: string) => void;
-		onconfigure?: (id: string) => void;
 	}
 
 	let {
@@ -17,8 +16,7 @@
 		loading = false,
 		loadingLabel = 'Loading art engines…',
 		loadProgress = null,
-		onselect,
-		onconfigure
+		onselect
 	}: Props = $props();
 
 	function formatDownloadGb(mb: number): string {
@@ -58,8 +56,15 @@
 	{:else}
 		<div class="mt-3 space-y-3" role="radiogroup" aria-label="Art engine">
 			{#each options as option (option.id)}
+				{@const unavailableBadge = option.unavailableReason?.toLowerCase().includes('webgpu')
+					? 'Needs WebGPU'
+					: 'Unavailable'}
 				<label
-					class="flex cursor-pointer gap-3 rounded-lg border border-stone-200 p-3 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"
+					class={[
+						'flex gap-3 rounded-lg border border-stone-200 p-3 has-[:disabled]:cursor-not-allowed',
+						option.available ? 'cursor-pointer' : 'cursor-not-allowed'
+					]}
+					title={!option.available ? option.unavailableReason : undefined}
 				>
 					<input
 						type="radio"
@@ -68,14 +73,26 @@
 						checked={option.id === activeId}
 						disabled={!option.available}
 						aria-disabled={!option.available}
-						class="mt-1 h-5 w-5 accent-amber-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+						class={[
+							'mt-1 h-5 w-5 accent-amber-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600',
+							{ 'opacity-60': !option.available }
+						]}
 						onchange={() => {
 							if (option.available) onselect(option.id);
 						}}
 					/>
 					<span class="min-w-0 flex-1">
 						<span class="flex flex-wrap items-center gap-2">
-							<span class="font-medium text-stone-800">{option.displayName}</span>
+							<span class={['font-medium text-stone-800', { 'opacity-60': !option.available }]}>
+								{option.displayName}
+							</span>
+							{#if !option.available}
+								<span
+									class="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-semibold text-amber-800"
+								>
+									{unavailableBadge}
+								</span>
+							{/if}
 							{#if option.requiresDownload}
 								<span
 									class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800"
@@ -84,22 +101,11 @@
 								</span>
 							{/if}
 						</span>
-						<span class="mt-1 block text-sm text-stone-500">{option.description}</span>
+						<span class={['mt-1 block text-sm text-stone-500', { 'opacity-60': !option.available }]}>
+							{option.description}
+						</span>
 						{#if !option.available && option.unavailableReason}
-							<span class="mt-1 block text-sm text-stone-500">{option.unavailableReason}</span>
-						{/if}
-						{#if option.id === 'remote' && onconfigure}
-							<button
-								type="button"
-								class="mt-2 min-h-9 rounded-lg bg-stone-100 px-3 py-1.5 text-sm font-medium text-stone-800 hover:bg-stone-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-								onclick={(event) => {
-									event.preventDefault();
-									event.stopPropagation();
-									onconfigure('remote');
-								}}
-							>
-								{option.available ? 'Change My PC server' : 'Set up My PC'}
-							</button>
+							<span class="mt-1 block text-sm text-amber-800">{option.unavailableReason}</span>
 						{/if}
 					</span>
 				</label>

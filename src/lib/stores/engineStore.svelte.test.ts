@@ -184,6 +184,84 @@ describe('EngineStore', () => {
 		expect(store.realAiSupported).toBe(false);
 	});
 
+	it('hides SD-Turbo and My PC from picker options', async () => {
+		const store = new EngineStore(
+			createFakeManager({
+				init: async () => {},
+				options: [
+					{
+						id: 'mock',
+						displayName: 'Crayon Mode',
+						description: 'Instant',
+						requirements: { approxDownloadMb: 0 },
+						availability: { available: true, requiresDownload: false, approxDownloadMb: 0 }
+					},
+					{
+						id: 'janus-webgpu',
+						displayName: 'Janus Pro',
+						description: 'AI',
+						requirements: { approxDownloadMb: 1024 },
+						availability: { available: true, requiresDownload: true, approxDownloadMb: 1024 }
+					},
+					{
+						id: 'sdturbo-webgpu',
+						displayName: 'SD-Turbo',
+						description: 'Desktop painter',
+						requirements: { approxDownloadMb: 1536 },
+						availability: { available: true, requiresDownload: true, approxDownloadMb: 1536 }
+					},
+					{
+						id: 'remote',
+						displayName: 'My PC',
+						description: 'JanusLink',
+						requirements: { approxDownloadMb: 0 },
+						availability: { available: true, requiresDownload: false, approxDownloadMb: 0 }
+					}
+				]
+			})
+		);
+
+		await store.init();
+
+		expect(store.options.map((option) => option.id)).toEqual(['mock', 'janus-webgpu']);
+	});
+
+	it('ignores a stored SD-Turbo or My PC engine id', async () => {
+		const storeMap = new Map<string, string>([['adt.engine', 'remote']]);
+		vi.stubGlobal('localStorage', {
+			getItem: (key: string) => storeMap.get(key) ?? null,
+			setItem: (key: string, value: string) => {
+				storeMap.set(key, value);
+			},
+			removeItem: (key: string) => {
+				storeMap.delete(key);
+			},
+			clear: () => {
+				storeMap.clear();
+			}
+		});
+
+		const store = new EngineStore(
+			createFakeManager({
+				init: async () => {},
+				options: [
+					{
+						id: 'mock',
+						displayName: 'Crayon Mode',
+						description: 'Instant',
+						requirements: { approxDownloadMb: 0 },
+						availability: { available: true, requiresDownload: false, approxDownloadMb: 0 }
+					}
+				]
+			})
+		);
+
+		await store.init();
+
+		expect(store.activeId).toBe('mock');
+		vi.unstubAllGlobals();
+	});
+
 	it('select writes progress updates in order', async () => {
 		const fractions: number[] = [];
 		const store = new EngineStore(

@@ -1,4 +1,4 @@
-import { EngineManager } from '$lib/engines';
+import { EngineManager, isPlayerEngineId } from '$lib/engines';
 import type { EngineDescriptor } from '$lib/engines/registry';
 import { getRemoteProviderClient } from '$lib/engines/remote/providers';
 import {
@@ -49,9 +49,7 @@ export function displayNameForEngine(id: EngineId): string {
 }
 
 function isPersistedEngineId(value: string | null): value is EngineId {
-	return (
-		value === 'mock' || value === 'janus-webgpu' || value === 'sdturbo-webgpu' || value === 'remote'
-	);
+	return value !== null && isPlayerEngineId(value);
 }
 
 function readStoredEngineId(): EngineId | null {
@@ -351,7 +349,7 @@ export class EngineStore {
 	}
 
 	private syncOptions(): void {
-		this.options = this.#manager.options.map(toOption);
+		this.options = this.#manager.options.filter((entry) => isPlayerEngineId(entry.id)).map(toOption);
 	}
 }
 

@@ -1,5 +1,12 @@
 import type { ArtEngine, EngineId, EngineRequirements } from '$lib/types/contracts';
 
+/** In-game picker engines. SD-Turbo and My PC stay registered for explorer tools. */
+export const PLAYER_ENGINE_IDS = ['mock', 'janus-webgpu'] as const satisfies readonly EngineId[];
+
+export function isPlayerEngineId(id: string): id is (typeof PLAYER_ENGINE_IDS)[number] {
+	return id === 'mock' || id === 'janus-webgpu';
+}
+
 /** Lazy factory metadata for every registered engine tier. */
 export interface EngineDescriptor {
 	id: EngineId;

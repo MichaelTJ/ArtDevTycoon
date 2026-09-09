@@ -9,7 +9,6 @@
 		IdleEarningsModal,
 		LevelCompleteOverlay,
 		ModelDownloadGate,
-		MyPcSetup,
 		StudioFloor,
 		StudioHudOverlay,
 		EngineLoadSpinner
@@ -101,7 +100,7 @@
 			? 'Pick a real art engine from the menu above when you are ready.'
 			: (engines.options.find((option) => option.id !== 'mock' && !option.available)
 					?.unavailableReason ??
-					'Real AI needs WebGPU in the browser, or My PC (JanusLink) from the engine menu.')
+					'Real AI needs WebGPU in the browser. Without it, Crayon Mode draws procedurally.')
 	);
 
 	const pendingEngine = $derived(
@@ -426,12 +425,6 @@
 			return;
 		}
 
-		if (id === 'remote' && !option.available) {
-			showEngineMenu = false;
-			engines.openRemoteSetup();
-			return;
-		}
-
 		if (!option.available) {
 			return;
 		}
@@ -450,13 +443,6 @@
 
 		await engines.select(id);
 		showEngineMenu = false;
-	}
-
-	function handleEngineConfigure(id: string): void {
-		if (id === 'remote') {
-			showEngineMenu = false;
-			engines.openRemoteSetup();
-		}
 	}
 
 	async function confirmDownload(): Promise<void> {
@@ -684,7 +670,6 @@
 				loadingLabel={engineMenuLoadingLabel}
 				loadProgress={engines.loadProgress}
 				onselect={(id) => handleEngineSelect(id as EngineId)}
-				onconfigure={handleEngineConfigure}
 			/>
 			<button
 				type="button"
@@ -695,26 +680,6 @@
 			</button>
 		</div>
 	</div>
-{/if}
-
-{#if engines.showRemoteSetup}
-	<MyPcSetup
-		bind:provider={engines.remoteProvider}
-		bind:baseUrl={engines.remoteBaseUrl}
-		bind:apiKey={engines.remoteApiKey}
-		bind:generateModel={engines.remoteGenerateModel}
-		bind:critiqueModel={engines.remoteCritiqueModel}
-		bind:critiqueProvider={engines.remoteCritiqueProvider}
-		bind:critiqueBaseUrl={engines.remoteCritiqueBaseUrl}
-		availableModels={engines.remoteAvailableModels}
-		testState={engines.remoteTestState}
-		testError={engines.remoteTestError}
-		onproviderchange={(p) => engines.setRemoteProvider(p)}
-		onrefreshmodels={() => void engines.refreshRemoteModels()}
-		ontest={() => void engines.testRemoteConnection()}
-		onconnect={() => void engines.connectRemote()}
-		oncancel={() => engines.closeRemoteSetup()}
-	/>
 {/if}
 
 {#if downloadGateOpen && pendingEngine}

@@ -91,8 +91,8 @@ describe('EngineManager', () => {
 		});
 	});
 
-	it('treats a previously selected engine as downloaded on init', async () => {
-		storage.set('adt.engine', 'janus-webgpu');
+	it('treats a previously downloaded engine as cached on init', async () => {
+		storage.set('adt.engine.downloaded', JSON.stringify(['janus-webgpu']));
 		const mock = createFakeEngine({ id: 'mock', tier: 0 });
 		const high = createFakeEngine({
 			id: 'janus-webgpu',
@@ -130,13 +130,52 @@ describe('EngineManager', () => {
 		expect(JSON.parse(storage.get('adt.engine.downloaded') ?? '[]')).toContain('janus-webgpu');
 	});
 
-	it('restores a stored engine even when it still requires download', async () => {
+	it('stays on mock when a stored engine still requires download', async () => {
 		storage.set('adt.engine', 'janus-webgpu');
 		const mock = createFakeEngine({ id: 'mock', tier: 0 });
 		const high = createFakeEngine({
 			id: 'janus-webgpu',
 			tier: 1,
 			probe: async () => ({ available: true, requiresDownload: true, approxDownloadMb: 1024 })
+		});
+		const manager = new EngineManager({
+			capability: desktopCapability,
+			registry: [mock.descriptor, high.descriptor]
+		});
+
+		await manager.init();
+
+		expect(manager.activeId).toBe('mock');
+		const janus = manager.options.find((option) => option.id === 'janus-webgpu');
+		expect(janus?.availability).toMatchObject({ available: true, requiresDownload: true });
+	});
+
+	it('does not restore a stored SD-Turbo or My PC engine', async () => {
+		storage.set('adt.engine', 'sdturbo-webgpu');
+		const mock = createFakeEngine({ id: 'mock', tier: 0 });
+		const turbo = createFakeEngine({
+			id: 'sdturbo-webgpu',
+			tier: 2,
+			probe: async () => ({ available: true, requiresDownload: false, approxDownloadMb: 0 })
+		});
+		const manager = new EngineManager({
+			capability: desktopCapability,
+			registry: [mock.descriptor, turbo.descriptor]
+		});
+
+		await manager.init();
+
+		expect(manager.activeId).toBe('mock');
+	});
+
+	it('restores a stored Janus engine when it is already cached', async () => {
+		storage.set('adt.engine', 'janus-webgpu');
+		storage.set('adt.engine.downloaded', JSON.stringify(['janus-webgpu']));
+		const mock = createFakeEngine({ id: 'mock', tier: 0 });
+		const high = createFakeEngine({
+			id: 'janus-webgpu',
+			tier: 1,
+			probe: async () => ({ available: true, requiresDownload: false, approxDownloadMb: 0 })
 		});
 		const manager = new EngineManager({
 			capability: desktopCapability,

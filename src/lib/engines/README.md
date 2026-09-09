@@ -11,7 +11,7 @@ Import from `$lib/engines`:
 | Export                                                                                                                                | Role                                            |
 | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | `EngineManager`                                                                                                                       | Probe, select, generate, critique with fallback |
-| `ENGINE_REGISTRY`                                                                                                                     | Lazy factory descriptors for all tiers          |
+| `ENGINE_REGISTRY`, `PLAYER_ENGINE_IDS`, `isPlayerEngineId`                                                                            | All tiers; in-game picker is mock + Janus only  |
 | `detectCapability`, `meetsRequirements`                                                                                               | Device gating                                   |
 | `EngineError`, `toEngineError`                                                                                                        | Player-safe failures                            |
 | `buildKeywordQuestion`, `buildReviewPrompt`, `parseYesNo`, `accuracyFromHits`, `buildTitle`, `cleanReview`, `critiqueTargetsForBrief` | Shared vision-critique helpers for real engines |

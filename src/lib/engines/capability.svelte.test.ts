@@ -50,7 +50,7 @@ test('meetsRequirements fails when WebGPU is required but unavailable', () => {
 	};
 	expect(meetsRequirements(capability, requirements)).toEqual({
 		ok: false,
-		reason: 'This device does not support WebGPU.'
+		reason: 'Needs WebGPU. Try Chrome or Edge on a computer.'
 	});
 });
 

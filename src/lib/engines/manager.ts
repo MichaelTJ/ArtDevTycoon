@@ -12,7 +12,7 @@ import type {
 import { detectCapability, meetsRequirements } from './capability';
 import { EngineError, toEngineError } from './errors';
 import { MockEngine } from './mock/mockEngine';
-import { ENGINE_REGISTRY, type EngineDescriptor } from './registry';
+import { ENGINE_REGISTRY, isPlayerEngineId, type EngineDescriptor } from './registry';
 
 const STORAGE_KEY = 'adt.engine';
 const DOWNLOADED_KEY = 'adt.engine.downloaded';
@@ -107,9 +107,9 @@ export class EngineManager {
 			}
 
 			const restored = this.readStoredEngineId();
-			if (restored) {
+			if (restored && isPlayerEngineId(restored)) {
 				const availability = this.availability.get(restored);
-				if (availability?.available) {
+				if (availability?.available && !availability.requiresDownload) {
 					try {
 						await this.select(restored, onProgress);
 						this.stateValue = 'ready';
@@ -284,7 +284,7 @@ export class EngineManager {
 		if (!availability.available || id === 'mock') {
 			return availability;
 		}
-		if (this.isEngineDownloaded(id) || this.readStoredEngineId() === id) {
+		if (this.isEngineDownloaded(id)) {
 			return { ...availability, requiresDownload: false };
 		}
 		return availability;
