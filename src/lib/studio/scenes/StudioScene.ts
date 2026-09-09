@@ -1302,9 +1302,7 @@ export class StudioScene extends Phaser.Scene {
 			const y = slot.ty * TILE_SIZE + TILE_SIZE / 2;
 			const standFrame = easelStandFrame(slot, this.#room);
 			const stand =
-				standFrame === null
-					? null
-					: this.add.image(x, y, 'furniture', standFrame).setDepth(6);
+				standFrame === null ? null : this.add.image(x, y, 'furniture', standFrame).setDepth(6);
 			const entry = entries[i] ?? null;
 			let art: Phaser.GameObjects.Image | null = null;
 			if (entry && isSafeStudioImageUrl(entry.imageUrl)) {

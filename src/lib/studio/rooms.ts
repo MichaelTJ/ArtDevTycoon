@@ -203,27 +203,6 @@ function compactGroundSheets(
 	return sheets.some((sheet) => sheet !== undefined) ? sheets : undefined;
 }
 
-function paintGroundPatch(
-	width: number,
-	ground: number[],
-	groundSheets: (string | undefined)[],
-	primaryTileset: string,
-	x0: number,
-	y0: number,
-	x1: number,
-	y1: number,
-	frame: number,
-	sheet?: string
-): void {
-	for (let y = y0; y <= y1; y++) {
-		for (let x = x0; x <= x1; x++) {
-			const i = idx(width, x, y);
-			ground[i] = frame;
-			groundSheets[i] = sheet && sheet !== primaryTileset ? sheet : undefined;
-		}
-	}
-}
-
 function buildKitchen(): RoomDef {
 	const width = 6;
 	const height = 6;
