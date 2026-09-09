@@ -101,7 +101,9 @@
 								</span>
 							{/if}
 						</span>
-						<span class={['mt-1 block text-sm text-stone-500', { 'opacity-60': !option.available }]}>
+						<span
+							class={['mt-1 block text-sm text-stone-500', { 'opacity-60': !option.available }]}
+						>
 							{option.description}
 						</span>
 						{#if !option.available && option.unavailableReason}

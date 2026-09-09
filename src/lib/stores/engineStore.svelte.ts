@@ -349,7 +349,9 @@ export class EngineStore {
 	}
 
 	private syncOptions(): void {
-		this.options = this.#manager.options.filter((entry) => isPlayerEngineId(entry.id)).map(toOption);
+		this.options = this.#manager.options
+			.filter((entry) => isPlayerEngineId(entry.id))
+			.map(toOption);
 	}
 }
 
