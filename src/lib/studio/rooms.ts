@@ -154,7 +154,17 @@ function openNorthDoor(
 	bandHeight = 2
 ): void {
 	for (let y = 0; y < bandHeight; y++) {
-		openCell(width, collision, ground, groundSheets, doorTx, y, floorTile, floorSheet, primaryTileset);
+		openCell(
+			width,
+			collision,
+			ground,
+			groundSheets,
+			doorTx,
+			y,
+			floorTile,
+			floorSheet,
+			primaryTileset
+		);
 	}
 }
 
