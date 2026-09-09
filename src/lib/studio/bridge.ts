@@ -74,6 +74,12 @@ export interface StudioSnapshot {
 	commissionChannel: CommissionChannel;
 	/** Spec 24 / P27 — receptionist NPC only when channel is `receptionist`. */
 	receptionistVisible: boolean;
+	/**
+	 * True when EngineStore.isBusy (model download / compile / My PC connect).
+	 * Phaser MUST NOT read engine ids — gate talk/attention on this boolean.
+	 * Default false for older callers.
+	 */
+	modelLoading?: boolean;
 }
 
 export type StudioListener = (event: StudioOutboundEvent) => void;

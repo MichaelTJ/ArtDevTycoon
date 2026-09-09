@@ -5,27 +5,28 @@ saves stay in `$lib/game` / `$lib/stores`.
 
 ## Public surface
 
-| Export                                          | Role                                                   |
-| ----------------------------------------------- | ------------------------------------------------------ |
-| `STUDIO_FLOOR_ENABLED`                          | Feature flag; `false` restores `KitchenScene`          |
-| `StudioBridge`                                  | Typed events/commands between Svelte and Phaser        |
-| `createPhaserGame(parent, bridge, options?)`    | Boots Phaser; `initialVenueId` picks the plan          |
-| `getRoomForVenue` / `roomIdForVenue`            | Progressive gallery venue → authored floor             |
-| `getRoomForEnvironment` / `ROOMS`               | Tile grids + markers (Level env stubs too)             |
-| `slotsForVenue`                                 | Venue → easel/magnet anchors                           |
-| `nextWanderTarget` / `stepToward` / `withPath`  | Pure Mum patrol + path-queue helpers                   |
-| `findPath` / `findPathInRoom`                   | 4-neighbour BFS on room collision (spec 21f)           |
-| `interactPromptLabel` / `prefersReducedMotion`  | Contextual E verbs + motion helper (21f)               |
-| `floorStaffFromHired` / `staffAnchorForRole`    | Hired staff → floor NPCs (presentation only)           |
-| `clientLookForTier`                             | Door-visitor tint/frame by client tier                 |
-| `nearestInteractable` / `interactPromptText`    | Pure prop interact helpers (spec 21b)                  |
-| `FRIDGE` / `TOOLKIT_SHELF`                      | Data-driven interactable registry                      |
-| `shouldEmitWorkParticles` / VFX caps            | Pure desk/cash particle helpers (spec 21d)             |
-| `pickBark` / `eligibleBarkSpeakers` / schedule  | Ambient bark picker + phase gate (spec 21e)            |
-| `shouldShowBark` / bark lifetime helpers        | Bubble gating (prompt + phase)                         |
-| `isDomEditableElement` / `isDomEditableFocused` | DOM focus gate for keyboard walk/interact (P5/P11)     |
-| `applyDomEditableKeyboardGate`                  | Release Phaser key captures while DOM fields focus     |
-| `cameraZoomToFitRoom` / `studioViewportSize`    | Viewport-fit zoom (≤4×) + parent boot size (P2/P3/P12) |
+| Export                                                    | Role                                                   |
+| --------------------------------------------------------- | ------------------------------------------------------ |
+| `STUDIO_FLOOR_ENABLED`                                    | Feature flag; `false` restores `KitchenScene`          |
+| `StudioBridge`                                            | Typed events/commands between Svelte and Phaser        |
+| `createPhaserGame(parent, bridge, options?)`              | Boots Phaser; `initialVenueId` picks the plan          |
+| `getRoomForVenue` / `roomIdForVenue`                      | Progressive gallery venue → authored floor             |
+| `getRoomForEnvironment` / `ROOMS`                         | Tile grids + markers (Level env stubs too)             |
+| `slotsForVenue`                                           | Venue → easel/magnet anchors                           |
+| `nextWanderTarget` / `stepToward` / `withPath`            | Pure Mum patrol + path-queue helpers                   |
+| `findPath` / `findPathInRoom`                             | 4-neighbour BFS on room collision (spec 21f)           |
+| `interactPromptLabel` / `prefersReducedMotion`            | Contextual E verbs + motion helper (21f)               |
+| `floorStaffFromHired` / `staffAnchorForRole`              | Hired staff → floor NPCs (presentation only)           |
+| `clientLookForTier`                                       | Door-visitor tint/frame by client tier                 |
+| `nearestInteractable` / `interactPromptText`              | Pure prop interact helpers (spec 21b)                  |
+| `FRIDGE` / `TOOLKIT_SHELF`                                | Data-driven interactable registry                      |
+| `shouldEmitWorkParticles` / VFX caps                      | Pure desk/cash particle helpers (spec 21d)             |
+| `pickBark` / `eligibleBarkSpeakers` / schedule            | Ambient bark picker + phase gate (spec 21e)            |
+| `shouldShowBark` / bark lifetime helpers                  | Bubble gating (prompt + phase)                         |
+| `playerDeskLocked` / `npcAttention` / `showAttentionMark` | Desk-lock + `!` attention (spec 29)                    |
+| `isDomEditableElement` / `isDomEditableFocused`           | DOM focus gate for keyboard walk/interact (P5/P11)     |
+| `applyDomEditableKeyboardGate`                            | Release Phaser key captures while DOM fields focus     |
+| `cameraZoomToFitRoom` / `studioViewportSize`              | Viewport-fit zoom (≤4×) + parent boot size (P2/P3/P12) |
 
 ## Venue floor plans
 
@@ -85,10 +86,17 @@ waits are extra standing tiles (the hired marketing director uses the second wai
 6. After critique (`results`), E near the commission target → `deliver-to-client` →
    `collectCash()` → `dismiss-client` (Mum stays; door visitor walks out).
 
-During `generating` / `critiquing` the player snaps to the desk with a progress bar
-sized from `lastWorkDurationMs` / `DEFAULT_WORK_ESTIMATE_MS`. Walk input is ignored
-until those phases end. During `briefing` / `results` / `failed` the player may walk;
-door visitors idle at the wait spot (Mum patrols unless she is the commission target).
+During `generating` the player snaps to the desk with a progress bar sized from
+`lastWorkDurationMs` / `DEFAULT_WORK_ESTIMATE_MS`. Walk and interact are disabled until
+generation ends. During `critiquing` the player may walk immediately; E on the commission
+NPC is flavour talk (Svelte shows taking-it-in copy — no collect). During `briefing` /
+`results` / `failed` the player may walk; door visitors idle at the wait spot (Mum patrols
+unless she is the commission target).
+
+`modelLoading` (EngineStore.isBusy, never an engine id) suppresses Svelte from sending
+`summon-client` or inviting. Mum is still a talk target while loading. A gold `!` mark
+appears for ready-commission (armed Mum or arrived visitor, not while loading) and for
+critique-ready (`results`). It hides while the E prompt is on that same NPC.
 
 Storefront+ show/window zones also show an E prompt; pressing it opens the first
 displayed gallery entry (or emits `inspect-zone` when the wall is empty).

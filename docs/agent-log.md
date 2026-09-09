@@ -3002,3 +3002,55 @@ npm run test:unit -- --run src/lib/studio-editor src/lib/studio/rooms.test.ts sr
 **Known gaps:** Door visitors still walk to the primary `clientWait`. Extra waits are standing
 tiles for staff, not extra door-client destinations. Work VFX stay at the desk used when the
 emitter was created.
+
+---
+
+## 2026-09-09 — NPC busy states (spec 29)
+
+**Zone:** `src/lib/data/npcBusyDialogue.ts` + test, `src/lib/studio/npcAttention.ts` + test,
+`src/lib/components/EngineLoadSpinner.svelte` + test, `src/lib/studio/bridge.ts` (additive
+`modelLoading`), `src/lib/studio/scenes/StudioScene.ts`, `src/lib/components/StudioHudOverlay.svelte`,
+`src/lib/stores/gameState.svelte.ts` (`rescheduleAutoInvite` only), `src/routes/+page.svelte`,
+READMEs, `docs/tasks/29-npc-busy-states.md`, `docs/agent-log.md`
+
+**Built:** While `EngineStore.isBusy`, Mum/channel desks refuse a new commission and point the
+player at Practice; a bottom-right spinner names the loading engine. Auto-invite retries via
+`rescheduleAutoInvite`. After the player picks which image to critique they can walk; E on Mum
+or a visitor rotates taking-it-in copy and does not collect. A gold `!` marks a waiting job
+(armed Mum / arrived visitor, not during load) and ready critique results.
+
+**Public surface:**
+
+- `busyChannelForVenue(venueId)` / `npcBusyLine({ reason, channel, talkIndex? })` /
+  `MODEL_LOADING_FOOTNOTE`
+- `playerDeskLocked(phase)` / `npcAttention({ phase, modelLoading, readyForCommission })` /
+  `showAttentionMark(attention, promptOnNpc)`
+- `StudioSnapshot.modelLoading?: boolean` (default false)
+- `GameStore.rescheduleAutoInvite(): void`
+- `EngineLoadSpinner` (`visible`, `label`, `reducedMotion?`)
+- `StudioHudOverlay` optional `modelLoading` + `busyLine`
+
+**Tests:**
+
+```
+npm run test:unit -- --run src/lib/data/npcBusyDialogue.test.ts src/lib/studio/npcAttention.test.ts src/lib/studio/bridge.test.ts src/lib/components/EngineLoadSpinner.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/stores/gameState.svelte.test.ts
+```
+
+138 passed (scoped). `npm run check` is red only on inherited files outside this zone.
+Owned-file Prettier + ESLint are clean; repo-wide `npm run lint` still flags unrelated Prettier.
+
+**Decisions:**
+
+- Phaser gates on `snapshot.modelLoading`, never engine ids.
+- Desk-lock is generating-only; work particles / work bar may still run during critiquing.
+- Attention `!` has no bob tween (hard show/hide). Ready means armed Mum or arrived visitor —
+  not a perpetual receptionist bang.
+- CSS kitchen `Wait for a Client` also no-ops while busy (DoD: no `inviteClient`), even though
+  §4.2 names `summonClient`.
+
+**Requests:** None.
+
+**Known gaps:** Inherited `svelte-check` errors in `src/lib/studio-editor/storage.ts` (`RoomId`
+not exported) and `src/lib/modifier-explorer/index.ts` (`UNLOCK_STYLE_KEYS`). Inherited Prettier
+drift in `docs/architecture.md`, specs 04/18/24, `docs/tasks/README.md`, modifier-explorer files.
+No browser playtest (agents verify with tests, not a shared `npm run dev`).

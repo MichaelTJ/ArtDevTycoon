@@ -22,6 +22,7 @@ validated at module load.
 | `barks.ts`             | `BARK_POOL`, `BarkLine`, `BarkSpeakerId`, `linesForSpeaker`, `barkSpeakerLabel` (ambient comedy; no LLM)                                                                               |
 | `mumPraise.ts`         | `MUM_PRAISE_POOL`, `MumPraiseLine`, `pickMumPraise` — toddler praise for Mum results (playtest P7)                                                                                     |
 | `stallMessages.ts`     | `STALL_COPY_BY_MEDIUM`, `getStallCopy`, `getStallStageLabel`, `stallMessagesForArtwork` — critiquing stall copy (P14)                                                                  |
+| `npcBusyDialogue.ts`   | Spec 29 — `busyChannelForVenue`, `npcBusyLine`, `MODEL_LOADING_FOOTNOTE`. Static loading/critique copy per channel. No LLM.                                                            |
 | `brushProfiles.ts`     | `BrushProfile`, `getBrushProfile`, `MVP_BRUSH_MEDIUM_IDS`, `isMvpBrushMedium` — canvas stroke params per medium (Spec 25); ink uses `grainStyle: 'charcoal'`                           |
 
 Import briefs directly from `$lib/data/briefs` or re-export through a future data barrel

@@ -521,6 +521,11 @@ export class GameStore {
 		this.#scheduleAutoInvite();
 	}
 
+	/** Re-run the idle auto-invite timer. No-op when phase !== 'idle' or practice is open. */
+	rescheduleAutoInvite(): void {
+		this.#scheduleAutoInvite();
+	}
+
 	inviteClient(): void {
 		this.exitPractice();
 		if (this.phase !== 'idle') {

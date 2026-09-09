@@ -18,6 +18,7 @@ import {
 	type BarkAnnounceHandler
 } from '../barkPresenter';
 import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../bridge';
+import { npcAttention, playerDeskLocked, showAttentionMark } from '../npcAttention';
 import { cameraLetterboxBounds, cameraRoomCenter, cameraZoomToFitRoom } from '../cameraFit';
 import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
@@ -66,6 +67,8 @@ import {
 } from '../vfx';
 import { DEFAULT_WORK_ESTIMATE_MS, workBarProgress } from '../workProgress';
 
+const TALK_OR_DELIVER = new Set(['talk', 'deliver']);
+const RECEPTION_KIND = new Set(['reception']);
 /** Warm tint so Mum reads apart from door visitors when using the clients sheet. */
 const MUM_TINT = 0xffc9a8;
 const MUM_PAUSE_MS_MIN = 200;
@@ -125,6 +128,8 @@ export class StudioScene extends Phaser.Scene {
 	#staff = new Map<FloorStaffRoleId, StaffSprite>();
 	#prompt!: Phaser.GameObjects.Image;
 	#promptLabel!: Phaser.GameObjects.Text;
+	/** Spec 29 — `!` above the commission NPC when a job or critique is waiting. */
+	#attentionMark!: Phaser.GameObjects.Text;
 	#snapshot: StudioSnapshot | null = null;
 	#easels: EaselView[] = [];
 	#furnitureGroup!: Phaser.Physics.Arcade.StaticGroup;
@@ -186,6 +191,17 @@ export class StudioScene extends Phaser.Scene {
 			.setOrigin(0.5, 1)
 			.setDepth(20)
 			.setVisible(false);
+		this.#attentionMark = this.add
+			.text(0, 0, '!', {
+				fontFamily: 'monospace',
+				fontSize: '14px',
+				color: '#f59e0b',
+				stroke: '#1c1917',
+				strokeThickness: 4
+			})
+			.setOrigin(0.5, 1)
+			.setDepth(21)
+			.setVisible(false);
 		this.#createWorkBar();
 		this.#createVfxEmitters();
 
@@ -198,6 +214,7 @@ export class StudioScene extends Phaser.Scene {
 			this.scale.off(Phaser.Scale.Events.RESIZE, this.#applyRoomViewport, this);
 			this.#hideBark(true);
 			this.#destroyVfx();
+			this.#attentionMark?.destroy();
 			this.#bridge.setCommandHandler(null);
 		});
 	}
@@ -208,7 +225,7 @@ export class StudioScene extends Phaser.Scene {
 		this.#syncDomInputFocus();
 
 		const phase = this.#snapshot?.phase ?? 'idle';
-		this.#working = phase === 'generating' || phase === 'critiquing';
+		this.#working = playerDeskLocked(phase);
 
 		if (this.#working) {
 			this.#snapPlayerToDesk();
@@ -225,6 +242,7 @@ export class StudioScene extends Phaser.Scene {
 		this.#updateWorkBar();
 		this.#syncWorkParticles();
 		this.#updateInteractPrompt();
+		this.#updateAttentionMark();
 		this.#updateBarks();
 		if (!this.#working && this.#consumeInteract()) {
 			this.#tryInteract();
@@ -348,7 +366,8 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#updateWorkBar(): void {
-		if (!this.#working) {
+		const phase = this.#snapshot?.phase ?? 'idle';
+		if (phase !== 'generating' && phase !== 'critiquing') {
 			this.#workBarBg.setVisible(false);
 			this.#workBarFill.setVisible(false);
 			return;
@@ -649,6 +668,7 @@ export class StudioScene extends Phaser.Scene {
 		const snap = this.#snapshot;
 		if (!this.#mum || !snap) return false;
 		if (snap.residentClientArmed && snap.phase === 'idle') return true;
+		if (snap.modelLoading && snap.phase === 'idle') return true;
 		if (snap.client?.clientName === 'Mum') return true;
 		return false;
 	}
@@ -1402,6 +1422,14 @@ export class StudioScene extends Phaser.Scene {
 			}
 		}
 
+		if (phase === 'critiquing') {
+			const npc = this.#commissionNpc();
+			if (npc) {
+				const d = Phaser.Math.Distance.Between(px, py, npc.x, npc.y);
+				if (d < INTERACT_RANGE_PX) return { kind: 'talk' };
+			}
+		}
+
 		if (phase === 'results') {
 			const npc = this.#commissionNpc();
 			if (npc) {
@@ -1524,6 +1552,71 @@ export class StudioScene extends Phaser.Scene {
 		const label = interactPromptLabel(this.#interactPromptKind(target));
 		this.#prompt.setVisible(false);
 		this.#promptLabel.setText(label).setPosition(x, y).setVisible(true);
+	}
+
+	#readyForCommission(): boolean {
+		const snap = this.#snapshot;
+		return Boolean(snap?.residentClientArmed) || Boolean(this.#client && this.#clientArrived);
+	}
+
+	#promptOnKinds(kinds: ReadonlySet<string>): boolean {
+		if (!this.#promptLabel?.visible) return false;
+		const target = this.#nearestTarget();
+		return target != null && kinds.has(target.kind);
+	}
+
+	/** World position for the spec-29 `!` mark, or null when there is no host sprite. */
+	#attentionHost(): { x: number; y: number; promptOnNpc: boolean } | null {
+		const snap = this.#snapshot;
+		if (!snap) return null;
+		if (this.#mumIsCommissionTarget() && this.#mum) {
+			return {
+				x: this.#mum.x,
+				y: this.#mum.y,
+				promptOnNpc: this.#promptOnKinds(TALK_OR_DELIVER)
+			};
+		}
+		if (this.#client && this.#clientArrived) {
+			return {
+				x: this.#client.x,
+				y: this.#client.y,
+				promptOnNpc: this.#promptOnKinds(TALK_OR_DELIVER)
+			};
+		}
+		if (this.#receptionist && snap.receptionistVisible) {
+			return {
+				x: this.#receptionist.x,
+				y: this.#receptionist.y,
+				promptOnNpc: this.#promptOnKinds(RECEPTION_KIND)
+			};
+		}
+		const channel = snap.commissionChannel ?? 'none';
+		if ((channel === 'letterbox' || channel === 'computer') && this.#readyForCommission()) {
+			const anchor = receptionistAnchor(this.#room);
+			return {
+				x: anchor.tx * TILE_SIZE + TILE_SIZE / 2,
+				y: anchor.ty * TILE_SIZE + TILE_SIZE / 2,
+				promptOnNpc: this.#promptOnKinds(RECEPTION_KIND)
+			};
+		}
+		return null;
+	}
+
+	#updateAttentionMark(): void {
+		if (!this.#attentionMark) return;
+		const snap = this.#snapshot;
+		const attention = npcAttention({
+			phase: snap?.phase ?? 'idle',
+			modelLoading: snap?.modelLoading === true,
+			readyForCommission: this.#readyForCommission()
+		});
+		const host = this.#attentionHost();
+		const show = host != null && showAttentionMark(attention, host.promptOnNpc);
+		if (!show || !host) {
+			this.#attentionMark.setVisible(false);
+			return;
+		}
+		this.#attentionMark.setPosition(host.x, host.y - 22).setVisible(true);
 	}
 
 	#consumeInteract(): boolean {

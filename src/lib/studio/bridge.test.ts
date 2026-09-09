@@ -13,7 +13,8 @@ const snapshot: StudioSnapshot = {
 	hiredRoleIds: [],
 	reducedVfx: false,
 	commissionChannel: 'none',
-	receptionistVisible: false
+	receptionistVisible: false,
+	modelLoading: false
 };
 
 describe('StudioBridge', () => {

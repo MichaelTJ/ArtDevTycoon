@@ -48,6 +48,60 @@ const base = {
 	ondecline: vi.fn()
 };
 
+test('idle busyLine shows Mum loading copy and keeps Practice', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'idle',
+		busyLine: {
+			speaker: 'Mum',
+			text: "Sorry hun, I'm just busy for a second. Maybe you want to practice for a bit.",
+			footnote: '(model loading)'
+		}
+	});
+	await expect.element(screen.getByText(/Sorry hun/)).toBeVisible();
+	await expect.element(screen.getByText('(model loading)')).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Practice at the desk' })).toBeVisible();
+});
+
+test('idle busyLine keeps Practice even when a client is summoned', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'idle',
+		clientSummoned: true,
+		busyLine: {
+			speaker: 'Mum',
+			text: "Sorry hun, I'm just busy for a second. Maybe you want to practice for a bit.",
+			footnote: '(model loading)'
+		}
+	});
+	await expect.element(screen.getByRole('button', { name: 'Practice at the desk' })).toBeVisible();
+	expect(screen.container.textContent).not.toContain('Someone wants to talk');
+});
+
+test('critiquing busyLine shows taking-it-in copy above the stall', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'critiquing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		currentArtwork: artwork,
+		busyLine: {
+			speaker: 'Mum',
+			text: 'Wow! Let me make sure I see all your beautiful work!',
+			footnote: null
+		}
+	});
+	await expect.element(screen.getByText(/beautiful work/)).toBeVisible();
+});
+
+test('idle without busyLine still tells the player someone wants to talk', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'idle',
+		clientSummoned: true
+	});
+	await expect.element(screen.getByText(/Someone wants to talk/)).toBeVisible();
+});
+
 test('idle Practice button fires onpractice', async () => {
 	const onpractice = vi.fn();
 	const screen = render(StudioHudOverlay, { ...base, phase: 'idle', onpractice });

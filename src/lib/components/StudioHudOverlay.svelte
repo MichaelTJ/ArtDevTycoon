@@ -81,6 +81,10 @@
 		onpractice?: () => void;
 		onpracticetick?: (deltaMs: number) => void;
 		onexitpractice?: () => void;
+		/** Spec 29 — engine is downloading/compiling. Default false. */
+		modelLoading?: boolean;
+		/** Spec 29 — busy/critique flavour copy for the desk card. */
+		busyLine?: { speaker: string; text: string; footnote: string | null } | null;
 	}
 
 	let {
@@ -122,7 +126,9 @@
 		rankUpLabel = null,
 		onpractice,
 		onpracticetick,
-		onexitpractice
+		onexitpractice,
+		modelLoading = false,
+		busyLine = null
 	}: Props = $props();
 
 	let sketchHasStrokes = $state(false);
@@ -164,7 +170,17 @@
 	function activeMediumTier(): (typeof MEDIUM_TIERS)[number] {
 		return MEDIUM_TIERS.find((tier) => tier.id === activeMediumTierId) ?? MEDIUM_TIERS[0]!;
 	}
+
+	const showPracticeButton = $derived(!clientSummoned || Boolean(busyLine) || modelLoading);
 </script>
+
+{#snippet busyCopy(line: { speaker: string; text: string; footnote: string | null })}
+	<p class="text-sm font-medium text-stone-700">{line.speaker}</p>
+	<p class="text-stone-800">{line.text}</p>
+	{#if line.footnote}
+		<p class="text-sm text-stone-500">{line.footnote}</p>
+	{/if}
+{/snippet}
 
 {#snippet mediumPicker(locked: boolean)}
 	<div
@@ -224,13 +240,17 @@
 			<p class="text-sm text-stone-600">Walk with WASD or arrows · press E to talk</p>
 			{#if floorInteract}
 				<div class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm">
-					<p class="text-stone-800">
-						{clientSummoned
-							? 'Someone wants to talk — walk over and press E.'
-							: idleMessage || 'A client will walk in shortly.'}
-					</p>
+					{#if busyLine}
+						{@render busyCopy(busyLine)}
+					{:else}
+						<p class="text-stone-800">
+							{clientSummoned
+								? 'Someone wants to talk — walk over and press E.'
+								: idleMessage || 'A client will walk in shortly.'}
+						</p>
+					{/if}
 				</div>
-				{#if !clientSummoned}
+				{#if showPracticeButton}
 					<button
 						type="button"
 						class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 font-semibold text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
@@ -251,7 +271,10 @@
 					</button>
 				{/if}
 			{:else}
-				<IdlePanel {oninvite} {onpractice} message={idleMessage} />
+				<IdlePanel {oninvite} {onpractice} message={busyLine?.text ?? idleMessage} />
+				{#if busyLine?.footnote}
+					<p class="text-sm text-stone-500">{busyLine.footnote}</p>
+				{/if}
 			{/if}
 		{/if}
 	{:else if phase === 'briefing'}
@@ -329,6 +352,11 @@
 	{:else if phase === 'critiquing' && currentArtwork}
 		{#if currentClient}
 			<ClientCard brief={currentClient} />
+		{/if}
+		{#if busyLine}
+			<div class="rounded-xl border border-stone-300 bg-white p-4 shadow-sm">
+				{@render busyCopy(busyLine)}
+			</div>
 		{/if}
 		<ArtworkFrame
 			imageUrl={currentArtwork.imageUrl}

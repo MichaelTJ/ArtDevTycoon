@@ -11,7 +11,8 @@
 		ModelDownloadGate,
 		MyPcSetup,
 		StudioFloor,
-		StudioHudOverlay
+		StudioHudOverlay,
+		EngineLoadSpinner
 	} from '$lib/components';
 	import {
 		attachAudioUnlock,
@@ -20,6 +21,7 @@
 		studioAudio
 	} from '$lib/audio';
 	import { getEnvironmentForLevel } from '$lib/data/environments';
+	import { busyChannelForVenue, npcBusyLine } from '$lib/data/npcBusyDialogue';
 	import { getLayout } from '$lib/data/galleryLayouts';
 	import { getStaffRole } from '$lib/data/staffRoles';
 	import { STUDIO_FLOOR_ENABLED } from '$lib/studio/config';
@@ -47,6 +49,7 @@
 	let pendingEngineId = $state<EngineId | null>(null);
 	let selectedEntry: GalleryEntry | null = $state(null);
 	let clientSummoned = $state(false);
+	let npcTalkIndex = $state(0);
 	let sketchExporter: (() => Promise<Blob | null>) | null = $state(null);
 	/** Bumped when Phaser emits open-shop / toolkit (spec 21b). */
 	let openToolkitNonce = $state(0);
@@ -118,6 +121,24 @@
 		engines.isBusy ? `Loading ${activeEngineLabel}…` : 'Loading art engines…'
 	);
 
+	const busyLine = $derived.by(() => {
+		if (engines.isBusy && game.phase === 'idle') {
+			return npcBusyLine({
+				reason: 'model-loading',
+				channel: busyChannelForVenue(game.unlockedVenueId),
+				talkIndex: npcTalkIndex
+			});
+		}
+		if (game.phase === 'critiquing') {
+			return npcBusyLine({
+				reason: 'critiquing',
+				channel: game.currentClient?.clientName === 'Mum' ? 'mum' : 'visitor',
+				talkIndex: npcTalkIndex
+			});
+		}
+		return null;
+	});
+
 	const loadStage = $derived.by((): 'downloading' | 'loading' | 'compiling' => {
 		const status = engines.loadProgress?.status;
 		if (status === 'compiling') {
@@ -166,11 +187,16 @@
 			hiredRoleIds: game.hiredStaffIds,
 			reducedVfx,
 			receptionistVisible: game.receptionistAvailable,
-			commissionChannel: game.commissionChannel
+			commissionChannel: game.commissionChannel,
+			modelLoading: engines.isBusy
 		});
 	}
 
 	function summonClient(): void {
+		if (engines.isBusy) {
+			game.rescheduleAutoInvite();
+			return;
+		}
 		if (game.phase !== 'idle' || clientSummoned) return;
 		clientSummoned = true;
 		studioBridge.send({ type: 'summon-client' });
@@ -178,7 +204,15 @@
 	}
 
 	function talkToClient(): void {
+		if (game.phase === 'critiquing') {
+			npcTalkIndex += 1;
+			return;
+		}
 		if (game.phase !== 'idle') return;
+		if (engines.isBusy) {
+			npcTalkIndex += 1;
+			return;
+		}
 		game.inviteClient();
 		clientSummoned = false;
 		syncStudio();
@@ -188,6 +222,10 @@
 	}
 
 	function openReceptionDesk(): void {
+		if (engines.isBusy) {
+			npcTalkIndex += 1;
+			return;
+		}
 		if (!game.commissionBoardAvailable || game.phase !== 'idle') return;
 		boardOffers = game.pickCommissionBoardOffers(3);
 		showReceptionDesk = true;
@@ -262,6 +300,9 @@
 		}
 	});
 
+	let prevPhaseForTalk: typeof game.phase | null = null;
+	let prevBusyForTalk = false;
+
 	$effect(() => {
 		void game.phase;
 		void game.currentClient;
@@ -276,6 +317,15 @@
 		void clientSummoned;
 		void kitchenHasMum;
 		void reducedVfx;
+		void engines.isBusy;
+		if (
+			(prevPhaseForTalk === 'critiquing' && game.phase !== 'critiquing') ||
+			(prevBusyForTalk && !engines.isBusy)
+		) {
+			npcTalkIndex = 0;
+		}
+		prevPhaseForTalk = game.phase;
+		prevBusyForTalk = engines.isBusy;
 		syncStudio();
 		if (game.phase !== 'idle') {
 			clientSummoned = false;
@@ -474,6 +524,14 @@
 			{/snippet}
 		</GameMenuBar>
 
+		{#snippet engineSpinner()}
+			<EngineLoadSpinner
+				visible={engines.isBusy}
+				label={`Loading ${engines.activeDisplayName}…`}
+				reducedMotion={reducedVfx}
+			/>
+		{/snippet}
+
 		{#if STUDIO_FLOOR_ENABLED && environment.id === 'home-kitchen'}
 			<div class="studio-shell grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
 				<div class="flex flex-col gap-3">
@@ -528,7 +586,10 @@
 					onpractice={() => game.enterPractice()}
 					onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
 					onexitpractice={() => game.exitPractice()}
+					modelLoading={engines.isBusy}
+					{busyLine}
 				/>
+				{@render engineSpinner()}
 				{#if game.phase === 'briefing' && game.currentClient}
 					<button
 						type="button"
@@ -578,8 +639,14 @@
 							sketchExporter = fn;
 						}}
 						onconfirmsubmit={(choice) => void confirmSubmitChoice(choice)}
-						oninvite={() => game.inviteClient()}
-						ontalk={() => game.inviteClient()}
+						oninvite={() => {
+							if (engines.isBusy) {
+								npcTalkIndex += 1;
+								return;
+							}
+							game.inviteClient();
+						}}
+						ontalk={talkToClient}
 						ondeliver={() => void game.collectCash()}
 						onsubmit={() => void submitCommission()}
 						oncollect={() => void game.collectCash()}
@@ -592,9 +659,12 @@
 						onpractice={() => game.enterPractice()}
 						onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
 						onexitpractice={() => game.exitPractice()}
+						modelLoading={engines.isBusy}
+						{busyLine}
 					/>
 				{/snippet}
 			</GameScene>
+			{@render engineSpinner()}
 		{/if}
 	</div>
 </main>

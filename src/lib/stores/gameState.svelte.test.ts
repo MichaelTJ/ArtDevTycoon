@@ -1322,6 +1322,46 @@ describe('GameStore', () => {
 		}
 	});
 
+	it('rescheduleAutoInvite re-runs the idle auto-invite timer', () => {
+		vi.useFakeTimers();
+		try {
+			const action = vi.fn();
+			const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+			store.setAutoInviteAction(action);
+
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS - 1);
+			expect(action).not.toHaveBeenCalled();
+
+			store.rescheduleAutoInvite();
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS - 1);
+			expect(action).not.toHaveBeenCalled();
+
+			vi.advanceTimersByTime(1);
+			expect(action).toHaveBeenCalledOnce();
+			expect(store.phase).toBe('idle');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('rescheduleAutoInvite does not invite during briefing', () => {
+		vi.useFakeTimers();
+		try {
+			const action = vi.fn();
+			const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+			store.setAutoInviteAction(action);
+			store.inviteClient();
+			expect(store.phase).toBe('briefing');
+
+			store.rescheduleAutoInvite();
+			vi.advanceTimersByTime(BASE_AUTO_INVITE_DELAY_MS);
+			expect(action).not.toHaveBeenCalled();
+			expect(store.phase).toBe('briefing');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it('setAutoInviteAction overrides Marketing Director arrival without changing phase', () => {
 		vi.useFakeTimers();
 		try {

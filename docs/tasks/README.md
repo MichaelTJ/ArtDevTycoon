@@ -181,6 +181,7 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP + polish:** briefing medium picker / My idea (P24); ink charcoal B&W (P22); crayon/pencil/ink/watercolour on `SketchCanvas` | 11, 13; P16 / P22 / P24 |
 | 27  | [Medium skill](./27-medium-skill.md)                 | **Shipped:** per-medium Novice→Master ranks; time-based XP; hidden Janus suffix ladder; player + hired artists                    | 13, 20, 24, 25          |
 | 28  | [Practice station](./28-practice-station.md)         | **Shipped:** idle desk practice canvas; stroke-time XP into Spec 27 medium skill                                                  | 27, 17, 25              |
+| 29  | [NPC busy states](./29-npc-busy-states.md)           | Model-load busy copy, walk during critique, `!` attention marks, venue channel lines                                              | 17–21f, 24/P27, engine `isBusy` |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -232,6 +233,9 @@ Wave N  (brush skill — **serial**; 28 overlaps 27's GameStore / overlay)
    ├── 27 Medium skill ✅   → ../adt-wt-medium-skill      branch agent/medium-skill
    └── 28 Practice station ✅ → ../adt-wt-practice-station  branch agent/practice-station
        (refresh from main after 27 merges; do not overlap 27's zone)
+
+Wave O  (NPC busy / critique walk — **do not overlap venue rooms.ts edits on main**)
+   └── 29 NPC busy states → ../adt-wt-npc-busy  branch feat/npc-busy-states
 
 Playtest follow-ups (docs/playtest-notes.md — not separate specs)
    ├── Playtest 3 P19–P23 ✅ (engine load, no level wipe, Mum max, abstract gates, ink)
