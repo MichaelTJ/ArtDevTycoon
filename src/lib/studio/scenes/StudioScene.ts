@@ -24,7 +24,7 @@ import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
 import { applyDomEditableKeyboardGate } from '../domInputKeyboardGate';
 import { CLIENT_SPEED, INTERACT_KEYS, INTERACT_RANGE_PX, PLAYER_SPEED, TILE_SIZE } from '../config';
-import { slotsForVenue, type EaselSlot } from '../easelLayout';
+import { easelStandFrame, slotsForVenue, type EaselSlot } from '../easelLayout';
 import {
 	FRIDGE,
 	fridgeBarkLine,
@@ -55,6 +55,7 @@ import {
 import { getRoomForVenue } from '../venueRooms';
 import { getTileset } from '$lib/studio-editor/catalog';
 import { resolvePersonLook } from '$lib/studio-editor/apply';
+import { buildGroundTilemap } from '../tilemapBuild';
 import {
 	CASH_BURST_COUNT,
 	CASH_BURST_LIFESPAN_MS,
@@ -83,7 +84,7 @@ interface InteractPropView {
 
 interface EaselView {
 	slot: EaselSlot;
-	stand: Phaser.GameObjects.Image;
+	stand: Phaser.GameObjects.Image | null;
 	art: Phaser.GameObjects.Image | null;
 	entryId: string | null;
 }
@@ -263,7 +264,7 @@ export class StudioScene extends Phaser.Scene {
 		this.#nextBarkAt = null;
 
 		for (const view of this.#easels) {
-			view.stand.destroy();
+			view.stand?.destroy();
 			view.art?.destroy();
 		}
 		this.#easels = [];
@@ -460,33 +461,16 @@ export class StudioScene extends Phaser.Scene {
 	}
 
 	#buildTilemap(): void {
-		const { width, height, ground, collision, groundSheets, tilesetId } = this.#room;
+		const { width, height, collision, tilesetId } = this.#room;
 		const spec = getTileset(tilesetId ?? 'tiny-dungeon');
-		const data: number[][] = [];
-		const overlays: { x: number; y: number; key: string; frame: number }[] = [];
-		for (let y = 0; y < height; y++) {
-			const row: number[] = [];
-			for (let x = 0; x < width; x++) {
-				const i = y * width + x;
-				const sheetId = groundSheets?.[i];
-				const usesOverlay = !!sheetId && sheetId !== spec.id;
-				if (usesOverlay) {
-					row.push(collision[i] === 1 ? spec.defaultWall : spec.defaultFloor);
-					const overlaySpec = getTileset(sheetId);
-					overlays.push({
-						x,
-						y,
-						key: overlaySpec.framePhaserKey,
-						frame: ground[i] ?? 0
-					});
-				} else {
-					row.push(ground[i] ?? 0);
-				}
-			}
-			data.push(row);
-		}
+		const { data, overlays } = buildGroundTilemap(this.#room);
 
-		const map = this.make.tilemap({ data, tileWidth: TILE_SIZE, tileHeight: TILE_SIZE });
+		const map = this.make.tilemap({
+			data,
+			tileWidth: TILE_SIZE,
+			tileHeight: TILE_SIZE,
+			insertNull: true
+		});
 		const tileset = map.addTilesetImage(
 			spec.phaserKey,
 			spec.phaserKey,
@@ -538,9 +522,9 @@ export class StudioScene extends Phaser.Scene {
 			const sprite = this.#furnitureGroup.create(
 				prop.tx * TILE_SIZE + TILE_SIZE / 2,
 				prop.ty * TILE_SIZE + TILE_SIZE / 2,
-				sheet,
-				prop.frame
+				sheet
 			) as Phaser.Physics.Arcade.Sprite;
+			sprite.setFrame(prop.frame);
 			sprite.setDepth(5);
 			if (!prop.solid) {
 				sprite.disableBody(true, false);
@@ -566,7 +550,7 @@ export class StudioScene extends Phaser.Scene {
 	#setFridgeOpen(open: boolean, emitBark: boolean): void {
 		this.#fridgeOpen = open;
 		const fridge = this.#interactProps.find((p) => p.id === 'fridge');
-		if (fridge) {
+		if (fridge && fridge.sprite.texture.key === 'furniture') {
 			fridge.sprite.setFrame(open ? FRIDGE.openFrame : FRIDGE.closedFrame);
 		}
 		this.#cancelFridgeAutoClose();
@@ -1300,7 +1284,7 @@ export class StudioScene extends Phaser.Scene {
 
 	#rebuildEasels(): void {
 		for (const view of this.#easels) {
-			view.stand.destroy();
+			view.stand?.destroy();
 			view.art?.destroy();
 		}
 		this.#easels = [];
@@ -1316,8 +1300,11 @@ export class StudioScene extends Phaser.Scene {
 			const slot = slots[i]!;
 			const x = slot.tx * TILE_SIZE + TILE_SIZE / 2;
 			const y = slot.ty * TILE_SIZE + TILE_SIZE / 2;
-			const frame = slot.kind === 'magnet' ? 2 : 4;
-			const stand = this.add.image(x, y, 'furniture', frame).setDepth(6);
+			const standFrame = easelStandFrame(slot, this.#room);
+			const stand =
+				standFrame === null
+					? null
+					: this.add.image(x, y, 'furniture', standFrame).setDepth(6);
 			const entry = entries[i] ?? null;
 			let art: Phaser.GameObjects.Image | null = null;
 			if (entry && isSafeStudioImageUrl(entry.imageUrl)) {

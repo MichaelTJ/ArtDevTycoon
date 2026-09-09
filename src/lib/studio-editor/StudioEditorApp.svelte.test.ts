@@ -45,14 +45,14 @@ test('wall and furniture palettes recolor every matching sprite', async () => {
 		.element(screen.getByRole('button', { name: 'Change wall sprite tiny-dungeon 14' }))
 		.toBeVisible();
 
-	await screen.getByRole('button', { name: 'Change floor sprite tiny-dungeon 0' }).click();
+	await screen.getByRole('button', { name: 'Change floor sprite home-interior 148' }).click();
 	await expect.element(screen.getByRole('dialog', { name: 'Change floor sprite' })).toBeVisible();
 	await screen.getByRole('button', { name: 'Home interior tile 0', exact: true }).click();
 	await expect
 		.element(screen.getByRole('button', { name: 'Change floor sprite home-interior 0' }))
 		.toBeVisible();
 
-	await screen.getByRole('button', { name: 'Change furniture sprite furniture 0' }).click();
+	await screen.getByRole('button', { name: 'Change furniture sprite home-indoor-props 338' }).click();
 	await expect
 		.element(screen.getByRole('dialog', { name: 'Change furniture sprite' }))
 		.toBeVisible();

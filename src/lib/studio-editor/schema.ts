@@ -9,7 +9,8 @@ import {
 	type TilesetId
 } from './catalog';
 
-export const STUDIO_EDITOR_STORAGE_KEY = 'adt.studio-editor.v1';
+/** v2 drops pre-Pokémon-wall drafts that still boxed the room perimeter. */
+export const STUDIO_EDITOR_STORAGE_KEY = 'adt.studio-editor.v2';
 
 const tileMarkerSchema = z.object({
 	tx: z.number().int().nonnegative(),

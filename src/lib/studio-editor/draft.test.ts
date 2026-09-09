@@ -22,6 +22,7 @@ describe('studio-editor drafts', () => {
 
 		const painted = applyTileEdit(kitchen, 2, 2, {
 			ground: INTERIOR.woodFloor,
+			groundSheet: SHEET.interior,
 			walkable: false,
 			furnitureFrame: INDOOR.stool,
 			furnitureSheet: SHEET.indoorProps,

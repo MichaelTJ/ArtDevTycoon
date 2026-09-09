@@ -3,8 +3,10 @@
  * and Kenney Tiny Dungeon `walls-floors`.
  * Indices match Phaser spritesheet frames (see `studio-editor/catalog.ts`).
  *
- * **Pokémon-style walls:** north band only (y=0..1), Tiny Dungeon frame 40 via
- * `groundSheets: 'tiny-dungeon'`. Left/right/bottom edges stay open floor.
+ * **Pokémon-style walls:** north band only (y=0..1), Tiny Dungeon frame 40 on the
+ * primary `tiny-dungeon` tileset (native colliding bricks). Floors overlay
+ * home-interior on empty cells so the room meets letterbox black. Left/right/bottom
+ * stay walkable — no cottage "outer box" walls.
  *
  * **Floors:** home-indoor frame 0 is a tabletop — use home-interior plank fills.
  * Furniture props still come from home-indoor / home-interior prop sheets.

@@ -227,7 +227,7 @@ function paintGroundPatch(
 function buildKitchen(): RoomDef {
 	const width = 6;
 	const height = 6;
-	const tilesetId = SHEET.indoor;
+	const tilesetId = SHEET.dungeon;
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(INDOOR.floor);
 	const groundSheets = new Array<string | undefined>(width * height);
@@ -302,7 +302,7 @@ function buildKitchen(): RoomDef {
 function buildGarage(): RoomDef {
 	const width = 12;
 	const height = 10;
-	const tilesetId = SHEET.indoor;
+	const tilesetId = SHEET.dungeon;
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(INDOOR.floorGrey);
 	const groundSheets = new Array<string | undefined>(width * height);
@@ -361,7 +361,7 @@ function buildGarage(): RoomDef {
 function buildStorefront(): RoomDef {
 	const width = 18;
 	const height = 12;
-	const tilesetId = SHEET.indoor;
+	const tilesetId = SHEET.dungeon;
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(INDOOR.floor);
 	const groundSheets = new Array<string | undefined>(width * height);
@@ -424,11 +424,12 @@ function buildStorefront(): RoomDef {
 function buildGalleryHall(): RoomDef {
 	const width = 22;
 	const height = 14;
-	const tilesetId = SHEET.interior;
+	const tilesetId = SHEET.dungeon;
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
+	fillFloor(width, height, ground, groundSheets, tilesetId, INTERIOR.woodFloor, SHEET.interior);
 	paintNorthWallBand(width, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 5, ty: 0 };
@@ -439,7 +440,7 @@ function buildGalleryHall(): RoomDef {
 		groundSheets,
 		door.tx,
 		INTERIOR.woodFloor,
-		undefined,
+		SHEET.interior,
 		tilesetId
 	);
 
@@ -448,6 +449,7 @@ function buildGalleryHall(): RoomDef {
 		for (let x = 14; x <= 17; x++) {
 			if (collision[idx(width, x, y)] === 0) {
 				ground[idx(width, x, y)] = INTERIOR.carpetPurple;
+				groundSheets[idx(width, x, y)] = SHEET.interior;
 			}
 		}
 	}
@@ -485,11 +487,12 @@ function buildGalleryHall(): RoomDef {
 export function buildMegaMuseum(): RoomDef {
 	const width = 28;
 	const height = 16;
-	const tilesetId = SHEET.interior;
+	const tilesetId = SHEET.dungeon;
 	const collision = new Array<number>(width * height).fill(0);
 	const ground = new Array<number>(width * height).fill(INTERIOR.woodFloor);
 	const groundSheets = new Array<string | undefined>(width * height);
 
+	fillFloor(width, height, ground, groundSheets, tilesetId, INTERIOR.woodFloor, SHEET.interior);
 	paintNorthWallBand(width, collision, ground, groundSheets, tilesetId);
 
 	const door = { tx: 6, ty: 0 };
@@ -500,7 +503,7 @@ export function buildMegaMuseum(): RoomDef {
 		groundSheets,
 		door.tx,
 		INTERIOR.woodFloor,
-		undefined,
+		SHEET.interior,
 		tilesetId
 	);
 
@@ -509,6 +512,7 @@ export function buildMegaMuseum(): RoomDef {
 		for (let x = 12; x <= 15; x++) {
 			if (collision[idx(width, x, y)] === 0) {
 				ground[idx(width, x, y)] = INTERIOR.carpetBlue;
+				groundSheets[idx(width, x, y)] = SHEET.interior;
 			}
 		}
 	}
@@ -518,6 +522,7 @@ export function buildMegaMuseum(): RoomDef {
 		for (let x = 22; x <= 24; x++) {
 			if (collision[idx(width, x, y)] === 0) {
 				ground[idx(width, x, y)] = INTERIOR.carpetRed;
+				groundSheets[idx(width, x, y)] = SHEET.interior;
 			}
 		}
 	}

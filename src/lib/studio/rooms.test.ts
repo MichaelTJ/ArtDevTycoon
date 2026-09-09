@@ -121,20 +121,9 @@ describe('rooms', () => {
 		}
 	});
 
-	it('authored rooms use home packs for floors — tiny-dungeon only on walls', () => {
-		const expected: Record<RoomId, string> = {
-			'home-kitchen': SHEET.indoor,
-			'art-room': SHEET.indoor,
-			studio: SHEET.indoor,
-			gallery: SHEET.interior,
-			'mega-museum': SHEET.interior
-		};
-		for (const [id, tilesetId] of Object.entries(expected)) {
-			expect(ROOMS[id as RoomId].tilesetId).toBe(tilesetId);
-		}
+	it('authored rooms use tiny-dungeon as the colliding wall tileset', () => {
 		for (const room of Object.values(ROOMS)) {
-			expect(room.tilesetId).not.toBe('tiny-dungeon');
-			expect(room.tilesetId).toBeDefined();
+			expect(room.tilesetId).toBe(SHEET.dungeon);
 			for (const prop of room.furniture) {
 				expect(prop.sheet).toBeDefined();
 				expect(prop.sheet).not.toBe('furniture');
@@ -175,7 +164,7 @@ describe('rooms', () => {
 					} else {
 						expect(room.collision[i]).toBe(1);
 						expect(room.ground[i]).toBe(DUNGEON.wall);
-						expect(room.groundSheets?.[i]).toBe(SHEET.dungeon);
+						expect(room.groundSheets?.[i]).toBeUndefined();
 					}
 				}
 			}

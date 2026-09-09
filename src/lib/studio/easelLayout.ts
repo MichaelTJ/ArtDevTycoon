@@ -14,6 +14,25 @@ export interface EaselSlot {
 	kind: 'magnet' | 'easel';
 }
 
+/** Kenney furniture.png block used for freestanding easels. */
+export const EASEL_STAND_FRAME = 4;
+
+function furnitureAt(room: RoomDef, tx: number, ty: number): boolean {
+	return room.furniture.some((prop) => prop.tx === tx && prop.ty === ty);
+}
+
+/**
+ * Furniture.png frame for a freestanding easel, or `null` to keep the room tile
+ * (fridge cabinets, painted fridge sprites, counters). Magnets never spawn a
+ * stand — they hang on the existing sprite.
+ */
+export function easelStandFrame(slot: EaselSlot, room: RoomDef): number | null {
+	if (slot.kind === 'magnet') return null;
+	if (furnitureAt(room, slot.tx, slot.ty)) return null;
+	if (roomFridgeAnchors(room).some((marker) => markersEqual(marker, slot))) return null;
+	return EASEL_STAND_FRAME;
+}
+
 const VENUE_SLOT_COUNTS: Record<string, number> = {
 	fridge: 3,
 	garage: 6,

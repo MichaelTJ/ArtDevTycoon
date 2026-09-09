@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { slotsForVenue } from './easelLayout';
+import { EASEL_STAND_FRAME, easelStandFrame, slotsForVenue } from './easelLayout';
 import { ROOMS } from './rooms';
 import { getRoomForVenue } from './venueRooms';
 
@@ -62,8 +62,58 @@ describe('slotsForVenue', () => {
 		};
 		const slots = slotsForVenue('fridge', kitchen);
 		expect(slots).toHaveLength(3);
-		expect(slots.some((slot) => slot.tx === 1 && slot.ty === 1)).toBe(true);
+		expect(slots.some((slot) => slot.tx === 1 && slot.ty === 2)).toBe(true);
 		expect(slots.some((slot) => slot.tx === 4 && slot.ty === 4)).toBe(true);
+	});
+
+	it('does not cover fridge cabinets or magnet slots with a furniture stand', () => {
+		const kitchen = ROOMS['home-kitchen'];
+		const fridge = kitchen.furniture.find((prop) => prop.interactableId === 'fridge');
+		expect(fridge).toBeDefined();
+		const fridgeSlot = slotsForVenue('fridge', kitchen).find(
+			(slot) => slot.tx === fridge!.tx && slot.ty === fridge!.ty
+		);
+		expect(fridgeSlot?.kind).toBe('magnet');
+		expect(easelStandFrame(fridgeSlot!, kitchen)).toBeNull();
+
+		for (const slot of slotsForVenue('fridge', kitchen)) {
+			expect(easelStandFrame(slot, kitchen)).toBeNull();
+		}
+
+		const twoTileFridge = {
+			...kitchen,
+			fridgeAnchors: [{ tx: fridge!.tx, ty: fridge!.ty + 1 }],
+			furniture: [
+				...kitchen.furniture,
+				{
+					frame: fridge!.frame,
+					tx: fridge!.tx,
+					ty: fridge!.ty + 1,
+					solid: true,
+					sheet: fridge!.sheet
+				}
+			]
+		};
+		const extraSlot = slotsForVenue('fridge', twoTileFridge).find(
+			(slot) => slot.tx === fridge!.tx && slot.ty === fridge!.ty + 1
+		);
+		expect(extraSlot).toBeDefined();
+		expect(easelStandFrame(extraSlot!, twoTileFridge)).toBeNull();
+
+		const storefront = getRoomForVenue('storefront');
+		const fridgeCells = new Set(
+			[storefront.fridgeAnchor, ...(storefront.fridgeAnchors ?? [])].map(
+				(marker) => `${marker.tx},${marker.ty}`
+			)
+		);
+		const easel = slotsForVenue('storefront', storefront).find(
+			(slot) =>
+				slot.kind === 'easel' &&
+				!fridgeCells.has(`${slot.tx},${slot.ty}`) &&
+				!storefront.furniture.some((prop) => prop.tx === slot.tx && prop.ty === slot.ty)
+		);
+		expect(easel?.kind).toBe('easel');
+		expect(easelStandFrame(easel!, storefront)).toBe(EASEL_STAND_FRAME);
 	});
 
 	it('never produces out-of-bounds slots on 6×6 kitchen', () => {

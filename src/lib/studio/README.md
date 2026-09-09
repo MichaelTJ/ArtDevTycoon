@@ -12,7 +12,8 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `createPhaserGame(parent, bridge, options?)`              | Boots Phaser; `initialVenueId` picks the plan          |
 | `getRoomForVenue` / `roomIdForVenue`                      | Progressive gallery venue → authored floor             |
 | `getRoomForEnvironment` / `ROOMS`                         | Tile grids + markers (Level env stubs too)             |
-| `slotsForVenue`                                           | Venue → easel/magnet anchors                           |
+| `slotsForVenue` / `easelStandFrame`                       | Venue → easel/magnet anchors; no stand on fridge tiles |
+| `buildGroundTilemap`                                      | Primary GIDs + off-sheet overlays (`insertNull` empty) |
 | `nextWanderTarget` / `stepToward` / `withPath`            | Pure Mum patrol + path-queue helpers                   |
 | `findPath` / `findPathInRoom`                             | 4-neighbour BFS on room collision (spec 21f)           |
 | `interactPromptLabel` / `prefersReducedMotion`            | Contextual E verbs + motion helper (21f)               |

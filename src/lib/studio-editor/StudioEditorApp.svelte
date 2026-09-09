@@ -220,7 +220,7 @@
 			</div>
 
 			<div
-				class="mt-4 inline-grid max-w-full gap-px overflow-auto rounded-lg border border-stone-400 bg-stone-400 p-px"
+				class="mt-4 inline-grid max-w-full overflow-auto bg-black"
 				style:grid-template-columns="repeat({draft.width}, 32px)"
 				role="grid"
 				aria-label="{ROOM_LABELS[roomId]} tiles"
@@ -230,7 +230,7 @@
 					{@const letter = markerLetter(cell.tx, cell.ty)}
 					<button
 						type="button"
-						class="relative h-8 w-8 overflow-hidden bg-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+						class="relative h-8 w-8 overflow-hidden bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 						role="gridcell"
 						aria-label="Tile {cell.tx}, {cell.ty}"
 						onclick={() => (selectedTile = { tx: cell.tx, ty: cell.ty })}
@@ -239,6 +239,7 @@
 							sheet={getTileset(groundSheetOf(draft, cell.index))}
 							index={draft.ground[cell.index] ?? 0}
 							scale={2}
+							framed={false}
 							label="Ground at {cell.tx}, {cell.ty}"
 						/>
 						{#if furn}
@@ -247,6 +248,7 @@
 									sheet={getFurnitureSheet(furn.sheet)}
 									index={furn.frame}
 									scale={2}
+									framed={false}
 									label="Furniture at {cell.tx}, {cell.ty}"
 								/>
 							</span>

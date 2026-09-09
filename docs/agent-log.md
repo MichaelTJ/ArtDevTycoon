@@ -3084,3 +3084,32 @@ player picker does not offer it.
 
 **Known gaps:** Modifier-explorer can still select SD-Turbo / remote. No in-game path to
 reconnect My PC.
+
+---
+
+## 2026-09-10 — Venue fridge and letterbox floors
+
+**Zone:** `src/lib/studio/rooms.ts`, `roomTiles.ts`, `easelLayout.ts`, `tilemapBuild.ts`,
+`scenes/StudioScene.ts`, `src/lib/studio-editor/**`
+
+**Built:** Authored rooms use Tiny Dungeon as the colliding north-wall tileset. Walkable
+floors overlay home-interior on empty GIDs so the room meets letterbox black instead of a
+cottage outer box. Fridge magnets no longer spawn a furniture easel stand (painted fridge
+sprite stays). Phaser `insertNull` treats empty cells as no-tile. Studio editor drafts bump
+to `adt.studio-editor.v2` so old boxed-perimeter drafts drop.
+
+**Public surface:** `buildGroundTilemap`, `TILEMAP_EMPTY`, `easelStandFrame`, `EASEL_STAND_FRAME`.
+
+**Tests:**
+
+```
+npm run test:unit -- --run src/lib/studio/tilemapBuild.test.ts src/lib/studio/rooms.test.ts src/lib/studio/easelLayout.test.ts src/lib/studio-editor
+```
+
+**Decisions:** Fridge open/close frame swap only runs when the sprite is still on the
+`furniture` sheet — home-indoor fridge props keep their painted frame.
+
+**Requests:** None.
+
+**Known gaps:** Visual QA still needs a playtest of kitchen fridge magnets and gallery wood
+floors against the letterbox.
