@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
 	applyElapsedSkillMs,
+	ARTIST_IDLE_MS_PER_XP,
+	ARTIST_WORK_MS_PER_XP,
 	clampArtistSkillCatchupMs,
+	COMMISSION_PAINT_MS_PER_XP,
 	grantMediumSkillXp,
 	mediumSkillProgress,
 	mediumSkillXpThresholdForLevel,
-	mediumSkillXpToNext
+	mediumSkillXpToNext,
+	PRACTICE_MS_PER_XP
 } from './mediumSkill';
 
 describe('mediumSkillXpToNext', () => {
@@ -87,6 +91,31 @@ describe('applyElapsedSkillMs', () => {
 			xpGain: 1,
 			remainderMs: 0
 		});
+	});
+
+	it('triples commission paint XP on an 8s generate', () => {
+		expect(
+			applyElapsedSkillMs({
+				elapsedMs: 8000,
+				msPerXp: COMMISSION_PAINT_MS_PER_XP,
+				remainderMs: 0
+			})
+		).toEqual({ xpGain: 3, remainderMs: 2 });
+	});
+
+	it('triples practice XP on a 3s stroke', () => {
+		expect(
+			applyElapsedSkillMs({ elapsedMs: 3000, msPerXp: PRACTICE_MS_PER_XP, remainderMs: 0 })
+		).toEqual({ xpGain: 3, remainderMs: 0 });
+	});
+});
+
+describe('medium-skill rate constants', () => {
+	it('pins the ×3 ms-per-XP table', () => {
+		expect(COMMISSION_PAINT_MS_PER_XP).toBe(2666);
+		expect(PRACTICE_MS_PER_XP).toBe(1000);
+		expect(ARTIST_IDLE_MS_PER_XP).toBe(20000);
+		expect(ARTIST_WORK_MS_PER_XP).toBe(666);
 	});
 });
 

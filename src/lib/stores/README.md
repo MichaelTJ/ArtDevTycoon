@@ -12,6 +12,7 @@ Reactive Svelte 5 stores that wire the domain layer, engine manager, and UI toge
 | `engines.isBusy`            | Derived — true during probe/init or an in-flight engine switch                                         |
 | `displayNameForEngine(id)`  | Static fallback map (`ENGINE_DISPLAY_NAMES`) for menu labels during init                               |
 | `engines.showCrayonNotice`  | Derived — true when `activeId === 'mock'` and the Crayon banner was not dismissed                      |
+| `holdPeakProgress`          | Spec 30 — peak-hold HF overall percents; drop Janus processor/model 15%/90% file remaps                |
 | `game`                      | Singleton {@link GameStore} — commission loop state machine                                            |
 | `game.rescheduleAutoInvite` | Spec 29 — public wrapper around the idle auto-invite timer (retries after a busy no-op summon)         |
 

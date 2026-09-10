@@ -72,7 +72,7 @@
 					class="min-h-11 flex-1 rounded-lg bg-stone-200 px-4 py-2 font-medium text-stone-800 hover:bg-stone-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 					onclick={oncancel}
 				>
-					Use Crayon Mode instead
+					Continue without model
 				</button>
 			</div>
 		{:else if gateState === 'loading'}
@@ -115,7 +115,7 @@
 					class="min-h-11 flex-1 rounded-lg bg-stone-200 px-4 py-2 font-medium text-stone-800 hover:bg-stone-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 					onclick={oncancel}
 				>
-					Use Crayon Mode
+					Continue without model
 				</button>
 			</div>
 		{/if}

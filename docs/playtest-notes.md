@@ -45,6 +45,11 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] Playtest 4: P26 — Mum honesty reveal button copy
 - [x] Playtest 4: P27 — letterbox → computer → receptionist by venue (largest)
 - [x] Playtest 4: P28 — exponential abstract ramp + garage-friendly band-0 copy
+- [x] Playtest 5: P29 — Crayon modal + engine overlay overflow
+- [x] Playtest 5: P30 — Mum gold `!` offset
+- [x] Playtest 5: P31 — studio-editor v1 drafts restore into v2
+- [x] Playtest 5: P32 — medium-skill XP ×3
+- [x] Playtest 5: P33 — welcome tutorial one-pager
 
 ---
 
@@ -117,3 +122,25 @@ Fourth pass after playtest 3 merges. Match to tasks/commits; not fixed yet.
 3. ~~**P25** — skip commission affordance polish~~ **done**
 4. ~~**P28** — garage brief content + slower/exponential abstractness~~ **done**
 5. ~~**P27** — letterbox → computer → receptionist by venue (largest)~~ **done**
+
+---
+
+# Playtest notes 5 (2026-09-10)
+
+Fifth pass after playtest 4. Match to spec 30 slices.
+
+| #   | Kind    | Note                                                                                                                                             | Primary task(s)                                    | Notes / secondary                                                                                                                            |
+| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| P29 | Bug     | Crayon Mode **Got it** is unclickable under the Phaser/HUD stack. Engine overlay clips long descriptions; **Close** sits outside the white card. | **30** A `CapabilityNotice` modal + engine overlay | **Fixed** — viewport dialog; **Download model** / **Continue without model**; unboxed picker; Close inside `max-h-[90vh]` panel (2026-09-10) |
+| P30 | Bug     | Mum’s gold `!` floats a head above her (`host.y - 22` with a 14px glyph).                                                                        | **30** B `ATTENTION_MARK_OFFSET_Y = 12`            | **Fixed** — mark at `host.y - 12`; bark offset and E-verb `y - 18` unchanged (2026-09-10)                                                    |
+| P31 | Bug     | Studio-editor venue/character drafts vanished after the `adt.studio-editor.v1` → `v2` localStorage bump.                                         | **30** C v1 restore into v2                        | **Fixed** — missing/empty v2 copies a non-empty v1 blob forward; v1 is never deleted (2026-09-10)                                            |
+| P32 | Balance | Medium-skill XP ticks too slowly while generating, practising, or hired artists work.                                                            | **30** D rates ×3                                  | **Fixed** — 2666 / 1000 / 20000 / 666 ms per XP; rank table unchanged (2026-09-10)                                                           |
+| P33 | Design  | Welcome tutorial never shipped (prior `/new-agent` stopped at git hygiene).                                                                      | **30** E `WelcomeTutorial` + `adt.welcome.v1`      | **Fixed** — first-visit one-pager; **How to play** re-opens without clearing dismissed (2026-09-10)                                          |
+
+## Suggested fix order (playtest 5)
+
+1. ~~**P29** — crayon modal + engine overlay (blocks first-run UX)~~ **done**
+2. ~~**P30** — Mum `!` height (tiny)~~ **done**
+3. ~~**P31** — editor v1 restore (data already on the player’s machine)~~ **done**
+4. ~~**P32** — medium-skill XP ×3~~ **done**
+5. ~~**P33** — welcome one-pager~~ **done**

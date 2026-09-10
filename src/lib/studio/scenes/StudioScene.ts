@@ -18,7 +18,12 @@ import {
 	type BarkAnnounceHandler
 } from '../barkPresenter';
 import type { StudioBridge, StudioInboundCommand, StudioSnapshot } from '../bridge';
-import { npcAttention, playerDeskLocked, showAttentionMark } from '../npcAttention';
+import {
+	ATTENTION_MARK_OFFSET_Y,
+	npcAttention,
+	playerDeskLocked,
+	showAttentionMark
+} from '../npcAttention';
 import { cameraLetterboxBounds, cameraRoomCenter, cameraZoomToFitRoom } from '../cameraFit';
 import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
@@ -1601,7 +1606,7 @@ export class StudioScene extends Phaser.Scene {
 			this.#attentionMark.setVisible(false);
 			return;
 		}
-		this.#attentionMark.setPosition(host.x, host.y - 22).setVisible(true);
+		this.#attentionMark.setPosition(host.x, host.y - ATTENTION_MARK_OFFSET_Y).setVisible(true);
 	}
 
 	#consumeInteract(): boolean {

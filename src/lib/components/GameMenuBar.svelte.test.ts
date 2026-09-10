@@ -148,3 +148,10 @@ test('hides affordability badges when nothing is unlockable', async () => {
 	const screen = render(GameMenuBar, { ...defaultProps, cash: 0 });
 	await expect.element(screen.getByText('Upgrades available')).not.toBeInTheDocument();
 });
+
+test('How to play calls onopenwelcome', async () => {
+	const onopenwelcome = vi.fn();
+	const screen = render(GameMenuBar, { ...defaultProps, onopenwelcome });
+	await screen.getByRole('button', { name: 'How to play' }).click();
+	expect(onopenwelcome).toHaveBeenCalledTimes(1);
+});

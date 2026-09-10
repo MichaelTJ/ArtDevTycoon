@@ -15,7 +15,7 @@ test('prompt state renders size in GB and button callbacks', async () => {
 	await expect.element(screen.getByText(/1\.0 GB/)).toBeVisible();
 	await screen.getByRole('button', { name: 'Download and Play' }).click();
 	expect(onconfirm).toHaveBeenCalledTimes(1);
-	await screen.getByRole('button', { name: 'Use Crayon Mode instead' }).click();
+	await screen.getByRole('button', { name: 'Continue without model' }).click();
 	expect(oncancel).toHaveBeenCalledTimes(1);
 });
 
@@ -72,7 +72,7 @@ test('error state renders message and recovery buttons', async () => {
 	await expect.element(screen.getByText('Download interrupted.')).toBeVisible();
 	await screen.getByRole('button', { name: 'Try Again' }).click();
 	expect(onconfirm).toHaveBeenCalledTimes(1);
-	await screen.getByRole('button', { name: 'Use Crayon Mode' }).click();
+	await screen.getByRole('button', { name: 'Continue without model' }).click();
 	expect(oncancel).toHaveBeenCalledTimes(1);
 });
 

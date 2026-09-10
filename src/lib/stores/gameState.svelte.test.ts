@@ -1891,13 +1891,13 @@ describe('GameStore Spec 27 medium skill', () => {
 		);
 	});
 
-	it('grants 1 pencil XP after 8000ms generating and none while idle', () => {
+	it('grants 3 pencil XP after 8000ms generating and none while idle', () => {
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
 		store.unlockedMediumTierIds = ['crayon', 'pencil'];
 		store.activeMediumTierId = 'pencil';
 		store.phase = 'generating';
 		store.tickMediumSkillsForTests(8_000);
-		expect(store.playerMediumSkillXp.pencil).toBe(1);
+		expect(store.playerMediumSkillXp.pencil).toBe(3);
 
 		store.phase = 'idle';
 		const before = { ...store.playerMediumSkillXp };
@@ -1914,24 +1914,24 @@ describe('GameStore Spec 27 medium skill', () => {
 		expect(store.hireArtist('jade-ink')).toBe(true);
 
 		store.tickMediumSkillsForTests(60_000);
-		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(1);
+		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(3);
 
 		store.inviteClient();
 		store.activeMediumTierId = 'ink';
 		expect(store.assignBriefToArtist('jade-ink')).toBe(true);
 		store.tickMediumSkillsForTests(2_000);
-		expect(store.hiredArtists[0]?.mediumSkillXp.ink).toBe(1);
-		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(1);
+		expect(store.hiredArtists[0]?.mediumSkillXp.ink).toBe(3);
+		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(3);
 	});
 
-	it('clamps artist idle catch-up to 10 minutes (10 XP at the idle rate)', () => {
+	it('clamps artist idle catch-up to 10 minutes (30 XP at the idle rate)', () => {
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
 		store.cash = 100;
 		store.reputation = 8;
 		store.activeMediumTierId = 'pencil';
 		expect(store.hireArtist('jade-ink')).toBe(true);
 		store.tickMediumSkillsForTests(999_999);
-		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(10);
+		expect(store.hiredArtists[0]?.mediumSkillXp.pencil).toBe(30);
 	});
 
 	it('stamps a null lastMediumSkillTickAt on hydrate so the first tick grants 0 artist XP', () => {
@@ -1956,18 +1956,18 @@ describe('GameStore Spec 27 medium skill', () => {
 		cleanup();
 	});
 
-	it('grantPracticeDrawingMs banks remainder across two 2000ms strokes', () => {
+	it('grantPracticeDrawingMs banks remainder across two 500ms strokes', () => {
 		const persistSave = vi.fn();
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { persistSave });
 		expect(store.enterPractice()).toBe(true);
-		store.grantPracticeDrawingMs(2000);
+		store.grantPracticeDrawingMs(500);
 		expect(store.playerMediumSkillXp.crayon ?? 0).toBe(0);
 		expect(persistSave).not.toHaveBeenCalled();
-		store.grantPracticeDrawingMs(2000);
+		store.grantPracticeDrawingMs(500);
 		expect(store.playerMediumSkillXp.crayon).toBe(1);
 		expect(persistSave).toHaveBeenCalled();
-		store.grantPracticeDrawingMs(2000);
-		expect(store.playerMediumSkillXp.crayon).toBe(2);
+		store.grantPracticeDrawingMs(500);
+		expect(store.playerMediumSkillXp.crayon).toBe(1);
 	});
 
 	it('enterPractice succeeds while idle and rejects briefing or assignment', () => {
@@ -2026,11 +2026,11 @@ describe('GameStore Spec 27 medium skill', () => {
 		expect(store.practiceOpen).toBe(false);
 	});
 
-	it('grantPracticeDrawingMs while open grants 1 XP per 3000ms', () => {
+	it('grantPracticeDrawingMs while open grants 3 XP per 3000ms', () => {
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
 		expect(store.enterPractice()).toBe(true);
 		store.grantPracticeDrawingMs(3000);
-		expect(store.playerMediumSkillXp.crayon).toBe(1);
+		expect(store.playerMediumSkillXp.crayon).toBe(3);
 	});
 
 	it('grantPracticeDrawingMs while closed grants no XP', () => {
@@ -2047,7 +2047,7 @@ describe('GameStore Spec 27 medium skill', () => {
 		store.setActiveMediumTier('pencil');
 		store.playerMediumSkillXp = { pencil: 59 };
 		expect(store.enterPractice()).toBe(true);
-		store.grantPracticeDrawingMs(3000);
+		store.grantPracticeDrawingMs(1000);
 		expect(store.playerMediumSkillXp.pencil).toBe(60);
 		expect(store.lastMediumSkillRankUp).toEqual({ mediumId: 'pencil', rankLabel: 'Doodler' });
 	});

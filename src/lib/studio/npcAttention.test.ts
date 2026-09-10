@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { npcAttention, playerDeskLocked, showAttentionMark } from './npcAttention';
+import {
+	npcAttention,
+	playerDeskLocked,
+	showAttentionMark,
+	ATTENTION_MARK_OFFSET_Y
+} from './npcAttention';
 
 describe('playerDeskLocked', () => {
 	it('locks the player only while generating', () => {
@@ -31,6 +36,12 @@ describe('npcAttention', () => {
 		expect(npcAttention({ phase: 'results', modelLoading: true, readyForCommission: false })).toBe(
 			'critique-ready'
 		);
+	});
+});
+
+describe('ATTENTION_MARK_OFFSET_Y', () => {
+	it('pins the gold bang 12px above the NPC origin', () => {
+		expect(ATTENTION_MARK_OFFSET_Y).toBe(12);
 	});
 });
 

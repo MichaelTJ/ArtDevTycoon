@@ -32,7 +32,7 @@
 	);
 </script>
 
-<fieldset class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm">
+<fieldset class="w-full min-w-0 border-0 bg-transparent p-0 shadow-none">
 	<legend class="px-1 text-base font-semibold text-stone-800">Art engine</legend>
 
 	{#if showLoadingPlaceholder}

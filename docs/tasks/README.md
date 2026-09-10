@@ -175,13 +175,14 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 
 ### Studio ops / late game (24–25, 27–28)
 
-| #   | Spec                                                 | Owns (new)                                                                                                                        | Depends on              |
-| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| 24  | [Artist team & major projects](./24-artist-team.md)  | Artists + major projects — **MVP shipped**; P25 Skip ✅; P27 letterbox→computer→receptionist (landing)                            | 16, 21a–21b             |
-| 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP + polish:** briefing medium picker / My idea (P24); ink charcoal B&W (P22); crayon/pencil/ink/watercolour on `SketchCanvas` | 11, 13; P16 / P22 / P24 |
-| 27  | [Medium skill](./27-medium-skill.md)                 | **Shipped:** per-medium Novice→Master ranks; time-based XP; hidden Janus suffix ladder; player + hired artists                    | 13, 20, 24, 25          |
-| 28  | [Practice station](./28-practice-station.md)         | **Shipped:** idle desk practice canvas; stroke-time XP into Spec 27 medium skill                                                  | 27, 17, 25              |
+| #   | Spec                                                 | Owns (new)                                                                                                                        | Depends on                      |
+| --- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 24  | [Artist team & major projects](./24-artist-team.md)  | Artists + major projects — **MVP shipped**; P25 Skip ✅; P27 letterbox→computer→receptionist (landing)                            | 16, 21a–21b                     |
+| 25  | [Brush types & painting medium](./25-brush-media.md) | **MVP + polish:** briefing medium picker / My idea (P24); ink charcoal B&W (P22); crayon/pencil/ink/watercolour on `SketchCanvas` | 11, 13; P16 / P22 / P24         |
+| 27  | [Medium skill](./27-medium-skill.md)                 | **Shipped:** per-medium Novice→Master ranks; time-based XP; hidden Janus suffix ladder; player + hired artists                    | 13, 20, 24, 25                  |
+| 28  | [Practice station](./28-practice-station.md)         | **Shipped:** idle desk practice canvas; stroke-time XP into Spec 27 medium skill                                                  | 27, 17, 25                      |
 | 29  | [NPC busy states](./29-npc-busy-states.md)           | Model-load busy copy, walk during critique, `!` attention marks, venue channel lines                                              | 17–21f, 24/P27, engine `isBusy` |
+| 30  | [Playtest 5 bundle](./30-engine-ui-playtest.md)      | Crayon modal + engine overlay, Mum `!` height, editor v1 restore, medium XP ×3, welcome one-pager                                 | 03, 04, 05, 20, 27–29           |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -237,9 +238,13 @@ Wave N  (brush skill — **serial**; 28 overlaps 27's GameStore / overlay)
 Wave O  (NPC busy / critique walk — **do not overlap venue rooms.ts edits on main**)
    └── 29 NPC busy states → ../adt-wt-npc-busy  branch feat/npc-busy-states
 
+Wave P  (playtest 5 bundle — after 29 on main; one worktree, slices A–E)
+   └── 30 Playtest 5 → ../adt-wt-playtest-5  branch agent/playtest-5
+
 Playtest follow-ups (docs/playtest-notes.md — not separate specs)
    ├── Playtest 3 P19–P23 ✅ (engine load, no level wipe, Mum max, abstract gates, ink)
-   └── Playtest 4 P24–P26/P28 ✅ · P27 channels landing
+   ├── Playtest 4 P24–P26/P28 ✅ · P27 channels landing
+   └── Playtest 5 P29–P33 → spec 30 (crayon modal, Mum `!`, editor v1, XP ×3, welcome)
 ```
 
 Spec 17 adds Phaser 3 as an npm dependency (allowed exception in that spec), mounts a

@@ -33,16 +33,16 @@ export function mediumSkillXpToNext(level: number): number {
 }
 
 /** Player: 1 XP per this many ms of generating-phase wall time (active medium). */
-export const COMMISSION_PAINT_MS_PER_XP = 8_000;
+export const COMMISSION_PAINT_MS_PER_XP = 2_666;
 
 /** Player: 1 XP per this many ms of pointer-down drawing. Spec 28 calls this. */
-export const PRACTICE_MS_PER_XP = 3_000;
+export const PRACTICE_MS_PER_XP = 1_000;
 
 /** Hired artist, not on an assignment: 1 XP per this many ms, into the studio's active medium. */
-export const ARTIST_IDLE_MS_PER_XP = 60_000;
+export const ARTIST_IDLE_MS_PER_XP = 20_000;
 
 /** Hired artist on an assignment: 1 XP per this many ms, into `assignment.mediumTierId`. */
-export const ARTIST_WORK_MS_PER_XP = 2_000;
+export const ARTIST_WORK_MS_PER_XP = 666;
 
 /** Clamp artist catch-up on load / ticker gap. 10 minutes. */
 export const MAX_ARTIST_SKILL_CATCHUP_MS = 600_000;

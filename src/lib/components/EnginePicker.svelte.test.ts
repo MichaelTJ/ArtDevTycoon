@@ -78,6 +78,17 @@ test('disabled option does not call onselect', async () => {
 	expect(onselect).not.toHaveBeenCalled();
 });
 
+test('Janus description string stays visible', async () => {
+	const janusDescription =
+		'Unified generation and critique in the browser — a long description that must wrap inside the engine panel instead of clipping.';
+	const screen = render(EnginePicker, {
+		options: [{ ...options[0] }, { ...options[1], description: janusDescription }],
+		activeId: 'mock',
+		onselect: vi.fn()
+	});
+	await expect.element(screen.getByText(janusDescription)).toBeVisible();
+});
+
 test('download size is shown for options that require download', async () => {
 	const screen = render(EnginePicker, {
 		options,

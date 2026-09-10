@@ -303,6 +303,52 @@ describe('EngineStore', () => {
 		expect(store.loadProgress).toBeNull();
 	});
 
+	it('holds peak fraction when a later file reports a lower percent', async () => {
+		const fractions: number[] = [];
+		const store = new EngineStore(
+			createFakeManager({
+				select: async (_id, onProgress) => {
+					onProgress?.({
+						status: 'downloading',
+						file: 'a.bin',
+						loadedBytes: 78,
+						totalBytes: 100,
+						fraction: 0.78
+					});
+					fractions.push(store.loadProgress?.fraction ?? -1);
+					onProgress?.({
+						status: 'downloading',
+						file: 'b.bin',
+						loadedBytes: 50,
+						totalBytes: 100,
+						fraction: 0.5
+					});
+					fractions.push(store.loadProgress?.fraction ?? -1);
+					onProgress?.({
+						status: 'ready',
+						file: null,
+						loadedBytes: 100,
+						totalBytes: 100,
+						fraction: 1
+					});
+					fractions.push(store.loadProgress?.fraction ?? -1);
+				},
+				options: [
+					{
+						id: 'janus-webgpu',
+						displayName: 'Janus Pro',
+						description: 'AI',
+						requirements: { approxDownloadMb: 1024 },
+						availability: { available: true, requiresDownload: true, approxDownloadMb: 1024 }
+					}
+				]
+			})
+		);
+
+		await store.select('janus-webgpu');
+		expect(fractions).toEqual([0.78, 0.78, 1]);
+	});
+
 	it('showCrayonNotice is true on mock until dismissed', async () => {
 		const store = new EngineStore(
 			createFakeManager({

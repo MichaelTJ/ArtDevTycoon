@@ -3,6 +3,13 @@ import type { GamePhase } from '$lib/types/contracts';
 export type NpcAttention = 'none' | 'ready-commission' | 'critique-ready';
 
 /**
+ * Distance above the NPC origin for the gold `!` (text origin is 0.5, 1).
+ * 12px sits the 14px glyph on the head — closer than the old 22px float,
+ * still above the 8px E-verb at y-18. Do not change BARK_OFFSET_Y (28).
+ */
+export const ATTENTION_MARK_OFFSET_Y = 12;
+
+/**
  * Desk-lock: player snapped to desk, walk/interact disabled.
  * ONLY `generating` — not `critiquing`.
  */

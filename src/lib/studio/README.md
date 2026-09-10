@@ -5,29 +5,29 @@ saves stay in `$lib/game` / `$lib/stores`.
 
 ## Public surface
 
-| Export                                                    | Role                                                   |
-| --------------------------------------------------------- | ------------------------------------------------------ |
-| `STUDIO_FLOOR_ENABLED`                                    | Feature flag; `false` restores `KitchenScene`          |
-| `StudioBridge`                                            | Typed events/commands between Svelte and Phaser        |
-| `createPhaserGame(parent, bridge, options?)`              | Boots Phaser; `initialVenueId` picks the plan          |
-| `getRoomForVenue` / `roomIdForVenue`                      | Progressive gallery venue → authored floor             |
-| `getRoomForEnvironment` / `ROOMS`                         | Tile grids + markers (Level env stubs too)             |
-| `slotsForVenue` / `easelStandFrame`                       | Venue → easel/magnet anchors; no stand on fridge tiles |
-| `buildGroundTilemap`                                      | Primary GIDs + off-sheet overlays (`insertNull` empty) |
-| `nextWanderTarget` / `stepToward` / `withPath`            | Pure Mum patrol + path-queue helpers                   |
-| `findPath` / `findPathInRoom`                             | 4-neighbour BFS on room collision (spec 21f)           |
-| `interactPromptLabel` / `prefersReducedMotion`            | Contextual E verbs + motion helper (21f)               |
-| `floorStaffFromHired` / `staffAnchorForRole`              | Hired staff → floor NPCs (presentation only)           |
-| `clientLookForTier`                                       | Door-visitor tint/frame by client tier                 |
-| `nearestInteractable` / `interactPromptText`              | Pure prop interact helpers (spec 21b)                  |
-| `FRIDGE` / `TOOLKIT_SHELF`                                | Data-driven interactable registry                      |
-| `shouldEmitWorkParticles` / VFX caps                      | Pure desk/cash particle helpers (spec 21d)             |
-| `pickBark` / `eligibleBarkSpeakers` / schedule            | Ambient bark picker + phase gate (spec 21e)            |
-| `shouldShowBark` / bark lifetime helpers                  | Bubble gating (prompt + phase)                         |
-| `playerDeskLocked` / `npcAttention` / `showAttentionMark` | Desk-lock + `!` attention (spec 29)                    |
-| `isDomEditableElement` / `isDomEditableFocused`           | DOM focus gate for keyboard walk/interact (P5/P11)     |
-| `applyDomEditableKeyboardGate`                            | Release Phaser key captures while DOM fields focus     |
-| `cameraZoomToFitRoom` / `studioViewportSize`              | Viewport-fit zoom (≤4×) + parent boot size (P2/P3/P12) |
+| Export                                                                                | Role                                                     |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `STUDIO_FLOOR_ENABLED`                                                                | Feature flag; `false` restores `KitchenScene`            |
+| `StudioBridge`                                                                        | Typed events/commands between Svelte and Phaser          |
+| `createPhaserGame(parent, bridge, options?)`                                          | Boots Phaser; `initialVenueId` picks the plan            |
+| `getRoomForVenue` / `roomIdForVenue`                                                  | Progressive gallery venue → authored floor               |
+| `getRoomForEnvironment` / `ROOMS`                                                     | Tile grids + markers (Level env stubs too)               |
+| `slotsForVenue` / `easelStandFrame`                                                   | Venue → easel/magnet anchors; no stand on fridge tiles   |
+| `buildGroundTilemap`                                                                  | Primary GIDs + off-sheet overlays (`insertNull` empty)   |
+| `nextWanderTarget` / `stepToward` / `withPath`                                        | Pure Mum patrol + path-queue helpers                     |
+| `findPath` / `findPathInRoom`                                                         | 4-neighbour BFS on room collision (spec 21f)             |
+| `interactPromptLabel` / `prefersReducedMotion`                                        | Contextual E verbs + motion helper (21f)                 |
+| `floorStaffFromHired` / `staffAnchorForRole`                                          | Hired staff → floor NPCs (presentation only)             |
+| `clientLookForTier`                                                                   | Door-visitor tint/frame by client tier                   |
+| `nearestInteractable` / `interactPromptText`                                          | Pure prop interact helpers (spec 21b)                    |
+| `FRIDGE` / `TOOLKIT_SHELF`                                                            | Data-driven interactable registry                        |
+| `shouldEmitWorkParticles` / VFX caps                                                  | Pure desk/cash particle helpers (spec 21d)               |
+| `pickBark` / `eligibleBarkSpeakers` / schedule                                        | Ambient bark picker + phase gate (spec 21e)              |
+| `shouldShowBark` / bark lifetime helpers                                              | Bubble gating (prompt + phase)                           |
+| `playerDeskLocked` / `npcAttention` / `showAttentionMark` / `ATTENTION_MARK_OFFSET_Y` | Desk-lock + gold `!` (spec 29/30; mark at `host.y - 12`) |
+| `isDomEditableElement` / `isDomEditableFocused`                                       | DOM focus gate for keyboard walk/interact (P5/P11)       |
+| `applyDomEditableKeyboardGate`                                                        | Release Phaser key captures while DOM fields focus       |
+| `cameraZoomToFitRoom` / `studioViewportSize`                                          | Viewport-fit zoom (≤4×) + parent boot size (P2/P3/P12)   |
 
 ## Venue floor plans
 
@@ -41,8 +41,9 @@ saves stay in `$lib/game` / `$lib/stores`.
 
 Phaser loads `getRoomForVenue(snapshot.activeVenueId)` on create and rebuilds when the
 venue id changes. `/studio-editor` can override the tile atlas, ground, collision,
-furniture, and markers per room via `adt.studio-editor.v1`; `getRoomForVenue` applies
-those drafts. Person looks (player, Mum, clients, staff) overlay the same blob.
+furniture, and markers per room via `adt.studio-editor.v2` (missing/empty v2 falls back
+to a non-empty `adt.studio-editor.v1` blob and copies it forward); `getRoomForVenue`
+applies those drafts. Person looks (player, Mum, clients, staff) overlay the same blob.
 
 ## Invariants
 

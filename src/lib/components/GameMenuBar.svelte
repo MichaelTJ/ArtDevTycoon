@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
 	import { studioAudio } from '$lib/audio';
 	import { ATMOSPHERE_ITEMS } from '$lib/data/galleryAtmosphere';
 	import { GALLERY_LAYOUTS } from '$lib/data/galleryLayouts';
@@ -41,7 +40,8 @@
 		devReason?: DevModeReason;
 		/** Parent re-resolves Dev mode after latch write/clear. */
 		onlatchchange?: () => void;
-		notice?: Snippet;
+		/** Re-open the welcome one-pager without clearing dismissed. */
+		onopenwelcome?: () => void;
 	}
 
 	let {
@@ -59,7 +59,7 @@
 		devEnabled = false,
 		devReason = 'off',
 		onlatchchange,
-		notice
+		onopenwelcome
 	}: Props = $props();
 
 	let showToolkit = $state(false);
@@ -281,6 +281,14 @@
 			<button
 				type="button"
 				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="How to play"
+				onclick={() => onopenwelcome?.()}
+			>
+				How to play
+			</button>
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
 				aria-label="Saves"
 				onclick={() => {
 					showSaves = true;
@@ -325,9 +333,6 @@
 				mode="collected"
 			/>
 		</div>
-	{/if}
-	{#if notice}
-		<div class="mt-3">{@render notice()}</div>
 	{/if}
 </header>
 

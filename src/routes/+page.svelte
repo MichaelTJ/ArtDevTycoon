@@ -11,7 +11,8 @@
 		ModelDownloadGate,
 		StudioFloor,
 		StudioHudOverlay,
-		EngineLoadSpinner
+		EngineLoadSpinner,
+		WelcomeTutorial
 	} from '$lib/components';
 	import {
 		attachAudioUnlock,
@@ -28,6 +29,7 @@
 	import { getRoomForVenue } from '$lib/studio/venueRooms';
 	import { queryPrefersReducedMotion } from '$lib/studio/vfx';
 	import { loadDevLatch, resolveDevMode } from '$lib/dev/devMode';
+	import { loadWelcomeDismissed, persistWelcomeDismissed } from '$lib/welcome/welcomePrefs';
 	import { engines } from '$lib/stores/engineStore.svelte';
 	import { game } from '$lib/stores/gameState.svelte';
 	import type { SubmitChoice } from '$lib/game/submitChoice';
@@ -45,6 +47,8 @@
 
 	let showEngineMenu = $state(false);
 	let downloadGateOpen = $state(false);
+	/** Welcome one-pager; crayon notice waits until this is false. */
+	let showWelcome = $state(!loadWelcomeDismissed());
 	let pendingEngineId = $state<EngineId | null>(null);
 	let selectedEntry: GalleryEntry | null = $state(null);
 	let clientSummoned = $state(false);
@@ -97,10 +101,14 @@
 
 	const capabilityReason = $derived(
 		engines.realAiSupported
-			? 'Pick a real art engine from the menu above when you are ready.'
+			? ''
 			: (engines.options.find((option) => option.id !== 'mock' && !option.available)
 					?.unavailableReason ??
 					'Real AI needs WebGPU in the browser. Without it, Crayon Mode draws procedurally.')
+	);
+
+	const crayonCanDownload = $derived(
+		engines.options.some((option) => option.id === 'janus-webgpu' && option.available)
 	);
 
 	const pendingEngine = $derived(
@@ -449,10 +457,12 @@
 		if (!pendingEngineId) {
 			return;
 		}
+		downloadGateOpen = false;
 		await engines.select(pendingEngineId);
 		if (engines.state === 'ready' && !engines.loadError) {
-			downloadGateOpen = false;
 			pendingEngineId = null;
+		} else if (engines.loadError) {
+			downloadGateOpen = true;
 		}
 	}
 
@@ -460,6 +470,7 @@
 		engines.cancelLoad();
 		downloadGateOpen = false;
 		pendingEngineId = null;
+		engines.dismissNotice();
 	}
 </script>
 
@@ -498,23 +509,19 @@
 			onlatchchange={() => {
 				latchTick += 1;
 			}}
-		>
-			{#snippet notice()}
-				{#if engines.showCrayonNotice}
-					<CapabilityNotice
-						supported={false}
-						reason={capabilityReason}
-						ondismiss={engines.dismissNotice}
-					/>
-				{/if}
-			{/snippet}
-		</GameMenuBar>
+			onopenwelcome={() => {
+				showWelcome = true;
+			}}
+		/>
 
 		{#snippet engineSpinner()}
 			<EngineLoadSpinner
 				visible={engines.isBusy}
 				label={`Loading ${engines.activeDisplayName}…`}
 				reducedMotion={reducedVfx}
+				percent={engines.loadProgress != null
+					? Math.round(engines.loadProgress.fraction * 100)
+					: null}
 			/>
 		{/snippet}
 
@@ -657,12 +664,14 @@
 
 {#if showEngineMenu}
 	<div
-		class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/60 p-4"
+		class="fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-stone-900/60 p-4"
 		role="dialog"
 		aria-modal="true"
 		aria-label="Engine settings"
 	>
-		<div class="w-full max-w-lg space-y-4">
+		<div
+			class="max-h-[90vh] w-full max-w-xl min-w-0 overflow-y-auto rounded-xl border border-stone-300 bg-white p-5 shadow-sm"
+		>
 			<EnginePicker
 				options={engines.options}
 				activeId={engines.activeId}
@@ -673,7 +682,7 @@
 			/>
 			<button
 				type="button"
-				class="min-h-11 w-full rounded-lg bg-stone-200 px-4 py-2 font-medium text-stone-800 hover:bg-stone-300"
+				class="mt-4 min-h-11 w-full rounded-lg bg-stone-200 px-4 py-2 font-medium text-stone-800 hover:bg-stone-300"
 				onclick={closeEngineMenu}
 			>
 				Close
@@ -682,7 +691,28 @@
 	</div>
 {/if}
 
-{#if downloadGateOpen && pendingEngine}
+{#if showWelcome}
+	<WelcomeTutorial
+		oncontinue={() => {
+			showWelcome = false;
+			persistWelcomeDismissed();
+		}}
+	/>
+{/if}
+
+{#if engines.showCrayonNotice && !downloadGateOpen && !showWelcome}
+	<CapabilityNotice
+		supported={false}
+		reason={capabilityReason}
+		canDownload={crayonCanDownload}
+		ondismiss={() => engines.dismissNotice()}
+		ondownload={() => {
+			void handleEngineSelect('janus-webgpu');
+		}}
+	/>
+{/if}
+
+{#if downloadGateOpen && pendingEngine && downloadGateState !== 'loading'}
 	<ModelDownloadGate
 		engineName={pendingEngine.displayName}
 		approxMb={pendingEngine.approxDownloadMb}

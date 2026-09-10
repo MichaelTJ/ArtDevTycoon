@@ -3113,3 +3113,43 @@ npm run test:unit -- --run src/lib/studio/tilemapBuild.test.ts src/lib/studio/ro
 
 **Known gaps:** Visual QA still needs a playtest of kitchen fridge magnets and gallery wood
 floors against the letterbox.
+
+---
+
+## 2026-09-10 — Playtest 5 bundle (spec 30)
+
+**Zone:** `src/lib/components/{CapabilityNotice,EnginePicker,GameMenuBar,WelcomeTutorial}*`, `src/lib/components/{README.md,index.ts}`, `src/routes/+page.svelte`, `src/lib/studio/{npcAttention.ts,npcAttention.test.ts,scenes/StudioScene.ts,README.md}`, `src/lib/studio-editor/{schema.ts,storage.ts,storage.test.ts,README.md}`, `src/lib/game/{mediumSkill.ts,mediumSkill.test.ts,README.md}`, `src/lib/welcome/**`, `docs/{playtest-notes.md,agent-log.md,tasks/30-engine-ui-playtest.md,tasks/README.md}`
+
+**Built:** Crayon Mode is a viewport dialog (**Download model** / **Continue without model**, no **Got it**) that sits above Phaser; the art-engine overlay scrolls with Close inside the card; Mum’s gold `!` sits at `host.y - 12`; studio-editor load copies a non-empty `adt.studio-editor.v1` blob into v2 when v2 is missing or empty; medium-skill time XP is ×3; first-visit **Welcome to the studio** one-pager with **How to play** re-open.
+
+**Public surface:**
+
+- `CapabilityNotice`: `{ supported, reason, canDownload?: boolean, ondismiss, ondownload?: () => void }`
+- `WelcomeTutorial`: `{ oncontinue: () => void }`
+- `GameMenuBar.onopenwelcome?: () => void`
+- `ATTENTION_MARK_OFFSET_Y = 12`
+- `STUDIO_EDITOR_V1_STORAGE_KEY = 'adt.studio-editor.v1'`
+- `loadWelcomeDismissed(): boolean` / `persistWelcomeDismissed(): void` (`adt.welcome.v1`)
+- Rates: `COMMISSION_PAINT_MS_PER_XP = 2666`, `PRACTICE_MS_PER_XP = 1000`, `ARTIST_IDLE_MS_PER_XP = 20000`, `ARTIST_WORK_MS_PER_XP = 666`
+
+**Tests:** Spec tables A–E. Command:
+
+```
+npm run test:unit -- --run src/lib/components/CapabilityNotice.svelte.test.ts src/lib/components/EnginePicker.svelte.test.ts src/lib/components/GameMenuBar.svelte.test.ts src/lib/components/WelcomeTutorial.svelte.test.ts src/lib/studio/npcAttention.test.ts src/lib/studio-editor/storage.test.ts src/lib/game/mediumSkill.test.ts src/lib/welcome
+```
+
+69 passed scoped. Owned-file Prettier + ESLint are clean. `npm run check` is red only on inherited `src/lib/modifier-explorer/index.ts` (`UNLOCK_STYLE_KEYS`). Repo-wide `npm run lint` still flags Prettier outside this zone.
+
+**Decisions:**
+
+- `canDownload` is true when a `janus-webgpu` option exists and `available`; the notice never starts a download itself — `ondownload` calls `handleEngineSelect('janus-webgpu')`.
+- Welcome dismissed flag is device-local, not a career save. Re-opening **How to play** does not clear it; dismissing again re-persists `true`.
+- v1 editor blobs are never deleted after copy-forward.
+
+**Requests:** GameStore XP-interval tests retuned to the ×3 rates (3 XP / 8s generate, 3 idle / 60s, 3 work / 2s, 30 catch-up / 10 min, 500+500 remainder, 3 XP / 3s practice, 1000ms from 59 → Doodler).
+
+**Known gaps:** No browser playtest (agents verify with tests). Repo-wide unit run also timed out in `GalleryUpgradeShop`, `PersonEditMenu`, and `StudioEditorApp` (15 s) — those files were not edited; treated as inherited flake. Prettier drift remains in `docs/architecture.md`, specs 04/18/24, `src/lib/modifier-explorer*`, `src/lib/studio-editor/SpriteTile.svelte`, `rooms.test.ts`, `tilemapBuild.test.ts`.
+
+Follow-up: crayon dismiss now uses `() => engines.dismissNotice()`; `cancelDownload` also dismisses the notice. Welcome 4th bullet is AI-assisted drawing; crayon body says art is (poorly) drawn procedurally; gate cancel copy is **Continue without model**.
+
+Follow-up: download progress peak-holds per file (`holdPeakProgress`); load UI is a non-blocking `EngineLoadSpinner` card with percent. Consent/error stay on `ModelDownloadGate`; the gate unmounts as soon as download starts (`downloadGateOpen = false` and it is not mounted while `downloadGateState === 'loading'`), so the fullscreen overlay cannot sit on top of the studio. Reopens only on `loadError`. Spinner percent uses HF overall totals with a running max — not the worker’s 15%/90% per-file remap.

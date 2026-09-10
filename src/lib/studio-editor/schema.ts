@@ -9,8 +9,14 @@ import {
 	type TilesetId
 } from './catalog';
 
-/** v2 drops pre-Pokémon-wall drafts that still boxed the room perimeter. */
+/** Canonical drafts. v2 drops pre-Pokémon-wall drafts that still boxed the room perimeter. */
 export const STUDIO_EDITOR_STORAGE_KEY = 'adt.studio-editor.v2';
+
+/**
+ * Pre-letterbox key. `loadStudioEditorState` still reads this when v2 is missing
+ * or empty so authored rooms and people looks survive the bump. Never deleted.
+ */
+export const STUDIO_EDITOR_V1_STORAGE_KEY = 'adt.studio-editor.v1';
 
 const tileMarkerSchema = z.object({
 	tx: z.number().int().nonnegative(),

@@ -17,6 +17,7 @@ import type {
 	EngineState,
 	LoadProgress
 } from '$lib/types/contracts';
+import { holdPeakProgress } from './holdPeakProgress';
 
 function toOption(entry: EngineDescriptor & { availability: EngineAvailability }): EngineOption {
 	return {
@@ -127,7 +128,7 @@ export class EngineStore {
 			}
 			await this.#manager.init((progress) => {
 				this.state = 'loading';
-				this.loadProgress = progress;
+				this.loadProgress = holdPeakProgress(this.loadProgress, progress);
 			});
 			this.syncFromManager();
 			this.loadProgress = null;
@@ -150,7 +151,7 @@ export class EngineStore {
 		try {
 			await this.#manager.select(id, (progress) => {
 				if (generation === this.#loadGeneration) {
-					this.loadProgress = progress;
+					this.loadProgress = holdPeakProgress(this.loadProgress, progress);
 				}
 			});
 			if (generation !== this.#loadGeneration) {

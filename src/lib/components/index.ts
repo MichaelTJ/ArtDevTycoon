@@ -43,3 +43,4 @@ export { default as StudioFloor } from './StudioFloor.svelte';
 export { default as BarkLiveRegion } from './BarkLiveRegion.svelte';
 export { default as StudioHudOverlay } from './StudioHudOverlay.svelte';
 export { default as EngineLoadSpinner } from './EngineLoadSpinner.svelte';
+export { default as WelcomeTutorial } from './WelcomeTutorial.svelte';
