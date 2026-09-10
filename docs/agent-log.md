@@ -3213,3 +3213,40 @@ npm run test:unit -- --run src/lib/data/sketchPalettes.test.ts src/lib/data/brus
 **Requests:** None.
 
 **Known gaps:** None for this polish.
+
+---
+
+## 2026-09-10 — Commission desk modals
+
+**Zone:** `src/lib/components/StudioHudOverlay.svelte` (+ test), `GenerationReadyToast.svelte` (+ test), `SubmitCompareModal.svelte` (+ test), `PracticeDesk.svelte` (+ test), `SketchCanvas.svelte` (+ test), `AssignArtistModal.svelte` (z-index only), `src/lib/components/index.ts`, `src/lib/components/README.md`, `src/lib/stores/README.md`, `src/lib/game/mediumSkill.ts` (`PRACTICE_MS_PER_XP`), `src/routes/+page.svelte` (studio-shell grid + overlay snippet + Assign callback), `docs/playtest-notes.md`, `docs/tasks/31-commission-modals.md`, `docs/agent-log.md`
+
+**Built:** After Talk to client, briefing and paint-while-waiting are large viewport dialogs instead of the skinny commission-desk rail. Practice uses the same dialog. Assign to artist… lives inside the briefing dialog (studio floor only). When generate finishes, an in-app **Your painting is ready** toast appears; opening it snapshots the sketch and shows a side-by-side compare (drawing | AI) with Submit AI / Submit drawing / Back to painting. The sketch canvas stays mounted. The AI image no longer appears in the paint dialog. Paint chrome is tools left / canvas right / medium progress + Done in a compact footer. Heading is **Practice** or the commission idea. Practice drawing XP is 1 XP per 1000ms (3× the old 3000ms rate).
+
+**Public surface:**
+
+- `GenerationReadyToast` — `{ onopen: () => void }`
+- `SubmitCompareModal` — `{ drawingImageUrl: string | null; aiImageUrl: string; canSubmitDrawing: boolean; onsubmitai: () => void; onsubmitdrawing: () => void; onback: () => void }`
+- `StudioHudOverlay` optional `onassignartist?: () => void` (briefing only; omit on CSS kitchen)
+
+**Tests:** Briefing/generating dialogs, Assign shown/hidden, idle aside, no AI img in paint dialog, toast + compare open/back/submit-AI, blank drawing. Command:
+
+```
+npm run test:unit -- --run src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/components/GenerationReadyToast.svelte.test.ts src/lib/components/SubmitCompareModal.svelte.test.ts
+```
+
+Full suite: 1059 passed. Zone scoped: 34 passed.
+
+**Decisions:**
+
+- `+page` uses a `{#snippet studioHud()}` so the overlay is not duplicated when the studio-shell drops the two-column grid during briefing/generating.
+- Compare-open is overlay `$state`, not a `GamePhase`. Toast remounts on Back. Snapshot uses the local SketchCanvas `getBlob` plus `blobToDataUrl`; the parent exporter is still forwarded.
+- Compare reset happens in Skip / Submit / Back handlers, not an `$effect` (autofixer treats effect writes as malpractice).
+- Toast subtext is `aria-hidden` so the accessible name stays **Your painting is ready**. Enter animation is CSS-only and disabled under `@media (prefers-reduced-motion: reduce)`.
+- `AssignArtistModal` overlay is `z-50` so it stacks above the `z-40` briefing dialog.
+- Paint dialog uses a definite height (`min(52rem, 100%)` of the padded overlay) so the 384px canvas cannot overflow onto tools/footer. `fill` on `SketchCanvas` / `PracticeDesk` is on in the dialog and off in unconstrained component tests.
+- Oil stroke kinds and RGB wells stay on spec 32 (`sketchPalettes.ts` + `RgbColourPicker`). This rebase dropped the parallel `oilStrokes.ts` module and layered the tools-left / canvas-right layout on that chrome.
+- `PRACTICE_MS_PER_XP = 1000` already shipped in playtest 5; this slice did not retune it.
+
+**Requests:** None. Inherited `svelte-check` / Prettier drift is outside this zone (see gaps).
+
+**Known gaps:** Inherited `svelte-check` errors in `src/lib/studio-editor/storage.ts` (`RoomId` not exported) and `src/lib/modifier-explorer/index.ts` (`UNLOCK_STYLE_KEYS`). Repo-wide `npm run lint` still fails Prettier on unrelated files (architecture, specs 04/18/24, modifier-explorer, studio-editor, studio tests). CSS kitchen overlay has no Assign button by design.

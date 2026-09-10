@@ -19,11 +19,6 @@ test('registers export callback via onexportready', async () => {
 	await expect(getBlob()).resolves.toBeNull();
 });
 
-test('help copy mentions paint tools', async () => {
-	const screen = render(SketchCanvas, {});
-	await expect.element(screen.getByText(/Brush feel follows your painting medium/i)).toBeVisible();
-});
-
 test('accepts mediumTierId for brush profile', async () => {
 	const screen = render(SketchCanvas, { mediumTierId: 'pencil' });
 	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
@@ -164,6 +159,26 @@ test('disabled canvas does not fire onpracticetick', async () => {
 		new PointerEvent('pointermove', { clientX: 80, clientY: 80, bubbles: true, pointerId: 1 })
 	);
 	expect(onpracticetick).not.toHaveBeenCalled();
+});
+
+test('heading replaces the old optional-sketch copy', async () => {
+	const screen = render(SketchCanvas, { heading: 'Practice' });
+	await expect.element(screen.getByRole('heading', { name: 'Practice' })).toBeVisible();
+	expect(screen.getByText(/Optional sketch/i).query()).toBeNull();
+});
+
+test('oil medium shows Oil brush kinds', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'oil' });
+	await expect.element(screen.getByRole('group', { name: 'Oil brush' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Round' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Bristle' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Flat' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Palette knife' })).toBeVisible();
+});
+
+test('non-oil medium hides Oil brush kinds', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'crayon' });
+	expect(screen.getByRole('group', { name: 'Oil brush' }).query()).toBeNull();
 });
 
 test('optional ariaLabel overrides the canvas name', async () => {

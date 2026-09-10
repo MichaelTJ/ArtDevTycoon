@@ -526,7 +526,15 @@
 		{/snippet}
 
 		{#if STUDIO_FLOOR_ENABLED && environment.id === 'home-kitchen'}
-			<div class="studio-shell grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+			<div
+				class={[
+					'studio-shell grid gap-4',
+					game.phase !== 'briefing' &&
+						game.phase !== 'generating' &&
+						!game.practiceOpen &&
+						'lg:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]'
+				]}
+			>
 				<div class="flex flex-col gap-3">
 					<StudioFloor bridge={studioBridge} initialVenueId={game.unlockedVenueId} />
 					<FridgeGallery
@@ -537,64 +545,58 @@
 						onselect={openFullView}
 					/>
 				</div>
-				<StudioHudOverlay
-					phase={game.phase}
-					idleMessage={environment.idleMessage}
-					loadingMessages={environment.loadingMessages}
-					critiqueMessages={environment.critiqueMessages}
-					activeMediumTierId={game.activeMediumTierId}
-					unlockedMediumTierIds={game.unlockedMediumTierIds}
-					cash={game.cash}
-					reputation={game.reputation}
-					onselectmedium={(id) => game.setActiveMediumTier(id)}
-					currentClient={game.currentClient}
-					currentArtwork={game.currentArtwork}
-					currentCritique={game.currentCritique}
-					currentAuctionResult={game.currentAuctionResult}
-					mumRealCritique={game.mumRealCritique}
-					errorMessage={game.errorMessage}
-					generationProgress={game.generationProgress}
-					bind:draftPrompt={game.draftPrompt}
-					{clientSummoned}
-					{studioDebug}
-					floorInteract={true}
-					pendingSkillGains={game.pendingSkillGains}
-					pendingSubmitChoice={game.pendingSubmitChoice}
-					aiGeneratedImageUrl={game.aiGeneratedImageUrl}
-					onsketchexportready={(fn) => {
-						sketchExporter = fn;
-					}}
-					onconfirmsubmit={(choice) => void confirmSubmitChoice(choice)}
-					oninvite={summonClient}
-					ontalk={talkToClient}
-					ondeliver={() => void deliverToClient()}
-					onsubmit={() => void submitCommission()}
-					oncollect={() => void deliverToClient()}
-					onretry={() => game.retry()}
-					ondismisserror={dismissError}
-					ondecline={declineClient}
-					practiceOpen={game.practiceOpen}
-					skill={game.activeMediumSkillProgress}
-					rankUpLabel={game.lastMediumSkillRankUp?.rankLabel}
-					onpractice={() => game.enterPractice()}
-					onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
-					onexitpractice={() => game.exitPractice()}
-					modelLoading={engines.isBusy}
-					{busyLine}
-				/>
-				{@render engineSpinner()}
-				{#if game.phase === 'briefing' && game.currentClient}
-					<button
-						type="button"
-						class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-						aria-label="Assign commission to artist"
-						onclick={() => {
+				{#snippet studioHud()}
+					<StudioHudOverlay
+						phase={game.phase}
+						idleMessage={environment.idleMessage}
+						loadingMessages={environment.loadingMessages}
+						critiqueMessages={environment.critiqueMessages}
+						activeMediumTierId={game.activeMediumTierId}
+						unlockedMediumTierIds={game.unlockedMediumTierIds}
+						cash={game.cash}
+						reputation={game.reputation}
+						onselectmedium={(id) => game.setActiveMediumTier(id)}
+						currentClient={game.currentClient}
+						currentArtwork={game.currentArtwork}
+						currentCritique={game.currentCritique}
+						currentAuctionResult={game.currentAuctionResult}
+						mumRealCritique={game.mumRealCritique}
+						errorMessage={game.errorMessage}
+						generationProgress={game.generationProgress}
+						bind:draftPrompt={game.draftPrompt}
+						{clientSummoned}
+						{studioDebug}
+						floorInteract={true}
+						pendingSkillGains={game.pendingSkillGains}
+						pendingSubmitChoice={game.pendingSubmitChoice}
+						aiGeneratedImageUrl={game.aiGeneratedImageUrl}
+						onsketchexportready={(fn) => {
+							sketchExporter = fn;
+						}}
+						onconfirmsubmit={(choice) => void confirmSubmitChoice(choice)}
+						oninvite={summonClient}
+						ontalk={talkToClient}
+						ondeliver={() => void deliverToClient()}
+						onsubmit={() => void submitCommission()}
+						oncollect={() => void deliverToClient()}
+						onretry={() => game.retry()}
+						ondismisserror={dismissError}
+						ondecline={declineClient}
+						practiceOpen={game.practiceOpen}
+						skill={game.activeMediumSkillProgress}
+						rankUpLabel={game.lastMediumSkillRankUp?.rankLabel}
+						onpractice={() => game.enterPractice()}
+						onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
+						onexitpractice={() => game.exitPractice()}
+						modelLoading={engines.isBusy}
+						{busyLine}
+						onassignartist={() => {
 							showAssignArtist = true;
 						}}
-					>
-						Assign to artist…
-					</button>
-				{/if}
+					/>
+				{/snippet}
+				{@render studioHud()}
+				{@render engineSpinner()}
 			</div>
 		{:else}
 			<GameScene

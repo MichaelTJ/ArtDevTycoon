@@ -50,6 +50,7 @@ Tracked during post-gap-review playtest. Not fixed yet — matched to owning tas
 - [x] Playtest 5: P31 — studio-editor v1 drafts restore into v2
 - [x] Playtest 5: P32 — medium-skill XP ×3
 - [x] Playtest 5: P33 — welcome tutorial one-pager
+- [x] Playtest 6: P34–P35 — briefing/paint viewport dialogs + generation-ready compare (spec 31)
 
 ---
 
@@ -144,3 +145,14 @@ Fifth pass after playtest 4. Match to spec 30 slices.
 3. ~~**P31** — editor v1 restore (data already on the player’s machine)~~ **done**
 4. ~~**P32** — medium-skill XP ×3~~ **done**
 5. ~~**P33** — welcome one-pager~~ **done**
+
+---
+
+# Playtest notes 6 (2026-09-10)
+
+Sixth pass — commission desk chrome. Match to spec 31.
+
+| #   | Kind   | Note                                                                                                                                                                        | Primary task(s) / commits                         | Notes / secondary                                                                                                   |
+| --- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| P34 | Design | After **Talk to client**, briefing (client / medium / My idea) must be a **large viewport modal**, not the skinny right rail. Painting **and Practice** use the same modal. | **[31](./tasks/31-commission-modals.md)** slice A | **Fixed** — `StudioHudOverlay` briefing/generating/practice dialogs; Assign lives in briefing; rail stays for idle+ |
+| P35 | Design | When the AI image is ready, show an in-app **Your painting is ready** toast. Clicking it opens a side-by-side compare (drawing \| AI) with submit choices.                  | **[31](./tasks/31-commission-modals.md)** slice B | **Fixed** — `GenerationReadyToast` + `SubmitCompareModal`; canvas stays mounted; no AI img in paint dialog          |

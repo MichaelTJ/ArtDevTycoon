@@ -21,6 +21,7 @@
 		stampInkBleed,
 		stampOilStroke
 	} from '$lib/game/brushStroke';
+	import type { Snippet } from 'svelte';
 	import RgbColourPicker from './RgbColourPicker.svelte';
 
 	interface Props {
@@ -39,6 +40,12 @@
 		nowMs?: () => number;
 		/** Accessible name for the canvas element. */
 		ariaLabel?: string;
+		/** Replaces the old Optional sketch copy — Practice, or the commission idea. */
+		heading?: string;
+		/** Medium picker or other chrome in the left tools column. */
+		extraTools?: Snippet;
+		/** Fill a parent that already has a definite height (the paint dialog). */
+		fill?: boolean;
 	}
 
 	let {
@@ -48,7 +55,10 @@
 		onexportready,
 		onpracticetick,
 		nowMs = () => performance.now(),
-		ariaLabel = 'Sketch canvas'
+		ariaLabel = 'Sketch canvas',
+		heading = '',
+		extraTools,
+		fill = false
 	}: Props = $props();
 
 	const CANVAS_CSS = 384;
@@ -311,154 +321,269 @@
 	}
 </script>
 
-<div class="rounded-xl border border-stone-300 bg-white p-4 shadow-sm" aria-label="Sketch pad">
-	<p class="mb-2 text-base font-medium text-stone-800">Optional sketch</p>
-	<p class="mb-3 text-sm text-stone-600">
-		Optional sketch — rough shapes help My PC refine. Brush feel follows your painting medium.
-	</p>
+<div class={['pad', fill && 'pad-fill']} aria-label="Sketch pad">
+	{#if heading}
+		<h2 class="heading">{heading}</h2>
+	{/if}
 
-	<div class="mb-3 flex flex-wrap items-center gap-2">
-		<div
-			class="inline-flex rounded-lg border border-stone-300 p-0.5"
-			role="group"
-			aria-label="Tool"
-		>
-			<button
-				type="button"
-				class="min-h-10 rounded-md px-3 text-sm font-medium {tool === 'brush'
-					? 'bg-amber-600 text-white'
-					: 'bg-transparent text-stone-700 hover:bg-stone-100'}"
-				aria-pressed={tool === 'brush'}
-				{disabled}
-				onclick={() => {
-					tool = 'brush';
-				}}
-			>
-				Brush
-			</button>
-			<button
-				type="button"
-				class="min-h-10 rounded-md px-3 text-sm font-medium {tool === 'eraser'
-					? 'bg-amber-600 text-white'
-					: 'bg-transparent text-stone-700 hover:bg-stone-100'}"
-				aria-pressed={tool === 'eraser'}
-				{disabled}
-				onclick={() => {
-					tool = 'eraser';
-				}}
-			>
-				Eraser
-			</button>
-		</div>
+	<div class="body">
+		<div class="tools">
+			{#if extraTools}
+				{@render extraTools()}
+			{/if}
 
-		<label class="flex items-center gap-2 text-sm text-stone-700">
-			Size
-			<input
-				type="range"
-				min="2"
-				max="40"
-				bind:value={brushSize}
-				{disabled}
-				aria-label="Brush size"
-				class="w-28"
-			/>
-			<span class="w-6 text-stone-500 tabular-nums">{brushSize}</span>
-		</label>
-
-		<button
-			type="button"
-			class="min-h-10 rounded-lg border border-stone-300 px-3 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
-			disabled={disabled || undoStack.length === 0}
-			onclick={undo}
-		>
-			Undo
-		</button>
-		<button
-			type="button"
-			class="min-h-10 rounded-lg border border-stone-300 px-3 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
-			{disabled}
-			onclick={clearCanvas}
-		>
-			Clear
-		</button>
-
-		{#if showsOilStrokePicker(mediumTierId)}
-			<div class="inline-flex flex-wrap items-center gap-2" role="group" aria-label="Oil brush">
-				<span class="text-sm font-medium text-stone-700">Oil brush</span>
-				{#each OIL_STROKE_KINDS as kind (kind)}
+			<div class="tool-stack">
+				<div
+					class="inline-flex rounded-lg border border-stone-300 p-0.5"
+					role="group"
+					aria-label="Tool"
+				>
 					<button
 						type="button"
-						class="min-h-10 rounded-lg border px-3 text-sm font-medium {oilStrokeKind === kind
-							? 'border-amber-600 bg-amber-600 text-white'
-							: 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50'}"
-						aria-pressed={oilStrokeKind === kind}
+						class="min-h-10 rounded-md px-3 text-sm font-medium {tool === 'brush'
+							? 'bg-amber-600 text-white'
+							: 'bg-transparent text-stone-700 hover:bg-stone-100'}"
+						aria-pressed={tool === 'brush'}
 						{disabled}
 						onclick={() => {
-							oilStrokeKind = kind;
 							tool = 'brush';
 						}}
 					>
-						{OIL_STROKE_LABELS[kind]}
+						Brush
 					</button>
-				{/each}
+					<button
+						type="button"
+						class="min-h-10 rounded-md px-3 text-sm font-medium {tool === 'eraser'
+							? 'bg-amber-600 text-white'
+							: 'bg-transparent text-stone-700 hover:bg-stone-100'}"
+						aria-pressed={tool === 'eraser'}
+						{disabled}
+						onclick={() => {
+							tool = 'eraser';
+						}}
+					>
+						Eraser
+					</button>
+				</div>
+
+				<label class="flex items-center gap-2 text-sm text-stone-700">
+					Size
+					<input
+						type="range"
+						min="2"
+						max="40"
+						bind:value={brushSize}
+						{disabled}
+						aria-label="Brush size"
+						class="w-28"
+					/>
+					<span class="w-6 text-stone-500 tabular-nums">{brushSize}</span>
+				</label>
+
+				<div class="flex flex-wrap items-center justify-center gap-2">
+					<button
+						type="button"
+						class="min-h-10 rounded-lg border border-stone-300 px-3 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+						disabled={disabled || undoStack.length === 0}
+						onclick={undo}
+					>
+						Undo
+					</button>
+					<button
+						type="button"
+						class="min-h-10 rounded-lg border border-stone-300 px-3 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-50"
+						{disabled}
+						onclick={clearCanvas}
+					>
+						Clear
+					</button>
+				</div>
+
+				{#if showsOilStrokePicker(mediumTierId)}
+					<div class="flex flex-col items-center gap-2" role="group" aria-label="Oil brush">
+						<span class="text-sm font-medium text-stone-700">Oil brush</span>
+						<div class="grid w-full grid-cols-2 gap-2">
+							{#each OIL_STROKE_KINDS as kind (kind)}
+								<button
+									type="button"
+									class="min-h-10 rounded-lg border px-2 text-sm font-medium {oilStrokeKind === kind
+										? 'border-amber-600 bg-amber-600 text-white'
+										: 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50'}"
+									aria-pressed={oilStrokeKind === kind}
+									{disabled}
+									onclick={() => {
+										oilStrokeKind = kind;
+										tool = 'brush';
+									}}
+								>
+									{OIL_STROKE_LABELS[kind]}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<div class="flex flex-wrap items-center justify-center gap-2" aria-label="Colour">
+					{#each activePalette as swatch (swatch)}
+						<button
+							type="button"
+							class="h-8 w-8 rounded-full border border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+							style="background-color: {swatch}"
+							aria-label="Colour {swatch}"
+							aria-pressed={color === swatch}
+							{disabled}
+							onclick={() => {
+								selectedColor = swatch;
+								tool = 'brush';
+							}}
+						></button>
+					{/each}
+					{#if showsCustomColour(mediumTierId)}
+						<label class="flex items-center gap-2 text-sm text-stone-700">
+							Custom
+							<input
+								type="color"
+								bind:value={selectedColor}
+								{disabled}
+								aria-label="Custom colour"
+								class="h-8 w-10 cursor-pointer rounded border border-stone-300 bg-white"
+								oninput={() => {
+									tool = 'brush';
+								}}
+							/>
+						</label>
+					{/if}
+					{#if showsRgbPicker(mediumTierId)}
+						<RgbColourPicker
+							value={color}
+							{disabled}
+							onchange={(hex) => {
+								selectedColor = hex;
+								tool = 'brush';
+							}}
+						/>
+					{/if}
+				</div>
 			</div>
-		{/if}
-	</div>
+		</div>
 
-	<div class="mb-3 flex flex-wrap items-center gap-2" aria-label="Colour">
-		{#each activePalette as swatch (swatch)}
-			<button
-				type="button"
-				class="h-8 w-8 rounded-full border border-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-				style="background-color: {swatch}"
-				aria-label="Colour {swatch}"
-				aria-pressed={color === swatch}
-				{disabled}
-				onclick={() => {
-					selectedColor = swatch;
-					tool = 'brush';
-				}}
-			></button>
-		{/each}
-		{#if showsCustomColour(mediumTierId)}
-			<label class="flex items-center gap-2 text-sm text-stone-700">
-				Custom
-				<input
-					type="color"
-					bind:value={selectedColor}
-					{disabled}
-					aria-label="Custom colour"
-					class="h-8 w-10 cursor-pointer rounded border border-stone-300 bg-white"
-					oninput={() => {
-						tool = 'brush';
-					}}
-				/>
-			</label>
-		{/if}
-		{#if showsRgbPicker(mediumTierId)}
-			<RgbColourPicker
-				value={color}
-				{disabled}
-				onchange={(hex) => {
-					selectedColor = hex;
-					tool = 'brush';
-				}}
-			/>
-		{/if}
+		<div class="stage">
+			<canvas
+				bind:this={canvasEl}
+				width={CANVAS_CSS}
+				height={CANVAS_CSS}
+				class="surface {disabled ? 'is-disabled' : ''}"
+				onpointerdown={onPointerDown}
+				onpointermove={onPointerMove}
+				onpointerup={onPointerUp}
+				onpointercancel={onPointerUp}
+				aria-label={ariaLabel}
+			></canvas>
+		</div>
 	</div>
-
-	<canvas
-		bind:this={canvasEl}
-		width={CANVAS_CSS}
-		height={CANVAS_CSS}
-		class="max-w-full touch-none rounded-lg border border-stone-300 bg-white {disabled
-			? 'cursor-not-allowed opacity-60'
-			: 'cursor-crosshair'}"
-		style="width: {CANVAS_CSS}px; height: {CANVAS_CSS}px;"
-		onpointerdown={onPointerDown}
-		onpointermove={onPointerMove}
-		onpointerup={onPointerUp}
-		onpointercancel={onPointerUp}
-		aria-label={ariaLabel}
-	></canvas>
 </div>
+
+<style>
+	.pad {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		gap: 0.5rem;
+	}
+
+	.pad-fill {
+		flex: 1 1 0;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.heading {
+		flex: 0 0 auto;
+		margin: 0 0 0.5rem;
+		overflow: hidden;
+		text-align: center;
+		font-size: 1.25rem;
+		font-weight: 700;
+		line-height: 1.3;
+		color: #292524;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+	}
+
+	.body {
+		display: grid;
+		grid-template-columns: minmax(11rem, 13.5rem) minmax(0, 1fr);
+		gap: 1rem;
+		min-width: 0;
+		align-items: start;
+	}
+
+	.pad-fill .body {
+		flex: 1 1 0;
+		grid-template-rows: minmax(0, 1fr);
+		min-height: 0;
+		overflow: hidden;
+		align-items: stretch;
+	}
+
+	.tools {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.pad-fill .tools {
+		min-height: 0;
+		overflow-x: hidden;
+		overflow-y: auto;
+	}
+
+	.tool-stack {
+		display: flex;
+		width: 100%;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.stage {
+		display: grid;
+		min-width: 0;
+		place-items: center;
+	}
+
+	.pad-fill .stage {
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.surface {
+		display: block;
+		box-sizing: border-box;
+		width: min(24rem, 100%);
+		height: auto;
+		max-width: 100%;
+		aspect-ratio: 1;
+		touch-action: none;
+		border-radius: 0.5rem;
+		border: 1px solid #d6d3d1;
+		background: #fff;
+		cursor: crosshair;
+		object-fit: contain;
+	}
+
+	.pad-fill .surface {
+		min-width: 0;
+		min-height: 0;
+		max-height: 100%;
+	}
+
+	.surface.is-disabled {
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+</style>

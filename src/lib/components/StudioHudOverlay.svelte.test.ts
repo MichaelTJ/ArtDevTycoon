@@ -120,7 +120,7 @@ test('idle Practice button is hidden when a client is summoned', async () => {
 		.not.toBeInTheDocument();
 });
 
-test('practiceOpen shows Practice desk and hides invite copy', async () => {
+test('practiceOpen shows Practice as a viewport dialog not the side rail', async () => {
 	const screen = render(StudioHudOverlay, {
 		...base,
 		phase: 'idle',
@@ -135,8 +135,10 @@ test('practiceOpen shows Practice desk and hides invite copy', async () => {
 			fill: 0
 		}
 	});
+	await expect.element(screen.getByRole('dialog', { name: 'Practice' })).toBeVisible();
 	await expect.element(screen.getByRole('region', { name: 'Practice desk' })).toBeVisible();
 	await expect.element(screen.getByRole('heading', { name: 'Practice' })).toBeVisible();
+	await expect.element(screen.getByLabelText('Commission desk')).not.toBeInTheDocument();
 	await expect.element(screen.getByText(/Walk with WASD/)).not.toBeInTheDocument();
 	await expect
 		.element(screen.getByRole('button', { name: 'Wait for a Client' }))
@@ -183,10 +185,69 @@ test('briefing shows My idea composer and medium picker without sketch pad', asy
 		phase: 'briefing',
 		currentClient: LEVEL_1_BRIEFS[0]
 	});
+	await expect.element(screen.getByRole('dialog', { name: 'Talk to Mum' })).toBeVisible();
 	await expect.element(screen.getByLabelText('My idea')).toBeVisible();
-	await expect.element(screen.getByText('Mum')).toBeVisible();
+	await expect.element(screen.getByRole('heading', { name: 'Mum', exact: true })).toBeVisible();
 	await expect.element(screen.getByRole('group', { name: 'Painting medium' })).toBeVisible();
 	await expect.element(screen.getByLabelText('Sketch canvas')).not.toBeInTheDocument();
+});
+
+test('briefing is a viewport dialog not the commission desk aside', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0]
+	});
+	await expect.element(screen.getByRole('dialog', { name: 'Talk to Mum' })).toBeVisible();
+	await expect.element(screen.getByLabelText('Commission desk')).not.toBeInTheDocument();
+});
+
+test('briefing medium group skip fires ondecline', async () => {
+	const ondecline = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		ondecline
+	});
+	await expect.element(screen.getByRole('group', { name: 'Painting medium' })).toBeVisible();
+	await screen.getByRole('button', { name: 'Skip this commission' }).click();
+	expect(ondecline).toHaveBeenCalledTimes(1);
+});
+
+test('briefing Assign to artist fires onassignartist only', async () => {
+	const onassignartist = vi.fn();
+	const onsubmit = vi.fn();
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0],
+		onassignartist,
+		onsubmit
+	});
+	await screen.getByRole('button', { name: 'Assign to artist…' }).click();
+	expect(onassignartist).toHaveBeenCalledTimes(1);
+	expect(onsubmit).not.toHaveBeenCalled();
+});
+
+test('briefing hides Assign to artist when onassignartist is omitted', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'briefing',
+		currentClient: LEVEL_1_BRIEFS[0]
+	});
+	await expect
+		.element(screen.getByRole('button', { name: 'Assign to artist…' }))
+		.not.toBeInTheDocument();
+});
+
+test('idle keeps the commission desk aside without a briefing dialog', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'idle'
+	});
+	await expect.element(screen.getByLabelText('Commission desk')).toBeVisible();
+	await expect.element(screen.getByRole('dialog', { name: 'Talk to Mum' })).not.toBeInTheDocument();
 });
 
 test('briefing medium picker selects unlocked tier', async () => {
@@ -259,10 +320,12 @@ test('generating shows locked medium and sketch pad while waiting', async () => 
 		phase: 'generating',
 		currentClient: LEVEL_1_BRIEFS[0],
 		activeMediumTierId: 'crayon',
+		draftPrompt: 'a cool car',
 		onselectmedium
 	});
+	await expect.element(screen.getByRole('dialog', { name: 'Paint while you wait' })).toBeVisible();
+	await expect.element(screen.getByRole('heading', { name: 'a cool car' })).toBeVisible();
 	await expect.element(screen.getByLabelText('Sketch canvas')).toBeVisible();
-	await expect.element(screen.getByText(/Paint on the canvas while you wait/)).toBeVisible();
 	await expect
 		.element(screen.getByRole('group', { name: 'Painting medium (locked for this piece)' }))
 		.toBeVisible();
@@ -273,7 +336,45 @@ test('generating shows locked medium and sketch pad while waiting', async () => 
 	expect(onselectmedium).not.toHaveBeenCalled();
 });
 
-test('generating submit choice keeps sketch pad visible with AI preview below', async () => {
+test('generating ready toast appears without opening compare', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		pendingSubmitChoice: true,
+		aiGeneratedImageUrl: artwork.imageUrl
+	});
+	await expect
+		.element(screen.getByRole('button', { name: 'Your painting is ready' }))
+		.toBeVisible();
+	await expect.element(screen.getByText('Compare your drawing and the AI image')).toBeVisible();
+	await expect
+		.element(screen.getByRole('dialog', { name: 'Compare paintings' }))
+		.not.toBeInTheDocument();
+	await expect.element(screen.getByAltText('Generated art from your idea')).not.toBeInTheDocument();
+	expect(screen.getByLabelText('Sketch canvas').elements().length).toBeGreaterThan(0);
+});
+
+test('opening the ready toast shows compare and hides the toast', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		pendingSubmitChoice: true,
+		aiGeneratedImageUrl: artwork.imageUrl
+	});
+	await screen.getByRole('button', { name: 'Your painting is ready' }).click();
+	await expect.element(screen.getByRole('dialog', { name: 'Compare paintings' })).toBeVisible();
+	await expect
+		.element(screen.getByRole('button', { name: 'Your painting is ready' }))
+		.not.toBeInTheDocument();
+	await expect.element(screen.getByAltText('Generated art from your idea')).toBeVisible();
+	await expect.element(screen.getByText('No drawing yet')).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Submit your drawing' })).toBeDisabled();
+	expect(screen.getByLabelText('Sketch canvas').elements().length).toBeGreaterThan(0);
+});
+
+test('compare Submit AI image fires onconfirmsubmit with ai', async () => {
 	const onconfirmsubmit = vi.fn();
 	const screen = render(StudioHudOverlay, {
 		...base,
@@ -283,21 +384,38 @@ test('generating submit choice keeps sketch pad visible with AI preview below', 
 		aiGeneratedImageUrl: artwork.imageUrl,
 		onconfirmsubmit
 	});
-	const sketchCanvas = screen.getByLabelText('Sketch canvas');
-	const aiImage = screen.getByAltText('Generated art from your idea');
-	await expect.element(sketchCanvas).toBeVisible();
-	await expect.element(aiImage).toBeVisible();
-	expect(
-		sketchCanvas.element().compareDocumentPosition(aiImage.element()) &
-			Node.DOCUMENT_POSITION_FOLLOWING
-	).toBeTruthy();
-	await expect.element(screen.getByText(/keep painting or choose what to submit/)).toBeVisible();
-	await expect.element(screen.getByRole('button', { name: 'Submit AI image' })).toBeVisible();
-	const drawingBtn = screen.getByRole('button', { name: 'Submit your drawing' });
-	await expect.element(drawingBtn).toBeVisible();
-	await expect.element(drawingBtn).toBeDisabled();
+	await screen.getByRole('button', { name: 'Your painting is ready' }).click();
 	await screen.getByRole('button', { name: 'Submit AI image' }).click();
+	expect(onconfirmsubmit).toHaveBeenCalledTimes(1);
 	expect(onconfirmsubmit).toHaveBeenCalledWith('ai');
+});
+
+test('Back to painting closes compare and remounts the ready toast', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		pendingSubmitChoice: true,
+		aiGeneratedImageUrl: artwork.imageUrl
+	});
+	await screen.getByRole('button', { name: 'Your painting is ready' }).click();
+	await screen.getByRole('button', { name: 'Back to painting' }).click();
+	await expect
+		.element(screen.getByRole('dialog', { name: 'Compare paintings' }))
+		.not.toBeInTheDocument();
+	await expect
+		.element(screen.getByRole('button', { name: 'Your painting is ready' }))
+		.toBeVisible();
+});
+
+test('generating does not show the AI image in the paint dialog', async () => {
+	const screen = render(StudioHudOverlay, {
+		...base,
+		phase: 'generating',
+		currentClient: LEVEL_1_BRIEFS[0],
+		pendingSubmitChoice: false
+	});
+	await expect.element(screen.getByAltText('Generated art from your idea')).not.toBeInTheDocument();
 });
 
 test('studioDebug talk button appears when client is summoned', async () => {

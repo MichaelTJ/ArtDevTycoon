@@ -44,3 +44,5 @@ export { default as BarkLiveRegion } from './BarkLiveRegion.svelte';
 export { default as StudioHudOverlay } from './StudioHudOverlay.svelte';
 export { default as EngineLoadSpinner } from './EngineLoadSpinner.svelte';
 export { default as WelcomeTutorial } from './WelcomeTutorial.svelte';
+export { default as GenerationReadyToast } from './GenerationReadyToast.svelte';
+export { default as SubmitCompareModal } from './SubmitCompareModal.svelte';

@@ -20,7 +20,7 @@
 </script>
 
 <div
-	class="fixed inset-0 z-40 flex items-center justify-center bg-stone-900/60 p-4"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 p-4"
 	role="dialog"
 	aria-modal="true"
 	aria-label="Assign artist"

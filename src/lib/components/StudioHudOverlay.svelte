@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SubmitChoice } from '$lib/game/submitChoice';
+	import { blobToDataUrl, type SubmitChoice } from '$lib/game/submitChoice';
 	import type { AuctionResult } from '$lib/game/auction';
 	import {
 		mediumSkillProgress,
@@ -16,6 +16,7 @@
 	import AuctionResultPanel from './AuctionResultPanel.svelte';
 	import ClientCard from './ClientCard.svelte';
 	import ErrorPanel from './ErrorPanel.svelte';
+	import GenerationReadyToast from './GenerationReadyToast.svelte';
 	import GeneratingPanel from './GeneratingPanel.svelte';
 	import IdlePanel from './IdlePanel.svelte';
 	import PracticeDesk from './PracticeDesk.svelte';
@@ -23,6 +24,7 @@
 	import ResultsPanel from './ResultsPanel.svelte';
 	import ScoreBadge from './ScoreBadge.svelte';
 	import SketchCanvas from './SketchCanvas.svelte';
+	import SubmitCompareModal from './SubmitCompareModal.svelte';
 	import WorkGainToast from './WorkGainToast.svelte';
 
 	interface Props {
@@ -74,7 +76,9 @@
 		ondismisserror: () => void;
 		/** Briefing and generating — player skips the active commission. */
 		ondecline?: () => void;
-		/** Spec 28 — idle practice canvas replaces the idle column. */
+		/** Opens the parent AssignArtistModal. Briefing only; omit on CSS kitchen. */
+		onassignartist?: () => void;
+		/** Spec 28 — idle practice canvas in the Spec 31 viewport dialog. */
 		practiceOpen?: boolean;
 		skill?: MediumSkillProgress | null;
 		rankUpLabel?: string | null;
@@ -121,6 +125,7 @@
 		onretry,
 		ondismisserror,
 		ondecline,
+		onassignartist,
 		practiceOpen = false,
 		skill = null,
 		rankUpLabel = null,
@@ -132,6 +137,45 @@
 	}: Props = $props();
 
 	let sketchHasStrokes = $state(false);
+	let compareOpen = $state(false);
+	let drawingImageUrl = $state<string | null>(null);
+	let sketchGetBlob: (() => Promise<Blob | null>) | null = null;
+
+	function handleSketchExportReady(getBlob: () => Promise<Blob | null>): void {
+		sketchGetBlob = getBlob;
+		onsketchexportready?.(getBlob);
+	}
+
+	async function openCompare(): Promise<void> {
+		compareOpen = true;
+		drawingImageUrl = null;
+		const getBlob = sketchGetBlob;
+		const blob = getBlob ? await getBlob() : null;
+		drawingImageUrl = blob ? await blobToDataUrl(blob) : null;
+	}
+
+	function closeCompare(): void {
+		compareOpen = false;
+	}
+
+	function confirmSubmit(choice: SubmitChoice): void {
+		compareOpen = false;
+		drawingImageUrl = null;
+		onconfirmsubmit?.(choice);
+	}
+
+	function declineCommission(): void {
+		compareOpen = false;
+		drawingImageUrl = null;
+		ondecline?.();
+	}
+
+	const isPracticeDialog = $derived(phase === 'idle' && practiceOpen);
+	const isDeskModal = $derived(phase === 'briefing' || phase === 'generating' || isPracticeDialog);
+	const clientName = $derived(currentClient?.clientName ?? 'client');
+	const deskModalLabel = $derived(
+		phase === 'generating' ? 'Paint while you wait' : isPracticeDialog ? 'Practice' : undefined
+	);
 
 	const pendingReputation = $derived(
 		currentCritique
@@ -172,6 +216,9 @@
 	}
 
 	const showPracticeButton = $derived(!clientSummoned || Boolean(busyLine) || modelLoading);
+	const showReadyToast = $derived(
+		phase === 'generating' && pendingSubmitChoice && Boolean(aiGeneratedImageUrl) && !compareOpen
+	);
 </script>
 
 {#snippet busyCopy(line: { speaker: string; text: string; footnote: string | null })}
@@ -184,59 +231,148 @@
 
 {#snippet mediumPicker(locked: boolean)}
 	<div
-		class="flex flex-wrap items-center gap-2"
+		class="flex flex-col items-center gap-2"
 		role="group"
 		aria-label={locked ? 'Painting medium (locked for this piece)' : 'Painting medium'}
 	>
 		<span class="text-sm font-medium text-stone-700">Medium</span>
 		{#if locked}
-			<span class="text-sm text-stone-600">
+			<span class="text-center text-sm text-stone-600">
 				<span aria-hidden="true">{activeMediumTier().icon}</span>
 				{activeMediumTier().name}
 			</span>
 		{:else}
-			{#each MEDIUM_TIERS as tier (tier.id)}
-				{@const unlocked = isMediumUnlocked(tier.id)}
-				{@const active = tier.id === activeMediumTierId}
-				{@const lockReason = mediumLockReason(tier)}
-				<button
-					type="button"
-					class="min-h-10 min-w-10 rounded-lg border px-2 text-lg {active
-						? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500'
-						: unlocked
-							? 'border-stone-300 bg-white hover:bg-stone-50'
-							: 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-60'}"
-					aria-label="{tier.name}{lockReason ? ` — ${lockReason}` : ''}"
-					aria-pressed={active}
-					disabled={!unlocked}
-					title={lockReason ?? tier.name}
-					onclick={() => onselectmedium?.(tier.id)}
-				>
-					<span aria-hidden="true">{tier.icon}</span>
-				</button>
-			{/each}
+			<div class="flex flex-wrap justify-center gap-2">
+				{#each MEDIUM_TIERS as tier (tier.id)}
+					{@const unlocked = isMediumUnlocked(tier.id)}
+					{@const active = tier.id === activeMediumTierId}
+					{@const lockReason = mediumLockReason(tier)}
+					<button
+						type="button"
+						class="min-h-10 min-w-10 rounded-lg border px-2 text-lg {active
+							? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500'
+							: unlocked
+								? 'border-stone-300 bg-white hover:bg-stone-50'
+								: 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-60'}"
+						aria-label="{tier.name}{lockReason ? ` — ${lockReason}` : ''}"
+						aria-pressed={active}
+						disabled={!unlocked}
+						title={lockReason ?? tier.name}
+						onclick={() => onselectmedium?.(tier.id)}
+					>
+						<span aria-hidden="true">{tier.icon}</span>
+					</button>
+				{/each}
+			</div>
 		{/if}
 	</div>
 {/snippet}
 
-<aside
-	class="studio-hud flex max-h-[min(70vh,640px)] flex-col gap-3 overflow-y-auto rounded-xl border border-stone-300 bg-stone-50/95 p-3 shadow-sm sm:max-h-none"
-	aria-label="Commission desk"
->
-	{#if phase === 'idle'}
-		{#if practiceOpen}
-			<PracticeDesk
-				mediumTierId={activeMediumTierId}
-				{unlockedMediumTierIds}
-				{cash}
-				{reputation}
-				skill={practiceSkill}
-				{rankUpLabel}
-				onselectmedium={(id) => onselectmedium?.(id)}
-				onpracticetick={(deltaMs) => onpracticetick?.(deltaMs)}
-				ondone={() => onexitpractice?.()}
+{#if isDeskModal}
+	<div
+		class="backdrop"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby={phase === 'briefing' ? 'commission-briefing-title' : undefined}
+		aria-label={deskModalLabel}
+	>
+		<div class={['dialog', phase === 'briefing' ? 'dialog-briefing' : 'dialog-paint']}>
+			{#if phase === 'briefing'}
+				<h2 id="commission-briefing-title" class="text-2xl font-bold text-stone-800">
+					Talk to {clientName}
+				</h2>
+				{#if currentClient}
+					<ClientCard brief={currentClient} />
+					{#if (currentClient.abstractness ?? 0) >= 1}
+						<AbstractBriefHint abstractness={currentClient.abstractness ?? 0} />
+					{/if}
+				{/if}
+				{@render mediumPicker(false)}
+				<PromptComposer bind:value={draftPrompt} {onsubmit} />
+				<button
+					type="button"
+					class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+					aria-label="Skip this commission"
+					onclick={declineCommission}
+				>
+					Skip
+				</button>
+				{#if onassignartist}
+					<button
+						type="button"
+						class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+						aria-label="Assign to artist…"
+						onclick={onassignartist}
+					>
+						Assign to artist…
+					</button>
+				{/if}
+			{:else if phase === 'generating'}
+				<SketchCanvas
+					heading={draftPrompt.trim() || 'Your idea'}
+					bind:hasStrokes={sketchHasStrokes}
+					mediumTierId={activeMediumTierId}
+					onexportready={handleSketchExportReady}
+					fill
+				>
+					{#snippet extraTools()}
+						{@render mediumPicker(true)}
+					{/snippet}
+				</SketchCanvas>
+				<div class="paint-footer">
+					<div class="paint-footer-main">
+						{#if !pendingSubmitChoice}
+							<GeneratingPanel
+								progress={generationProgress}
+								stageLabel="Painting"
+								messages={loadingMessages}
+							/>
+						{/if}
+					</div>
+					<button
+						type="button"
+						class="min-h-11 shrink-0 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+						aria-label="Skip this commission"
+						onclick={declineCommission}
+					>
+						Skip
+					</button>
+				</div>
+			{:else}
+				<PracticeDesk
+					mediumTierId={activeMediumTierId}
+					{unlockedMediumTierIds}
+					{cash}
+					{reputation}
+					skill={practiceSkill}
+					{rankUpLabel}
+					fill
+					onselectmedium={(id) => onselectmedium?.(id)}
+					onpracticetick={(deltaMs) => onpracticetick?.(deltaMs)}
+					ondone={() => onexitpractice?.()}
+				/>
+			{/if}
+		</div>
+		{#if showReadyToast}
+			<GenerationReadyToast onopen={() => void openCompare()} />
+		{/if}
+		{#if pendingSubmitChoice && compareOpen && aiGeneratedImageUrl}
+			<SubmitCompareModal
+				{drawingImageUrl}
+				aiImageUrl={aiGeneratedImageUrl}
+				canSubmitDrawing={sketchHasStrokes}
+				onsubmitai={() => confirmSubmit('ai')}
+				onsubmitdrawing={() => confirmSubmit('drawing')}
+				onback={closeCompare}
 			/>
-		{:else}
+		{/if}
+	</div>
+{:else}
+	<aside
+		class="studio-hud flex max-h-[min(70vh,640px)] flex-col gap-3 overflow-y-auto rounded-xl border border-stone-300 bg-stone-50/95 p-3 shadow-sm sm:max-h-none"
+		aria-label="Commission desk"
+	>
+		{#if phase === 'idle'}
 			<p class="text-sm text-stone-600">Walk with WASD or arrows · press E to talk</p>
 			{#if floorInteract}
 				<div class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm">
@@ -276,171 +412,156 @@
 					<p class="text-sm text-stone-500">{busyLine.footnote}</p>
 				{/if}
 			{/if}
-		{/if}
-	{:else if phase === 'briefing'}
-		{#if currentClient}
-			<ClientCard brief={currentClient} />
-			{#if (currentClient.abstractness ?? 0) >= 1}
-				<AbstractBriefHint abstractness={currentClient.abstractness ?? 0} />
+		{:else if phase === 'critiquing' && currentArtwork}
+			{#if currentClient}
+				<ClientCard brief={currentClient} />
 			{/if}
-		{/if}
-		{@render mediumPicker(false)}
-		<PromptComposer bind:value={draftPrompt} {onsubmit} />
-		<button
-			type="button"
-			class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-			aria-label="Skip this commission"
-			onclick={() => ondecline?.()}
-		>
-			Skip
-		</button>
-	{:else if phase === 'generating'}
-		{#if currentClient}
-			<ClientCard brief={currentClient} />
-		{/if}
-		{@render mediumPicker(true)}
-		<SketchCanvas
-			bind:hasStrokes={sketchHasStrokes}
-			mediumTierId={activeMediumTierId}
-			onexportready={onsketchexportready}
-		/>
-		{#if pendingSubmitChoice && aiGeneratedImageUrl}
+			{#if busyLine}
+				<div class="rounded-xl border border-stone-300 bg-white p-4 shadow-sm">
+					{@render busyCopy(busyLine)}
+				</div>
+			{/if}
 			<ArtworkFrame
-				imageUrl={aiGeneratedImageUrl}
-				title="AI result"
-				alt="Generated art from your idea"
+				imageUrl={currentArtwork.imageUrl}
+				title="Fresh from the easel"
+				alt={currentArtwork.playerPrompt}
 				size="full"
 			/>
-			<p class="text-sm text-stone-700">
-				Generation finished — keep painting or choose what to submit for critique.
-			</p>
-			<div class="flex flex-col gap-2">
-				<button
-					type="button"
-					class="min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-					onclick={() => onconfirmsubmit?.('ai')}
-				>
-					Submit AI image
-				</button>
-				<button
-					type="button"
-					class="min-h-11 rounded-lg border border-stone-400 bg-white px-4 py-2 font-semibold text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-50"
-					disabled={!sketchHasStrokes}
-					onclick={() => onconfirmsubmit?.('drawing')}
-				>
-					Submit your drawing
-				</button>
-			</div>
-		{:else}
-			<p class="text-sm text-stone-600">
-				Paint on the canvas while you wait — then pick your drawing or the AI image.
-			</p>
 			<GeneratingPanel
 				progress={generationProgress}
-				stageLabel="Painting"
-				messages={loadingMessages}
+				stageLabel={critiquingStageLabel}
+				messages={critiquingStallMessages}
 			/>
-		{/if}
-		<button
-			type="button"
-			class="min-h-11 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-			aria-label="Skip this commission"
-			onclick={() => ondecline?.()}
-		>
-			Skip
-		</button>
-	{:else if phase === 'critiquing' && currentArtwork}
-		{#if currentClient}
-			<ClientCard brief={currentClient} />
-		{/if}
-		{#if busyLine}
-			<div class="rounded-xl border border-stone-300 bg-white p-4 shadow-sm">
-				{@render busyCopy(busyLine)}
-			</div>
-		{/if}
-		<ArtworkFrame
-			imageUrl={currentArtwork.imageUrl}
-			title="Fresh from the easel"
-			alt={currentArtwork.playerPrompt}
-			size="full"
-		/>
-		<GeneratingPanel
-			progress={generationProgress}
-			stageLabel={critiquingStageLabel}
-			messages={critiquingStallMessages}
-		/>
-	{:else if phase === 'results' && currentArtwork && currentCritique && currentClient}
-		{#if floorInteract}
-			<p class="text-sm font-medium text-amber-900">
-				Walk to the client and press E to deliver their painting.
-			</p>
-		{/if}
-		{#if currentAuctionResult}
-			<div class="flex flex-col gap-4">
-				<ClientCard brief={currentClient} />
-				<ArtworkFrame
-					imageUrl={currentArtwork.imageUrl}
-					title={currentCritique.title}
-					alt={currentCritique.title}
-					size="full"
-				/>
-				<h2
-					class="text-xl leading-snug font-bold break-words text-stone-800"
-					title={currentCritique.title}
-				>
-					{currentCritique.title}
-				</h2>
-				<div class="flex flex-wrap gap-2">
-					<ScoreBadge label="Accuracy" score={currentCritique.accuracyScore} />
-					<ScoreBadge label="Creativity" score={currentCritique.creativityScore} />
+		{:else if phase === 'results' && currentArtwork && currentCritique && currentClient}
+			{#if floorInteract}
+				<p class="text-sm font-medium text-amber-900">
+					Walk to the client and press E to deliver their painting.
+				</p>
+			{/if}
+			{#if currentAuctionResult}
+				<div class="flex flex-col gap-4">
+					<ClientCard brief={currentClient} />
+					<ArtworkFrame
+						imageUrl={currentArtwork.imageUrl}
+						title={currentCritique.title}
+						alt={currentCritique.title}
+						size="full"
+					/>
+					<h2
+						class="text-xl leading-snug font-bold break-words text-stone-800"
+						title={currentCritique.title}
+					>
+						{currentCritique.title}
+					</h2>
+					<div class="flex flex-wrap gap-2">
+						<ScoreBadge label="Accuracy" score={currentCritique.accuracyScore} />
+						<ScoreBadge label="Creativity" score={currentCritique.creativityScore} />
+					</div>
+					<AuctionResultPanel
+						bidderCount={currentAuctionResult.bidderCount}
+						bids={currentAuctionResult.bids}
+						winningBid={currentAuctionResult.winningBid}
+						{oncollect}
+						showCollectButton={!floorInteract}
+					/>
+					{#if pendingSkillGains}
+						<WorkGainToast
+							gains={pendingSkillGains}
+							reputation={pendingReputation}
+							cash={currentCritique.finalPayout}
+							mode="pending"
+						/>
+					{/if}
 				</div>
-				<AuctionResultPanel
-					bidderCount={currentAuctionResult.bidderCount}
-					bids={currentAuctionResult.bids}
-					winningBid={currentAuctionResult.winningBid}
+			{:else}
+				<ResultsPanel
+					artwork={currentArtwork}
+					critique={currentCritique}
+					clientName={currentClient.clientName}
+					{mumRealCritique}
 					{oncollect}
 					showCollectButton={!floorInteract}
+					{pendingSkillGains}
+					{pendingReputation}
 				/>
-				{#if pendingSkillGains}
-					<WorkGainToast
-						gains={pendingSkillGains}
-						reputation={pendingReputation}
-						cash={currentCritique.finalPayout}
-						mode="pending"
-					/>
-				{/if}
-			</div>
-		{:else}
-			<ResultsPanel
-				artwork={currentArtwork}
-				critique={currentCritique}
-				clientName={currentClient.clientName}
-				{mumRealCritique}
-				{oncollect}
-				showCollectButton={!floorInteract}
-				{pendingSkillGains}
-				{pendingReputation}
-			/>
+			{/if}
+			{#if studioDebug && floorInteract}
+				<button
+					type="button"
+					data-testid="studio-debug-deliver"
+					class="min-h-11 rounded-lg border border-amber-700 bg-amber-100 px-4 py-2 font-semibold text-amber-950"
+					onclick={ondeliver}
+				>
+					Deliver painting
+				</button>
+			{/if}
+		{:else if phase === 'failed'}
+			{#if currentClient}
+				<ClientCard brief={currentClient} />
+			{/if}
+			{#if errorMessage}
+				<ErrorPanel message={errorMessage} {onretry} ondismiss={ondismisserror} />
+			{/if}
+			<PromptComposer bind:value={draftPrompt} {onsubmit} />
+		{:else if phase === 'levelComplete'}
+			<IdlePanel disabled oninvite={() => {}} message={idleMessage} />
 		{/if}
-		{#if studioDebug && floorInteract}
-			<button
-				type="button"
-				data-testid="studio-debug-deliver"
-				class="min-h-11 rounded-lg border border-amber-700 bg-amber-100 px-4 py-2 font-semibold text-amber-950"
-				onclick={ondeliver}
-			>
-				Deliver painting
-			</button>
-		{/if}
-	{:else if phase === 'failed'}
-		{#if currentClient}
-			<ClientCard brief={currentClient} />
-		{/if}
-		{#if errorMessage}
-			<ErrorPanel message={errorMessage} {onretry} ondismiss={ondismisserror} />
-		{/if}
-		<PromptComposer bind:value={draftPrompt} {onsubmit} />
-	{:else if phase === 'levelComplete'}
-		<IdlePanel disabled oninvite={() => {}} message={idleMessage} />
-	{/if}
-</aside>
+	</aside>
+{/if}
+
+<style>
+	.backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		display: grid;
+		place-items: center;
+		box-sizing: border-box;
+		padding: 1rem;
+		background: rgb(28 25 23 / 0.6);
+	}
+
+	.dialog {
+		box-sizing: border-box;
+		width: min(72rem, 100%);
+		min-width: 0;
+		min-height: 0;
+		border: 1px solid #d6d3d1;
+		border-radius: 0.75rem;
+		background: #fff;
+		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+	}
+
+	.dialog-briefing {
+		display: flex;
+		max-height: 100%;
+		flex-direction: column;
+		gap: 0.75rem;
+		overflow: auto;
+		padding: 1.5rem;
+	}
+
+	.dialog-paint {
+		display: flex;
+		height: min(52rem, 100%);
+		max-height: 100%;
+		flex-direction: column;
+		gap: 0.75rem;
+		overflow: hidden;
+		padding: 1rem 1.25rem;
+	}
+
+	.paint-footer {
+		display: flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 1rem;
+		border-top: 1px solid #e7e5e4;
+		padding-top: 0.75rem;
+	}
+
+	.paint-footer-main {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+</style>

@@ -14,6 +14,8 @@
 		onpracticetick: (deltaMs: number) => void;
 		ondone: () => void;
 		rankUpLabel?: string | null;
+		/** Fill the paint dialog. Leave false in unconstrained tests. */
+		fill?: boolean;
 	}
 
 	let {
@@ -25,7 +27,8 @@
 		onselectmedium,
 		onpracticetick,
 		ondone,
-		rankUpLabel = null
+		rankUpLabel = null,
+		fill = false
 	}: Props = $props();
 
 	let canvasUnavailable = $state(false);
@@ -64,62 +67,116 @@
 </script>
 
 <div
-	class="flex flex-col gap-3"
+	class={['desk', fill && 'desk-fill']}
 	role="region"
 	aria-label="Practice desk"
 	{@attach attachPracticeHost}
 >
-	<h2 class="text-lg font-semibold text-stone-800">Practice</h2>
-	<p class="text-sm text-stone-700">{skillLine}</p>
-	<ProgressMeter
-		label={skill.rankLabel}
-		value={skill.xpForNext === 0 ? 1 : skill.xpIntoLevel}
-		max={skill.xpForNext === 0 ? 0 : skill.xpForNext}
-		hint={skill.xpForNext === 0 ? 'Max level' : `${skill.xpIntoLevel}/${skill.xpForNext} XP`}
-	/>
-
-	{#if rankUpLabel}
-		<p class="text-sm font-medium text-amber-900" aria-live="polite">Rank up — {rankUpLabel}</p>
-	{/if}
-
-	<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Painting medium">
-		<span class="text-sm font-medium text-stone-700">Medium</span>
-		{#each MEDIUM_TIERS as tier (tier.id)}
-			{@const unlocked = isMediumUnlocked(tier.id)}
-			{@const active = tier.id === mediumTierId}
-			{@const lockReason = mediumLockReason(tier)}
-			<button
-				type="button"
-				class="min-h-10 min-w-10 rounded-lg border px-2 text-lg {active
-					? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500'
-					: unlocked
-						? 'border-stone-300 bg-white hover:bg-stone-50'
-						: 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-60'}"
-				aria-label="{tier.name}{lockReason ? ` — ${lockReason}` : ''}"
-				aria-pressed={active}
-				disabled={!unlocked}
-				title={lockReason ?? tier.name}
-				onclick={() => onselectmedium(tier.id)}
-			>
-				<span aria-hidden="true">{tier.icon}</span>
-			</button>
-		{/each}
-	</div>
+	<SketchCanvas
+		heading="Practice"
+		{mediumTierId}
+		{onpracticetick}
+		ariaLabel="Practice canvas"
+		{fill}
+	>
+		{#snippet extraTools()}
+			<div class="flex flex-col items-center gap-2" role="group" aria-label="Painting medium">
+				<span class="text-sm font-medium text-stone-700">Medium</span>
+				<div class="flex flex-wrap justify-center gap-2">
+					{#each MEDIUM_TIERS as tier (tier.id)}
+						{@const unlocked = isMediumUnlocked(tier.id)}
+						{@const active = tier.id === mediumTierId}
+						{@const lockReason = mediumLockReason(tier)}
+						<button
+							type="button"
+							class="min-h-9 min-w-9 rounded-lg border px-2 text-lg {active
+								? 'border-amber-600 bg-amber-50 ring-2 ring-amber-500'
+								: unlocked
+									? 'border-stone-300 bg-white hover:bg-stone-50'
+									: 'cursor-not-allowed border-stone-200 bg-stone-100 opacity-60'}"
+							aria-label="{tier.name}{lockReason ? ` — ${lockReason}` : ''}"
+							aria-pressed={active}
+							disabled={!unlocked}
+							title={lockReason ?? tier.name}
+							onclick={() => onselectmedium(tier.id)}
+						>
+							<span aria-hidden="true">{tier.icon}</span>
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/snippet}
+	</SketchCanvas>
 
 	{#if canvasUnavailable}
 		<p class="text-sm text-stone-700" role="alert">Canvas unavailable</p>
 	{/if}
 
-	<SketchCanvas {mediumTierId} {onpracticetick} ariaLabel="Practice canvas" />
-
-	<p class="text-sm text-stone-600">Draw to train this medium. No client, no payout.</p>
-
-	<button
-		type="button"
-		class="min-h-11 rounded-lg bg-amber-600 px-4 py-2 font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-		aria-label="Finish practising"
-		onclick={ondone}
-	>
-		Done
-	</button>
+	<div class="footer">
+		<div class="progress">
+			<p class="text-sm text-stone-700">{skillLine}</p>
+			<ProgressMeter
+				label="Medium progress"
+				variant="compact"
+				value={skill.xpForNext === 0 ? 1 : skill.xpIntoLevel}
+				max={skill.xpForNext === 0 ? 0 : skill.xpForNext}
+				hint={skill.xpForNext === 0 ? 'Max level' : `${skill.xpIntoLevel}/${skill.xpForNext} XP`}
+			/>
+			{#if rankUpLabel}
+				<p class="text-sm font-medium text-amber-900" aria-live="polite">Rank up — {rankUpLabel}</p>
+			{/if}
+		</div>
+		<button type="button" class="done" aria-label="Finish practising" onclick={ondone}>
+			Done
+		</button>
+	</div>
 </div>
+
+<style>
+	.desk {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		gap: 0.75rem;
+	}
+
+	.desk-fill {
+		flex: 1 1 0;
+		min-height: 0;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	.footer {
+		display: flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 1rem;
+		border-top: 1px solid #e7e5e4;
+		padding-top: 0.75rem;
+	}
+
+	.progress {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	.done {
+		flex: 0 0 auto;
+		min-height: 2.75rem;
+		border-radius: 0.5rem;
+		background: #d97706;
+		padding: 0.5rem 1.5rem;
+		font-weight: 600;
+		color: #fff;
+	}
+
+	.done:hover {
+		background: #b45309;
+	}
+
+	.done:focus-visible {
+		outline: 2px solid #d97706;
+		outline-offset: 2px;
+	}
+</style>

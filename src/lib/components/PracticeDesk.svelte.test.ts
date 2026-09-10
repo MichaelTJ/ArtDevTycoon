@@ -24,9 +24,7 @@ test('renders rank text and practice canvas', async () => {
 		.element(screen.getByText(/Crayons & Construction Paper · Novice · 0\/60 XP/))
 		.toBeVisible();
 	await expect.element(screen.getByLabelText('Practice canvas')).toBeVisible();
-	await expect
-		.element(screen.getByText('Draw to train this medium. No client, no payout.'))
-		.toBeVisible();
+	await expect.element(screen.getByText('Medium progress')).toBeVisible();
 });
 
 test('Done fires ondone', async () => {
@@ -111,4 +109,23 @@ test('rank-up live region shows the new rank', async () => {
 	});
 
 	await expect.element(screen.getByText('Rank up — Doodler')).toBeVisible();
+});
+
+test('oil medium shows Oil on Canvas brush kinds', async () => {
+	const screen = render(PracticeDesk, {
+		mediumTierId: 'oil',
+		unlockedMediumTierIds: ['crayon', 'oil'],
+		cash: 350,
+		reputation: 24,
+		skill: mediumSkillProgress('oil', 0),
+		onselectmedium: vi.fn(),
+		onpracticetick: vi.fn(),
+		ondone: vi.fn()
+	});
+
+	await expect.element(screen.getByRole('group', { name: 'Oil brush' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Round' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Bristle' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Flat' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Palette knife' })).toBeVisible();
 });
