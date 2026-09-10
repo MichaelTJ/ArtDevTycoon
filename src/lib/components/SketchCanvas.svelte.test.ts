@@ -44,6 +44,8 @@ test('ink medium shows only black and white swatches without custom colour', asy
 	await expect.element(screen.getByLabelText('Colour #fafaf9')).toBeVisible();
 	expect(screen.getByLabelText('Custom colour').query()).toBeNull();
 	expect(screen.getByLabelText('Colour #dc2626').query()).toBeNull();
+	expect(screen.getByRole('group', { name: 'RGB colour' }).query()).toBeNull();
+	expect(screen.getByRole('group', { name: 'Oil brush' }).query()).toBeNull();
 });
 
 test('non-ink medium keeps full palette and custom colour input', async () => {
@@ -167,4 +169,65 @@ test('disabled canvas does not fire onpracticetick', async () => {
 test('optional ariaLabel overrides the canvas name', async () => {
 	const screen = render(SketchCanvas, { ariaLabel: 'Practice canvas' });
 	await expect.element(screen.getByLabelText('Practice canvas')).toBeVisible();
+});
+
+test('crayon canvas keeps Custom colour and hides RGB and oil stroke', async () => {
+	const screen = render(SketchCanvas, {});
+	await expect.element(screen.getByLabelText('Custom colour')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #dc2626')).toBeVisible();
+	expect(screen.getByLabelText('Red').query()).toBeNull();
+	expect(screen.getByRole('group', { name: 'RGB colour' }).query()).toBeNull();
+	expect(screen.getByRole('group', { name: 'Oil brush' }).query()).toBeNull();
+});
+
+test('watercolor canvas shows RGB picker and watercolour swatches', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'watercolor' });
+	await expect.element(screen.getByRole('group', { name: 'RGB colour' })).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour well')).toBeVisible();
+	await expect.element(screen.getByLabelText('Red')).toBeVisible();
+	await expect.element(screen.getByLabelText('Green')).toBeVisible();
+	await expect.element(screen.getByLabelText('Blue')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #3d5a80')).toBeVisible();
+	expect(screen.getByLabelText('Custom colour').query()).toBeNull();
+	expect(screen.getByLabelText('Colour #dc2626').query()).toBeNull();
+});
+
+test('acrylic canvas shows RGB colour and #06b6d4', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'acrylic' });
+	await expect.element(screen.getByRole('group', { name: 'RGB colour' })).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #06b6d4')).toBeVisible();
+});
+
+test('oil canvas shows RGB colour and Oil brush kinds', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'oil' });
+	await expect.element(screen.getByRole('group', { name: 'RGB colour' })).toBeVisible();
+	await expect.element(screen.getByRole('group', { name: 'Oil brush' })).toBeVisible();
+	await expect.element(screen.getByText('Oil brush')).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Round' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Bristle' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Flat' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Palette knife' })).toBeVisible();
+	expect(screen.getByRole('button', { name: 'Round' }).element().getAttribute('aria-pressed')).toBe(
+		'true'
+	);
+});
+
+test('oil Bristle press updates aria-pressed', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'oil' });
+	await screen.getByRole('button', { name: 'Bristle' }).click();
+	expect(
+		screen.getByRole('button', { name: 'Bristle' }).element().getAttribute('aria-pressed')
+	).toBe('true');
+	expect(screen.getByRole('button', { name: 'Round' }).element().getAttribute('aria-pressed')).toBe(
+		'false'
+	);
+});
+
+test('watercolor RGB well can set #ff0000', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'watercolor' });
+	await screen.getByLabelText('Red').fill('255');
+	await screen.getByLabelText('Green').fill('0');
+	await screen.getByLabelText('Blue').fill('0');
+	await expect.element(screen.getByLabelText('Colour well')).toHaveValue('#ff0000');
+	await expect.element(screen.getByLabelText('Red')).toHaveValue(255);
 });

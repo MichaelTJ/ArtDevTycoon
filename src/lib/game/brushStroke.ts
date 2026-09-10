@@ -1,4 +1,5 @@
 import { type BrushProfile, getBrushProfile } from '$lib/data/brushProfiles';
+import type { OilStrokeKind } from '$lib/data/sketchPalettes';
 
 export type { BrushProfile };
 export { getBrushProfile };
@@ -137,4 +138,155 @@ export function stampInkBleed(
 /** Integer seed from canvas coordinates — stable for a given pointer position. */
 export function grainSeed(x: number, y: number): number {
 	return Math.round(x * 13 + y * 7);
+}
+
+/** Zero-length segments fall back to a unit x-axis so stamps still have a direction. */
+function strokeDirection(
+	x: number,
+	y: number,
+	lastX: number,
+	lastY: number
+): { dx: number; dy: number } {
+	const dx = x - lastX;
+	const dy = y - lastY;
+	if (Math.hypot(dx, dy) === 0) {
+		return { dx: 1, dy: 0 };
+	}
+	return { dx, dy };
+}
+
+/**
+ * Angle of last→current, plus a span that covers the segment (minSpan on a click).
+ * Zero-length samples still get a short dab along the fallback +x axis.
+ */
+function oilSegment(
+	x: number,
+	y: number,
+	lastX: number,
+	lastY: number,
+	minSpan: number
+): { angle: number; span: number } {
+	const { dx, dy } = strokeDirection(x, y, lastX, lastY);
+	return {
+		angle: Math.atan2(dy, dx),
+		span: Math.max(Math.hypot(x - lastX, y - lastY), minSpan)
+	};
+}
+
+/**
+ * Five parallel bristle hairs along the stroke direction. Deterministic via `seed`.
+ * Zero-length segments use dx=1, dy=0.
+ */
+export function stampOilBristle(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	lastX: number,
+	lastY: number,
+	size: number,
+	color: string,
+	seed: number
+): void {
+	const { dx, dy } = strokeDirection(x, y, lastX, lastY);
+	const hairs = 5;
+	const len = Math.hypot(dx, dy) || 1;
+	const nx = -dy / len;
+	const ny = dx / len;
+	for (let i = 0; i < hairs; i++) {
+		const offset = ((i - 2) / 2) * size * 0.35;
+		const jitter = ((seed + i * 11) % 5) * 0.15;
+		ctx.globalAlpha = 0.35 + ((seed + i) % 3) * 0.08;
+		ctx.strokeStyle = color;
+		ctx.lineWidth = Math.max(0.8, size * 0.12);
+		ctx.lineCap = 'butt';
+		ctx.beginPath();
+		ctx.moveTo(lastX + nx * offset, lastY + ny * offset);
+		ctx.lineTo(x + nx * (offset + jitter), y + ny * (offset + jitter));
+		ctx.stroke();
+	}
+}
+
+/**
+ * Flat-brush rectangle spanning last→current, rotated to the segment angle.
+ * Consecutive samples join because the rect covers the whole segment, not a dab at the tip.
+ */
+export function stampOilFlat(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	lastX: number,
+	lastY: number,
+	size: number,
+	color: string
+): void {
+	const { angle, span } = oilSegment(x, y, lastX, lastY, size * 0.35);
+	const overlap = size * 0.08;
+	ctx.save();
+	ctx.translate(lastX, lastY);
+	ctx.rotate(angle);
+	ctx.fillStyle = color;
+	ctx.globalAlpha = 0.92;
+	ctx.fillRect(-overlap, -size * 0.45, span + overlap * 2, size * 0.9);
+	ctx.restore();
+}
+
+/**
+ * Palette-knife triangle spanning last→current, rotated to the segment angle.
+ * Base sits on the previous point; tip on the current point so strokes join.
+ */
+export function stampOilKnife(
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	lastX: number,
+	lastY: number,
+	size: number,
+	color: string
+): void {
+	const { angle, span } = oilSegment(x, y, lastX, lastY, size * 0.4);
+	const halfW = size * 0.42;
+	ctx.save();
+	ctx.translate(lastX, lastY);
+	ctx.rotate(angle);
+	ctx.fillStyle = color;
+	ctx.globalAlpha = 0.88;
+	ctx.beginPath();
+	ctx.moveTo(0, -halfW);
+	ctx.lineTo(span, 0);
+	ctx.lineTo(0, halfW);
+	ctx.closePath();
+	ctx.fill();
+	ctx.restore();
+}
+
+/**
+ * Dispatch an oil stamp kind. `round` is a no-op (caller uses the line stroke).
+ * Unknown kinds are a no-op.
+ */
+export function stampOilStroke(
+	ctx: CanvasRenderingContext2D,
+	kind: OilStrokeKind,
+	x: number,
+	y: number,
+	lastX: number,
+	lastY: number,
+	size: number,
+	color: string,
+	seed: number
+): void {
+	switch (kind) {
+		case 'round':
+			return;
+		case 'bristle':
+			stampOilBristle(ctx, x, y, lastX, lastY, size, color, seed);
+			return;
+		case 'flat':
+			stampOilFlat(ctx, x, y, lastX, lastY, size, color);
+			return;
+		case 'knife':
+			stampOilKnife(ctx, x, y, lastX, lastY, size, color);
+			return;
+		default:
+			return;
+	}
 }

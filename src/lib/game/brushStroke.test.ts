@@ -8,7 +8,11 @@ import {
 	stampBrushGrain,
 	stampCharcoalGrain,
 	stampCrayonGrain,
-	stampInkBleed
+	stampInkBleed,
+	stampOilBristle,
+	stampOilFlat,
+	stampOilKnife,
+	stampOilStroke
 } from './brushStroke';
 
 function mockCtx(): CanvasRenderingContext2D {
@@ -26,7 +30,14 @@ function mockCtx(): CanvasRenderingContext2D {
 		restore: vi.fn(),
 		beginPath: vi.fn(),
 		arc: vi.fn(),
-		fill: vi.fn()
+		fill: vi.fn(),
+		moveTo: vi.fn(),
+		lineTo: vi.fn(),
+		stroke: vi.fn(),
+		translate: vi.fn(),
+		rotate: vi.fn(),
+		fillRect: vi.fn(),
+		closePath: vi.fn()
 	} as unknown as CanvasRenderingContext2D;
 }
 
@@ -106,5 +117,60 @@ describe('grainSeed', () => {
 	it('is deterministic for coordinates', () => {
 		expect(grainSeed(10, 20)).toBe(grainSeed(10, 20));
 		expect(grainSeed(10, 20)).not.toBe(grainSeed(11, 20));
+	});
+});
+
+describe('oil stamps', () => {
+	it('stampOilBristle draws five hairs', () => {
+		const ctx = mockCtx();
+		stampOilBristle(ctx, 10, 20, 5, 18, 8, '#d4a017', 42);
+		expect(ctx.moveTo).toHaveBeenCalledTimes(5);
+		expect(ctx.lineTo).toHaveBeenCalledTimes(5);
+		expect(ctx.stroke).toHaveBeenCalledTimes(5);
+	});
+
+	it('stampOilBristle is deterministic', () => {
+		const ctxA = mockCtx();
+		const ctxB = mockCtx();
+		stampOilBristle(ctxA, 10, 20, 5, 18, 8, '#d4a017', 42);
+		stampOilBristle(ctxB, 10, 20, 5, 18, 8, '#d4a017', 42);
+		expect(vi.mocked(ctxA.moveTo).mock.calls).toEqual(vi.mocked(ctxB.moveTo).mock.calls);
+		expect(vi.mocked(ctxA.lineTo).mock.calls).toEqual(vi.mocked(ctxB.lineTo).mock.calls);
+	});
+
+	it('stampOilFlat spans last→current and rotates to the segment angle', () => {
+		const ctx = mockCtx();
+		stampOilFlat(ctx, 10, 20, 5, 18, 8, '#d4a017');
+		const dist = Math.hypot(5, 2);
+		expect(ctx.translate).toHaveBeenCalledWith(5, 18);
+		expect(ctx.rotate).toHaveBeenCalledWith(Math.atan2(2, 5));
+		expect(ctx.fillRect).toHaveBeenCalledOnce();
+		const rect = vi.mocked(ctx.fillRect).mock.calls[0];
+		expect(rect?.[2]).toBeGreaterThanOrEqual(dist);
+	});
+
+	it('stampOilKnife spans last→current and rotates to the segment angle', () => {
+		const ctx = mockCtx();
+		stampOilKnife(ctx, 10, 20, 5, 18, 8, '#d4a017');
+		expect(ctx.translate).toHaveBeenCalledWith(5, 18);
+		expect(ctx.rotate).toHaveBeenCalledWith(Math.atan2(2, 5));
+		expect(ctx.moveTo).toHaveBeenCalledWith(0, -8 * 0.42);
+		expect(ctx.lineTo).toHaveBeenCalledWith(Math.hypot(5, 2), 0);
+		expect(ctx.closePath).toHaveBeenCalledOnce();
+		expect(ctx.fill).toHaveBeenCalledOnce();
+	});
+
+	it('stampOilStroke round is a no-op', () => {
+		const ctx = mockCtx();
+		stampOilStroke(ctx, 'round', 10, 20, 5, 18, 8, '#d4a017', 1);
+		expect(ctx.fill).not.toHaveBeenCalled();
+		expect(ctx.stroke).not.toHaveBeenCalled();
+	});
+
+	it('stampOilStroke unknown kind is a no-op', () => {
+		const ctx = mockCtx();
+		stampOilStroke(ctx, 'unknown' as 'round', 10, 20, 5, 18, 8, '#d4a017', 1);
+		expect(ctx.fill).not.toHaveBeenCalled();
+		expect(ctx.stroke).not.toHaveBeenCalled();
 	});
 });

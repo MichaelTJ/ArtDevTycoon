@@ -183,6 +183,7 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 28  | [Practice station](./28-practice-station.md)         | **Shipped:** idle desk practice canvas; stroke-time XP into Spec 27 medium skill                                                  | 27, 17, 25                      |
 | 29  | [NPC busy states](./29-npc-busy-states.md)           | Model-load busy copy, walk during critique, `!` attention marks, venue channel lines                                              | 17–21f, 24/P27, engine `isBusy` |
 | 30  | [Playtest 5 bundle](./30-engine-ui-playtest.md)      | Crayon modal + engine overlay, Mum `!` height, editor v1 restore, medium XP ×3, welcome one-pager                                 | 03, 04, 05, 20, 27–29           |
+| 32  | [Premium medium palettes](./32-premium-media.md)     | Watercolour/acrylic/oil RGB picker; oil stroke textures (round/bristle/flat/knife)                                                | 25                              |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -222,7 +223,8 @@ Wave L  (painting feel — **shipped** + playtest polish)
    └── 25 Brush media → docs/tasks/25-brush-media.md
        ├── 25a picker on briefing + My idea (P24) ✅
        ├── 25b stroke profiles ✅ · ink charcoal B&W (P22) ✅
-       └── 25c cursor/eraser polish deferred
+       ├── 25c cursor/eraser polish deferred
+       └── 32 premium palettes → ../adt-wt-premium-media  branch agent/premium-media
 
 Wave M  (engine lab — MVP already on main; no implementing agent)
    └── 26 Modifier / engine explorer → docs/tasks/26-modifier-explorer.md

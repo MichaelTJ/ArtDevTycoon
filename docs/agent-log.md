@@ -3153,3 +3153,63 @@ npm run test:unit -- --run src/lib/components/CapabilityNotice.svelte.test.ts sr
 Follow-up: crayon dismiss now uses `() => engines.dismissNotice()`; `cancelDownload` also dismisses the notice. Welcome 4th bullet is AI-assisted drawing; crayon body says art is (poorly) drawn procedurally; gate cancel copy is **Continue without model**.
 
 Follow-up: download progress peak-holds per file (`holdPeakProgress`); load UI is a non-blocking `EngineLoadSpinner` card with percent. Consent/error stay on `ModelDownloadGate`; the gate unmounts as soon as download starts (`downloadGateOpen = false` and it is not mounted while `downloadGateState === 'loading'`), so the fullscreen overlay cannot sit on top of the studio. Reopens only on `loadError`. Spinner percent uses HF overall totals with a running max — not the worker’s 15%/90% per-file remap.
+
+---
+
+## 2026-09-10 — Premium medium palettes
+
+**Zone:** `src/lib/data/sketchPalettes.ts`, `src/lib/data/brushProfiles.ts`, `src/lib/game/brushStroke.ts`, `src/lib/components/RgbColourPicker.svelte`, `src/lib/components/SketchCanvas.svelte`, `src/lib/data/README.md`, `docs/tasks/32-premium-media.md`, `docs/agent-log.md`
+
+**Built:** Watercolour, acrylic, and oil now use medium-specific swatches plus an RGB well with Red/Green/Blue 0–255 inputs. Crayon and pencil still use the eight crayon swatches and the small Custom colour control; ink stays black and paper-white. Oil adds a session-only Oil stroke group (Round / Bristle / Flat / Palette knife). Non-round oil kinds stamp deterministic canvas marks instead of stroking the segment; Round keeps the existing oil line.
+
+**Public surface:** `swatchesForMedium(mediumTierId)`, `showsRgbPicker`, `showsCustomColour`, `showsOilStrokePicker`, `hexFromRgb(r,g,b)`, `rgbFromHex(hex)`, palettes and `OIL_STROKE_*` from `$lib/data/sketchPalettes`. `stampOilBristle`, `stampOilFlat`, `stampOilKnife`, `stampOilStroke` from `$lib/game/brushStroke`. `RgbColourPicker` is imported only by `SketchCanvas` (not the components barrel). Props: `value`, `disabled?`, `onchange(hex)`.
+
+**Tests:** Palettes, RGB clamp/parse, oil stamp call counts and determinism, picker channels/disabled, crayon/ink regression, watercolour/acrylic/oil chrome, oil Bristle `aria-pressed`, practice-tick regression.
+
+```
+npm run test:unit -- --run src/lib/data/sketchPalettes.test.ts src/lib/data/brushProfiles.test.ts src/lib/game/brushStroke.test.ts src/lib/components/RgbColourPicker.svelte.test.ts src/lib/components/SketchCanvas.svelte.test.ts
+```
+
+54 passed. Full `npm run test:unit -- --run`: 157 files, 1078 passed. Owned-file Prettier + ESLint clean.
+
+**Decisions:** RGB channels are `$derived` from `value` so the picker stays a controlled child. Oil stroke kind lives in SketchCanvas `$state` and is not reset when leaving oil, so returning to oil restores the last kind without touching save schema. Colour-well programmatic `input` events are unreliable in Chromium tests; the watercolour `#ff0000` case fills the number inputs instead.
+
+**Requests:** None.
+
+**Known gaps:** Repo-wide `npm run check` still fails on inherited `src/lib/studio-editor/storage.ts` (`RoomId` not exported) and `src/lib/modifier-explorer/index.ts` (`UNLOCK_STYLE_KEYS`). Repo-wide `npm run lint` still flags Prettier drift outside this zone. Full unit suite is green. Spec 25c cursor/eraser/audio still deferred. No wet-on-wet.
+
+---
+
+## 2026-09-10 — Oil flat / knife join (spec 32 polish)
+
+**Zone:** `src/lib/game/brushStroke.ts`, `src/lib/game/brushStroke.test.ts`, `docs/tasks/32-premium-media.md`
+
+**Built:** Flat and palette-knife oil stamps now span last→current instead of dabbing at the tip. Both rotate to `atan2(dy, dx)` so rectangles and triangles follow the stroke. Knife no longer uses seed rotation.
+
+**Public surface:** `stampOilKnife` now takes `lastX, lastY` (dropped unused `seed`). Flat `fillRect` width is the segment length plus overlap.
+
+**Tests:** `npm run test:unit -- --run src/lib/game/brushStroke.test.ts`
+
+**Decisions:** Origin is the previous point so consecutive samples share an edge. Zero-length pointerdown still dabs using minSpan.
+
+**Requests:** None.
+
+**Known gaps:** Sharp corners can still show a small miter gap between two differently angled segments.
+
+---
+
+## 2026-09-10 — Oil brush picker chrome
+
+**Zone:** `src/lib/components/SketchCanvas.svelte`, `src/lib/components/SketchCanvas.svelte.test.ts`
+
+**Built:** Oil stroke kinds sit on the sketch toolbar as **Oil brush** (Oil on Canvas only). Round / Bristle / Flat / Palette knife are bordered buttons matching Undo/Clear; the words “Oil brush” stay a label.
+
+**Public surface:** Unchanged. Group accessible name is `Oil brush`.
+
+**Tests:** `npm run test:unit -- --run src/lib/components/SketchCanvas.svelte.test.ts` (19 passed).
+
+**Decisions:** Player playtest: picker was easy to miss below the RGB row and the kinds looked like plain text inside one amber chip.
+
+**Requests:** None.
+
+**Known gaps:** None for this polish.

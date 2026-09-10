@@ -1,6 +1,7 @@
 /**
  * Canvas brush profiles keyed by Spec 13 medium tier id. Spec 25 MVP — crayon through
- * watercolour get distinct stroke feel; higher tiers reuse a polished default until 25c.
+ * watercolour get distinct stroke feel; acrylic and oil keep their line parameters.
+ * Palettes live in `sketchPalettes.ts`; oil stroke stamps live in `brushStroke.ts`.
  */
 
 export interface BrushProfile {

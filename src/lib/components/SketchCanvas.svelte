@@ -2,12 +2,26 @@
 	import { getBrushProfile } from '$lib/data/brushProfiles';
 	import { DEFAULT_MEDIUM_TIER_ID } from '$lib/data/mediumTiers';
 	import {
+		DEFAULT_OIL_STROKE_KIND,
+		INK_PALETTE,
+		OIL_STROKE_KINDS,
+		OIL_STROKE_LABELS,
+		type OilStrokeKind,
+		showsCustomColour,
+		showsOilStrokePicker,
+		showsRgbPicker,
+		swatchesForMedium
+	} from '$lib/data/sketchPalettes';
+	import {
 		applyBrushStrokeStyle,
+		effectiveBrushSize,
 		grainSeed,
 		resetBrushContext,
 		stampBrushGrain,
-		stampInkBleed
+		stampInkBleed,
+		stampOilStroke
 	} from '$lib/game/brushStroke';
+	import RgbColourPicker from './RgbColourPicker.svelte';
 
 	interface Props {
 		disabled?: boolean;
@@ -38,18 +52,6 @@
 	}: Props = $props();
 
 	const CANVAS_CSS = 384;
-	const PALETTE = [
-		'#1c1917',
-		'#ffffff',
-		'#dc2626',
-		'#ea580c',
-		'#ca8a04',
-		'#16a34a',
-		'#2563eb',
-		'#7c3aed'
-	] as const;
-	/** Ink & Charcoal — B&W only (playtest P22). */
-	const INK_PALETTE = ['#0a0a0a', '#fafaf9'] as const;
 	const INK_BLACK = INK_PALETTE[0];
 
 	function isInkAllowedColor(hex: string): boolean {
@@ -63,6 +65,7 @@
 	let tool = $state<Tool>('brush');
 	let brushSize = $state(8);
 	let selectedColor = $state('#1c1917');
+	let oilStrokeKind = $state<OilStrokeKind>(DEFAULT_OIL_STROKE_KIND);
 	let drawing = $state(false);
 	let lastX = $state(0);
 	let lastY = $state(0);
@@ -71,7 +74,8 @@
 
 	const brushProfile = $derived(getBrushProfile(mediumTierId));
 	const isInkMedium = $derived(mediumTierId === 'ink');
-	const activePalette = $derived(isInkMedium ? INK_PALETTE : PALETTE);
+	const activePalette = $derived(swatchesForMedium(mediumTierId));
+	const oilStampActive = $derived(mediumTierId === 'oil' && oilStrokeKind !== 'round');
 	/** Snap chromatic picks to black while ink is active (P22). */
 	const color = $derived(
 		isInkMedium && !isInkAllowedColor(selectedColor) ? INK_BLACK : selectedColor
@@ -152,7 +156,32 @@
 		ctx.strokeStyle = 'rgba(0,0,0,1)';
 	}
 
+	function stampOilAt(
+		ctx: CanvasRenderingContext2D,
+		x: number,
+		y: number,
+		fromX: number,
+		fromY: number
+	): void {
+		stampOilStroke(
+			ctx,
+			oilStrokeKind,
+			x,
+			y,
+			fromX,
+			fromY,
+			effectiveBrushSize(brushSize, brushProfile),
+			color,
+			grainSeed(x, y)
+		);
+		resetBrushContext(ctx);
+	}
+
 	function strokeBrushSegment(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+		if (oilStampActive) {
+			stampOilAt(ctx, x, y, lastX, lastY);
+			return;
+		}
 		applyBrushStrokeStyle(ctx, brushProfile, color, brushSize);
 		ctx.lineTo(x, y);
 		ctx.stroke();
@@ -178,6 +207,10 @@
 		lastX = x;
 		lastY = y;
 		strokeLastTs = tool === 'brush' ? nowMs() : null;
+		if (tool === 'brush' && oilStampActive) {
+			stampOilAt(ctx, x, y, x, y);
+			return;
+		}
 		ctx.beginPath();
 		ctx.moveTo(x, y);
 		if (tool === 'eraser') {
@@ -348,6 +381,28 @@
 		>
 			Clear
 		</button>
+
+		{#if showsOilStrokePicker(mediumTierId)}
+			<div class="inline-flex flex-wrap items-center gap-2" role="group" aria-label="Oil brush">
+				<span class="text-sm font-medium text-stone-700">Oil brush</span>
+				{#each OIL_STROKE_KINDS as kind (kind)}
+					<button
+						type="button"
+						class="min-h-10 rounded-lg border px-3 text-sm font-medium {oilStrokeKind === kind
+							? 'border-amber-600 bg-amber-600 text-white'
+							: 'border-stone-300 bg-white text-stone-800 hover:bg-stone-50'}"
+						aria-pressed={oilStrokeKind === kind}
+						{disabled}
+						onclick={() => {
+							oilStrokeKind = kind;
+							tool = 'brush';
+						}}
+					>
+						{OIL_STROKE_LABELS[kind]}
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<div class="mb-3 flex flex-wrap items-center gap-2" aria-label="Colour">
@@ -365,7 +420,7 @@
 				}}
 			></button>
 		{/each}
-		{#if !isInkMedium}
+		{#if showsCustomColour(mediumTierId)}
 			<label class="flex items-center gap-2 text-sm text-stone-700">
 				Custom
 				<input
@@ -379,6 +434,16 @@
 					}}
 				/>
 			</label>
+		{/if}
+		{#if showsRgbPicker(mediumTierId)}
+			<RgbColourPicker
+				value={color}
+				{disabled}
+				onchange={(hex) => {
+					selectedColor = hex;
+					tool = 'brush';
+				}}
+			/>
 		{/if}
 	</div>
 
