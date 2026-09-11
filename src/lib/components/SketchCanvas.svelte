@@ -7,7 +7,6 @@
 		OIL_STROKE_KINDS,
 		OIL_STROKE_LABELS,
 		type OilStrokeKind,
-		showsCustomColour,
 		showsOilStrokePicker,
 		showsRgbPicker,
 		swatchesForMedium
@@ -62,6 +61,10 @@
 	}: Props = $props();
 
 	const CANVAS_CSS = 384;
+	/** Ignore stationary samples; slow strokes still count (sub-2px pointermoves). */
+	const PRACTICE_MIN_MOVE_PX = 0.25;
+	/** Drop tab-thaw / freeze spikes. Slow coalesced moves under 2s still grant XP. */
+	const PRACTICE_MAX_TICK_MS = 2_000;
 	const INK_BLACK = INK_PALETTE[0];
 
 	function isInkAllowedColor(hex: string): boolean {
@@ -259,8 +262,8 @@
 	}
 
 	/**
-	 * Spec 28: grant time only for actual brush movement. Ignore hover, eraser,
-	 * zero-dt, sub-2px jitter, and tab-thaw spikes above 250ms.
+	 * Spec 28: grant time for actual brush movement, including slow strokes.
+	 * Ignore hover, eraser, zero-dt, sub-pixel jitter, and tab-thaw spikes above 2s.
 	 */
 	function maybePracticeTick(x: number, y: number): void {
 		if (disabled || tool === 'eraser' || !onpracticetick || strokeLastTs === null) {
@@ -270,7 +273,7 @@
 		const dt = ts - strokeLastTs;
 		strokeLastTs = ts;
 		const dist = Math.hypot(x - lastX, y - lastY);
-		if (dist >= 2 && dt > 0 && dt <= 250) {
+		if (dist >= PRACTICE_MIN_MOVE_PX && dt > 0 && dt <= PRACTICE_MAX_TICK_MS) {
 			onpracticetick(dt);
 		}
 	}
@@ -438,21 +441,6 @@
 							}}
 						></button>
 					{/each}
-					{#if showsCustomColour(mediumTierId)}
-						<label class="flex items-center gap-2 text-sm text-stone-700">
-							Custom
-							<input
-								type="color"
-								bind:value={selectedColor}
-								{disabled}
-								aria-label="Custom colour"
-								class="h-8 w-10 cursor-pointer rounded border border-stone-300 bg-white"
-								oninput={() => {
-									tool = 'brush';
-								}}
-							/>
-						</label>
-					{/if}
 					{#if showsRgbPicker(mediumTierId)}
 						<RgbColourPicker
 							value={color}

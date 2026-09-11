@@ -475,7 +475,7 @@
 </script>
 
 <svelte:head>
-	<title>Art Gallery Tycoon ΓÇö {environment.levelDisplayName}</title>
+	<title>Art Gallery Tycoon — {environment.levelDisplayName}</title>
 </svelte:head>
 
 <main

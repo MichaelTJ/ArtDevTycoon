@@ -4,7 +4,7 @@ import { render } from 'vitest-browser-svelte';
 import PracticeDesk from './PracticeDesk.svelte';
 
 const crayonNovice = mediumSkillProgress('crayon', 0);
-const pencilDoodler = mediumSkillProgress('pencil', 60);
+const pencilDoodler = mediumSkillProgress('pencil', 30);
 
 test('renders rank text and practice canvas', async () => {
 	const screen = render(PracticeDesk, {
@@ -21,7 +21,7 @@ test('renders rank text and practice canvas', async () => {
 	await expect.element(screen.getByRole('region', { name: 'Practice desk' })).toBeVisible();
 	await expect.element(screen.getByRole('heading', { name: 'Practice' })).toBeVisible();
 	await expect
-		.element(screen.getByText(/Crayons & Construction Paper · Novice · 0\/60 XP/))
+		.element(screen.getByText(/Crayons & Construction Paper · Novice · 0\/30 XP/))
 		.toBeVisible();
 	await expect.element(screen.getByLabelText('Practice canvas')).toBeVisible();
 	await expect.element(screen.getByText('Medium progress')).toBeVisible();
@@ -78,7 +78,7 @@ test('locked medium is disabled', async () => {
 });
 
 test('max level copy when xpForNext is 0', async () => {
-	const master = mediumSkillProgress('crayon', 810);
+	const master = mediumSkillProgress('crayon', 405);
 	const screen = render(PracticeDesk, {
 		mediumTierId: 'crayon',
 		unlockedMediumTierIds: ['crayon'],

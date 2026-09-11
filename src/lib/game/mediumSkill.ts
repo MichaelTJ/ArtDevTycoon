@@ -23,13 +23,13 @@ export const MEDIUM_SKILL_RANK_LABELS = [
 ] as const;
 
 /**
- * XP to go from `level` → `level + 1`. Level 1→2 = 60, then +30 per step.
- * Totals to reach level 7 from 0: 60+90+120+150+180+210 = 810.
+ * XP to go from `level` → `level + 1`. Level 1→2 = 30, then +15 per step.
+ * Totals to reach level 7 from 0: 30+45+60+75+90+105 = 405.
  */
 export function mediumSkillXpToNext(level: number): number {
-	if (level < 1) return 60;
+	if (level < 1) return 30;
 	if (level >= MEDIUM_SKILL_LEVEL_CAP) return 0;
-	return 60 + (level - 1) * 30;
+	return 30 + (level - 1) * 15;
 }
 
 /** Player: 1 XP per this many ms of generating-phase wall time (active medium). */

@@ -1,4 +1,4 @@
-/** Crayon box — also used by pencil. Same eight hexes SketchCanvas shipped in Spec 25. */
+/** Crayon box — eight hexes SketchCanvas shipped in Spec 25. No custom colour. */
 export const CRAYON_PALETTE = [
 	'#1c1917',
 	'#ffffff',
@@ -8,6 +8,20 @@ export const CRAYON_PALETTE = [
 	'#16a34a',
 	'#2563eb',
 	'#7c3aed'
+] as const;
+
+/**
+ * Pencil & Sketchbook — crayon box plus six extra distinct hues.
+ * Better mediums get more swatches; ink/charcoal stays B&W.
+ */
+export const PENCIL_PALETTE = [
+	...CRAYON_PALETTE,
+	'#ec4899',
+	'#78350f',
+	'#0ea5e9',
+	'#6b7280',
+	'#14b8a6',
+	'#fdba74'
 ] as const;
 
 /** Ink & Charcoal — black and paper white only (playtest P22). */
@@ -70,10 +84,13 @@ export const DEFAULT_OIL_STROKE_KIND: OilStrokeKind = 'round';
 
 /**
  * Swatches for a Spec 13 medium tier id.
- * `ink` → INK; `watercolor` → WATERCOLOR; `acrylic` → ACRYLIC; `oil` → OIL; else CRAYON.
+ * `pencil` → PENCIL; `ink` → INK; `watercolor` → WATERCOLOR; `acrylic` → ACRYLIC;
+ * `oil` → OIL; else CRAYON.
  */
 export function swatchesForMedium(mediumTierId: string): readonly string[] {
 	switch (mediumTierId) {
+		case 'pencil':
+			return PENCIL_PALETTE;
 		case 'ink':
 			return INK_PALETTE;
 		case 'watercolor':
@@ -92,9 +109,10 @@ export function showsRgbPicker(mediumTierId: string): boolean {
 	return (RGB_PICKER_MEDIUM_IDS as readonly string[]).includes(mediumTierId);
 }
 
-/** true iff not ink and not showsRgbPicker (crayon, pencil, unknown). */
+/** Always false — crayon/pencil use swatches only; premium mediums use RGB. */
 export function showsCustomColour(mediumTierId: string): boolean {
-	return mediumTierId !== 'ink' && !showsRgbPicker(mediumTierId);
+	void mediumTierId;
+	return false;
 }
 
 /** true iff mediumTierId === 'oil'. */

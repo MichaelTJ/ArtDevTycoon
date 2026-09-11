@@ -113,6 +113,8 @@ Implementation (literal algorithm):
 | Action                                              | Expected                                                    |
 | --------------------------------------------------- | ----------------------------------------------------------- |
 | Brush down + move ≥2px with fake now advancing 50ms | `onpracticetick` called with 50 (or the summed dt of moves) |
+| Slow sub-2px move / coalesced move under 2s         | still ticks                                                 |
+| Tab-thaw spike above 2s                             | no tick                                                     |
 | Eraser down + move                                  | callback **not** called                                     |
 | `disabled={true}`                                   | no ticks                                                    |
 | Existing export / ink palette / medium tests        | still pass                                                  |
@@ -295,7 +297,7 @@ whatever the parent passes; parent may clear on `exitPractice`.
 
 This is the only extra state. No toast system rewrite.
 
-**Test:** XP grant that crosses 60 on pencil while practising surfaces `Doodler` in
+**Test:** XP grant that crosses 30 on pencil while practising surfaces `Doodler` in
 the live region (store test on the flag is enough; component test if you wire the
 prop).
 

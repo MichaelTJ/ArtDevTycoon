@@ -27,7 +27,7 @@ test('accepts mediumTierId for brush profile', async () => {
 test('colour and size controls have accessible names', async () => {
 	const screen = render(SketchCanvas, {});
 	await expect.element(screen.getByLabelText('Brush size')).toBeVisible();
-	await expect.element(screen.getByLabelText('Custom colour')).toBeVisible();
+	expect(screen.getByLabelText('Custom colour').query()).toBeNull();
 	await expect.element(screen.getByLabelText('Colour #1c1917')).toBeVisible();
 	await expect.element(screen.getByLabelText('Colour #ffffff')).toBeVisible();
 	await expect.element(screen.getByRole('group', { name: 'Tool' })).toBeVisible();
@@ -43,10 +43,11 @@ test('ink medium shows only black and white swatches without custom colour', asy
 	expect(screen.getByRole('group', { name: 'Oil brush' }).query()).toBeNull();
 });
 
-test('non-ink medium keeps full palette and custom colour input', async () => {
+test('crayon medium keeps eight swatches and hides custom colour', async () => {
 	const screen = render(SketchCanvas, { mediumTierId: 'crayon' });
-	await expect.element(screen.getByLabelText('Custom colour')).toBeVisible();
+	expect(screen.getByLabelText('Custom colour').query()).toBeNull();
 	await expect.element(screen.getByLabelText('Colour #dc2626')).toBeVisible();
+	expect(screen.getByLabelText('Colour #ec4899').query()).toBeNull();
 });
 
 test('clear resets hasStrokes after a stroke', async () => {
@@ -119,6 +120,66 @@ test('brush move of at least 2px fires onpracticetick with dt', async () => {
 	expect(onpracticetick).toHaveBeenCalledWith(50);
 });
 
+test('slow sub-2px brush move still fires onpracticetick', async () => {
+	let now = 1_000;
+	const onpracticetick = vi.fn();
+	const screen = render(SketchCanvas, {
+		nowMs: () => now,
+		onpracticetick
+	});
+	const el = screen.getByLabelText('Sketch canvas').element() as HTMLCanvasElement;
+	mockCanvasRect(el);
+
+	el.dispatchEvent(
+		new PointerEvent('pointerdown', { clientX: 40, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	now = 1_200;
+	el.dispatchEvent(
+		new PointerEvent('pointermove', { clientX: 41, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	expect(onpracticetick).toHaveBeenCalledWith(200);
+});
+
+test('slow coalesced move under 2s still fires onpracticetick', async () => {
+	let now = 1_000;
+	const onpracticetick = vi.fn();
+	const screen = render(SketchCanvas, {
+		nowMs: () => now,
+		onpracticetick
+	});
+	const el = screen.getByLabelText('Sketch canvas').element() as HTMLCanvasElement;
+	mockCanvasRect(el);
+
+	el.dispatchEvent(
+		new PointerEvent('pointerdown', { clientX: 40, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	now = 1_800;
+	el.dispatchEvent(
+		new PointerEvent('pointermove', { clientX: 80, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	expect(onpracticetick).toHaveBeenCalledWith(800);
+});
+
+test('tab-thaw spike above 2s does not fire onpracticetick', async () => {
+	let now = 1_000;
+	const onpracticetick = vi.fn();
+	const screen = render(SketchCanvas, {
+		nowMs: () => now,
+		onpracticetick
+	});
+	const el = screen.getByLabelText('Sketch canvas').element() as HTMLCanvasElement;
+	mockCanvasRect(el);
+
+	el.dispatchEvent(
+		new PointerEvent('pointerdown', { clientX: 40, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	now = 6_000;
+	el.dispatchEvent(
+		new PointerEvent('pointermove', { clientX: 80, clientY: 40, bubbles: true, pointerId: 1 })
+	);
+	expect(onpracticetick).not.toHaveBeenCalled();
+});
+
 test('eraser move does not fire onpracticetick', async () => {
 	let now = 1_000;
 	const onpracticetick = vi.fn();
@@ -186,13 +247,22 @@ test('optional ariaLabel overrides the canvas name', async () => {
 	await expect.element(screen.getByLabelText('Practice canvas')).toBeVisible();
 });
 
-test('crayon canvas keeps Custom colour and hides RGB and oil stroke', async () => {
+test('crayon canvas hides Custom colour, RGB, and oil stroke', async () => {
 	const screen = render(SketchCanvas, {});
-	await expect.element(screen.getByLabelText('Custom colour')).toBeVisible();
+	expect(screen.getByLabelText('Custom colour').query()).toBeNull();
 	await expect.element(screen.getByLabelText('Colour #dc2626')).toBeVisible();
 	expect(screen.getByLabelText('Red').query()).toBeNull();
 	expect(screen.getByRole('group', { name: 'RGB colour' }).query()).toBeNull();
 	expect(screen.getByRole('group', { name: 'Oil brush' }).query()).toBeNull();
+});
+
+test('pencil canvas shows fourteen swatches including pink, not Custom colour', async () => {
+	const screen = render(SketchCanvas, { mediumTierId: 'pencil' });
+	await expect.element(screen.getByLabelText('Colour #dc2626')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #ec4899')).toBeVisible();
+	await expect.element(screen.getByLabelText('Colour #fdba74')).toBeVisible();
+	expect(screen.getByLabelText('Custom colour').query()).toBeNull();
+	expect(screen.getByRole('group', { name: 'RGB colour' }).query()).toBeNull();
 });
 
 test('watercolor canvas shows RGB picker and watercolour swatches', async () => {

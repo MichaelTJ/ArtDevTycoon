@@ -1868,7 +1868,7 @@ describe('GameStore Spec 23 dev cheats', () => {
 });
 
 describe('GameStore Spec 27 medium skill', () => {
-	it('createArt uses the player pencil Master suffix at 810 XP', async () => {
+	it('createArt uses the player pencil Master suffix at 405 XP', async () => {
 		const generate = vi.fn(
 			async ({ playerPrompt, prompt: builtPrompt }: { playerPrompt: string; prompt: string }) => {
 				void builtPrompt;
@@ -1878,7 +1878,7 @@ describe('GameStore Spec 27 medium skill', () => {
 		const store = createStore({ generate, critique: vi.fn(async () => fakeDraft) });
 		store.unlockedMediumTierIds = ['crayon', 'pencil'];
 		store.activeMediumTierId = 'pencil';
-		store.playerMediumSkillXp = { pencil: 810 };
+		store.playerMediumSkillXp = { pencil: 405 };
 		store.inviteClient();
 		store.draftPrompt = 'an apple';
 
@@ -2041,14 +2041,14 @@ describe('GameStore Spec 27 medium skill', () => {
 		expect(persistSave).not.toHaveBeenCalled();
 	});
 
-	it('practice XP crossing 60 on pencil surfaces Doodler rank-up', () => {
+	it('practice XP crossing 30 on pencil surfaces Doodler rank-up', () => {
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
 		store.unlockedMediumTierIds = ['crayon', 'pencil'];
 		store.setActiveMediumTier('pencil');
-		store.playerMediumSkillXp = { pencil: 59 };
+		store.playerMediumSkillXp = { pencil: 29 };
 		expect(store.enterPractice()).toBe(true);
 		store.grantPracticeDrawingMs(1000);
-		expect(store.playerMediumSkillXp.pencil).toBe(60);
+		expect(store.playerMediumSkillXp.pencil).toBe(30);
 		expect(store.lastMediumSkillRankUp).toEqual({ mediumId: 'pencil', rankLabel: 'Doodler' });
 	});
 

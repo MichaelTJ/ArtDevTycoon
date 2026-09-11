@@ -107,13 +107,13 @@ export const MEDIUM_SKILL_RANK_LABELS = [
 	'Master'
 ] as const;
 
-/** XP to go from `level` → `level + 1`. Level 1→2 = 60, then +30 per step. */
+/** XP to go from `level` → `level + 1`. Level 1→2 = 30, then +15 per step. */
 export function mediumSkillXpToNext(level: number): number {
-	if (level < 1) return 60;
+	if (level < 1) return 30;
 	if (level >= MEDIUM_SKILL_LEVEL_CAP) return 0;
-	return 60 + (level - 1) * 30;
+	return 30 + (level - 1) * 15;
 }
-// Totals to reach level 7 from 0: 60+90+120+150+180+210 = 810
+// Totals to reach level 7 from 0: 30+45+60+75+90+105 = 405
 
 /** Player: 1 XP per this many ms of generating-phase wall time (active medium). */
 export const COMMISSION_PAINT_MS_PER_XP = 8_000;
@@ -135,12 +135,12 @@ Worked XP table (pin in tests):
 
 | From level | XP needed | Cumulative XP to _reach_ this next level |
 | ---------- | --------- | ---------------------------------------- |
-| 1 → 2      | 60        | 60                                       |
-| 2 → 3      | 90        | 150                                      |
-| 3 → 4      | 120       | 270                                      |
-| 4 → 5      | 150       | 420                                      |
-| 5 → 6      | 180       | 600                                      |
-| 6 → 7      | 210       | 810                                      |
+| 1 → 2      | 30        | 30                                       |
+| 2 → 3      | 45        | 75                                       |
+| 3 → 4      | 60        | 135                                      |
+| 4 → 5      | 75        | 210                                      |
+| 5 → 6      | 90        | 300                                      |
+| 6 → 7      | 105       | 405                                      |
 | 7 (cap)    | 0         | —                                        |
 
 Time-to-rank-2 examples (pin):
@@ -339,22 +339,22 @@ export function clampArtistSkillCatchupMs(elapsedMs: number): number {
 | ------------------------------------------------------------------------- | ---------------------------------- |
 | `mediumSkillProgress('pencil', 0).level`                                  | `1`                                |
 | `.rankLabel`                                                              | `'Novice'`                         |
-| `.xpForNext`                                                              | `60`                               |
+| `.xpForNext`                                                              | `30`                               |
 | `.fill`                                                                   | `0`                                |
-| `mediumSkillProgress('pencil', 59).fill`                                  | `59/60`                            |
-| `mediumSkillProgress('pencil', 60).level`                                 | `2`                                |
+| `mediumSkillProgress('pencil', 29).fill`                                  | `29/30`                            |
+| `mediumSkillProgress('pencil', 30).level`                                 | `2`                                |
 | `.rankLabel`                                                              | `'Doodler'`                        |
-| `mediumSkillProgress('pencil', 810).level`                                | `7`                                |
+| `mediumSkillProgress('pencil', 405).level`                                | `7`                                |
 | `.fill`                                                                   | `1`                                |
 | `.xpForNext`                                                              | `0`                                |
-| `mediumSkillProgress('pencil', 900).level`                                | `7` (cap; extra XP kept on `.xp`)  |
+| `mediumSkillProgress('pencil', 500).level`                                | `7` (cap; extra XP kept on `.xp`)  |
 | `grantMediumSkillXp({}, 'pencil', 10).pencil`                             | `10`                               |
 | `grantMediumSkillXp({ pencil: 5 }, 'pencil', 0)`                          | same object values, pencil stays 5 |
 | `applyElapsedSkillMs({ elapsedMs: 8000, msPerXp: 8000, remainderMs: 0 })` | `{ xpGain: 1, remainderMs: 0 }`    |
 | `applyElapsedSkillMs({ elapsedMs: 7999, msPerXp: 8000, remainderMs: 0 })` | `{ xpGain: 0, remainderMs: 7999 }` |
 | `applyElapsedSkillMs({ elapsedMs: 1, msPerXp: 8000, remainderMs: 7999 })` | `{ xpGain: 1, remainderMs: 0 }`    |
 | `clampArtistSkillCatchupMs(999_999)`                                      | `600_000`                          |
-| `mediumSkillXpThresholdForLevel(7)`                                       | `810`                              |
+| `mediumSkillXpThresholdForLevel(7)`                                       | `405`                              |
 | `mediumSkillXpThresholdForLevel(1)`                                       | `0`                                |
 
 ---
@@ -480,7 +480,7 @@ buildPrompt(
 );
 ```
 
-**Test:** with `playerMediumSkillXp: { pencil: 810 }` and `activeMediumTierId: 'pencil'`,
+**Test:** with `playerMediumSkillXp: { pencil: 405 }` and `activeMediumTierId: 'pencil'`,
 the injected engine `generate` receives a `prompt` ending in
 `mediumSkillSuffix('pencil', 7)`. Existing oil test still passes (rank 1 = current
 `promptModifierSuffix` after §2 rewrite).

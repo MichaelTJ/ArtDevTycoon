@@ -14,14 +14,14 @@ import {
 
 describe('mediumSkillXpToNext', () => {
 	it('pins the 1→7 XP table', () => {
-		expect(mediumSkillXpToNext(1)).toBe(60);
-		expect(mediumSkillXpToNext(2)).toBe(90);
-		expect(mediumSkillXpToNext(3)).toBe(120);
-		expect(mediumSkillXpToNext(4)).toBe(150);
-		expect(mediumSkillXpToNext(5)).toBe(180);
-		expect(mediumSkillXpToNext(6)).toBe(210);
+		expect(mediumSkillXpToNext(1)).toBe(30);
+		expect(mediumSkillXpToNext(2)).toBe(45);
+		expect(mediumSkillXpToNext(3)).toBe(60);
+		expect(mediumSkillXpToNext(4)).toBe(75);
+		expect(mediumSkillXpToNext(5)).toBe(90);
+		expect(mediumSkillXpToNext(6)).toBe(105);
 		expect(mediumSkillXpToNext(7)).toBe(0);
-		expect(mediumSkillXpThresholdForLevel(7)).toBe(810);
+		expect(mediumSkillXpThresholdForLevel(7)).toBe(405);
 		expect(mediumSkillXpThresholdForLevel(1)).toBe(0);
 	});
 });
@@ -31,31 +31,31 @@ describe('mediumSkillProgress', () => {
 		const p = mediumSkillProgress('pencil', 0);
 		expect(p.level).toBe(1);
 		expect(p.rankLabel).toBe('Novice');
-		expect(p.xpForNext).toBe(60);
+		expect(p.xpForNext).toBe(30);
 		expect(p.fill).toBe(0);
 	});
 
-	it('fills 59/60 before the first rank-up', () => {
-		expect(mediumSkillProgress('pencil', 59).fill).toBe(59 / 60);
+	it('fills 29/30 before the first rank-up', () => {
+		expect(mediumSkillProgress('pencil', 29).fill).toBe(29 / 30);
 	});
 
-	it('reaches Doodler at 60 XP', () => {
-		const p = mediumSkillProgress('pencil', 60);
+	it('reaches Doodler at 30 XP', () => {
+		const p = mediumSkillProgress('pencil', 30);
 		expect(p.level).toBe(2);
 		expect(p.rankLabel).toBe('Doodler');
 	});
 
 	it('caps at Master with a full bar', () => {
-		const p = mediumSkillProgress('pencil', 810);
+		const p = mediumSkillProgress('pencil', 405);
 		expect(p.level).toBe(7);
 		expect(p.fill).toBe(1);
 		expect(p.xpForNext).toBe(0);
 	});
 
 	it('keeps extra XP past cap on .xp', () => {
-		const p = mediumSkillProgress('pencil', 900);
+		const p = mediumSkillProgress('pencil', 500);
 		expect(p.level).toBe(7);
-		expect(p.xp).toBe(900);
+		expect(p.xp).toBe(500);
 	});
 });
 

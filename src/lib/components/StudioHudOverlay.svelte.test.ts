@@ -131,7 +131,7 @@ test('practiceOpen shows Practice as a viewport dialog not the side rail', async
 			level: 1,
 			rankLabel: 'Novice',
 			xpIntoLevel: 0,
-			xpForNext: 60,
+			xpForNext: 30,
 			fill: 0
 		}
 	});
@@ -158,7 +158,7 @@ test('practice desk Done fires onexitpractice', async () => {
 			level: 1,
 			rankLabel: 'Novice',
 			xpIntoLevel: 0,
-			xpForNext: 60,
+			xpForNext: 30,
 			fill: 0
 		}
 	});

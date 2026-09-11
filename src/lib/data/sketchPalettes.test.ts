@@ -5,6 +5,7 @@ import {
 	hexFromRgb,
 	INK_PALETTE,
 	OIL_PALETTE,
+	PENCIL_PALETTE,
 	rgbFromHex,
 	showsCustomColour,
 	showsOilStrokePicker,
@@ -22,8 +23,13 @@ describe('swatchesForMedium', () => {
 		expect(swatchesForMedium('nope')).toEqual(CRAYON_PALETTE);
 	});
 
-	it('returns crayon swatches for pencil', () => {
-		expect(swatchesForMedium('pencil')).toEqual(CRAYON_PALETTE);
+	it('returns pencil swatches including six extras not on the crayon box', () => {
+		expect(swatchesForMedium('pencil')).toEqual(PENCIL_PALETTE);
+		expect(PENCIL_PALETTE).toHaveLength(14);
+		expect(CRAYON_PALETTE).toHaveLength(8);
+		expect(PENCIL_PALETTE.slice(0, 8)).toEqual([...CRAYON_PALETTE]);
+		expect(PENCIL_PALETTE).toContain('#ec4899');
+		expect(CRAYON_PALETTE).not.toContain('#ec4899');
 	});
 
 	it('returns ink black and paper white', () => {
@@ -56,8 +62,9 @@ describe('picker flags', () => {
 		expect(showsRgbPicker('crayon')).toBe(false);
 	});
 
-	it('shows Custom colour for pencil, not ink or watercolor', () => {
-		expect(showsCustomColour('pencil')).toBe(true);
+	it('never shows Custom colour', () => {
+		expect(showsCustomColour('crayon')).toBe(false);
+		expect(showsCustomColour('pencil')).toBe(false);
 		expect(showsCustomColour('ink')).toBe(false);
 		expect(showsCustomColour('watercolor')).toBe(false);
 	});

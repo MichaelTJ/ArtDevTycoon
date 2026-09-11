@@ -3250,3 +3250,56 @@ Full suite: 1059 passed. Zone scoped: 34 passed.
 **Requests:** None. Inherited `svelte-check` / Prettier drift is outside this zone (see gaps).
 
 **Known gaps:** Inherited `svelte-check` errors in `src/lib/studio-editor/storage.ts` (`RoomId` not exported) and `src/lib/modifier-explorer/index.ts` (`UNLOCK_STYLE_KEYS`). Repo-wide `npm run lint` still fails Prettier on unrelated files (architecture, specs 04/18/24, modifier-explorer, studio-editor, studio tests). CSS kitchen overlay has no Assign button by design.
+
+---
+
+## 2026-09-11 — Crayon/pencil swatches, no Custom colour
+
+**Zone:** `src/lib/data/sketchPalettes.ts` (+ test), `src/lib/components/SketchCanvas.svelte` (+ test), `src/lib/data/README.md`, `src/lib/components/README.md`
+
+**Built:** Crayon and pencil no longer have a Custom colour input. Pencil & Sketchbook gains six extra distinct swatches (14 total) on top of the crayon box. Ink & Charcoal stays black and paper-white. Watercolour / acrylic / oil still use RGB.
+
+**Public surface:** `PENCIL_PALETTE`. `showsCustomColour` is always false. `swatchesForMedium('pencil')` returns `PENCIL_PALETTE`.
+
+**Tests:** `npm run test:unit -- --run src/lib/data/sketchPalettes.test.ts src/lib/components/SketchCanvas.svelte.test.ts`
+
+**Decisions:** Ladder is crayon 8 → pencil 14 → ink 2 (exception) → premium RGB. Extra pencil hues are pink, brown, sky, grey, teal, peach — none of the crayon hexes.
+
+**Requests:** None.
+
+**Known gaps:** None for this palette tweak.
+
+---
+
+## 2026-09-11 — Slow practice XP and half rank curve
+
+**Zone:** `src/lib/components/SketchCanvas.svelte` (+ test), `src/lib/game/mediumSkill.ts` (+ test), `src/lib/stores/gameState.svelte.test.ts`, `src/lib/components/PracticeDesk.svelte.test.ts`, `src/lib/game/README.md`, `docs/tasks/27-medium-skill.md`, `docs/tasks/28-practice-station.md`
+
+**Built:** Practice XP ticks on slow brush moves (sub-2px samples and coalesced moves up to 2s). Medium-skill XP to the next rank is half the old table (30, then +15 per step; 405 XP to Master).
+
+**Public surface:** `mediumSkillXpToNext(1) === 30`. SketchCanvas practice tick: `dist >= 0.25` and `dt <= 2000`.
+
+**Tests:** `npm run test:unit -- --run src/lib/components/SketchCanvas.svelte.test.ts src/lib/game/mediumSkill.test.ts src/lib/stores/gameState.svelte.test.ts src/lib/components/PracticeDesk.svelte.test.ts`
+
+**Decisions:** The old 2px / 250ms gates dropped slow painting: browsers emit tiny pointermoves, and slow coalesced samples exceeded 250ms. Tab-thaw still drops dt > 2s.
+
+**Requests:** None.
+
+**Known gaps:** Existing saves keep their XP totals, so ranks jump forward on the new curve.
+
+---
+
+## 2026-09-11 — Tab title em dash
+
+**Zone:** `src/routes/+page.svelte`
+
+**Built:** Replaced the mojibake `ΓÇö` in `<svelte:head>` with a real em dash so the browser tab reads `Art Gallery Tycoon — {level}`.
+
+**Tests:** None (title is not covered by a route test).
+
+**Decisions:** Match studio-editor and modifier-explorer titles.
+
+**Requests:** None.
+
+**Known gaps:** None.
+

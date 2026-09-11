@@ -72,12 +72,13 @@ extend `GameStore`'s `#persist()` rather than adding parallel writers.
 ## Medium skill (`mediumSkill.ts`)
 
 Per-medium Novice→Master ranks (1–7) for the player and each hired artist. Level is derived
-from XP (cap 7, 810 XP to Master). Unlocking a medium does not grant skill. Distinct from
+from XP (cap 7, 405 XP to Master). Unlocking a medium does not grant skill. Distinct from
 Spec 20 craft skills (payout) and Spec 24 artist training XP (assignment speed). Artist
 time ticks are floor-only — leftover ms are dropped so idle vs assigned rates cannot share
 a remainder. Spec 28 calls `GameStore.grantPracticeDrawingMs`. Spec 30 triples the live
 bar: 2666 ms/XP while generating, 1000 ms/XP while practising, 20_000 idle / 666 assigned
-for hired artists. Rank table (`mediumSkillXpToNext`) is unchanged.
+for hired artists. Rank table (`mediumSkillXpToNext`) is 30 + 15 per step (half the original
+60 / +30 curve).
 
 ## Craft skills (`skills.ts`)
 

@@ -30,9 +30,9 @@ test('hired artist shows level and release', async () => {
 	expect(onfire).toHaveBeenCalledWith('jade-ink');
 });
 
-test('hired artist medium ranks show Doodler for pencil at 60 XP', async () => {
+test('hired artist medium ranks show Doodler for pencil at 30 XP', async () => {
 	const screen = render(TeamRoster, {
-		hired: [{ catalogId: 'jade-ink', xp: 40, mediumSkillXp: { pencil: 60 } }],
+		hired: [{ catalogId: 'jade-ink', xp: 40, mediumSkillXp: { pencil: 30 } }],
 		cash: 100,
 		reputation: 10,
 		onhire: vi.fn(),
