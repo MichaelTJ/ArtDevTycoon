@@ -6,6 +6,8 @@
 		intervalMs?: number;
 		progress?: number | null;
 		stageLabel?: string;
+		/** Narrow sidebar next to the paint canvas — no image placeholder. */
+		compact?: boolean;
 	}
 
 	let {
@@ -18,7 +20,8 @@
 		],
 		intervalMs = 2200,
 		progress = null,
-		stageLabel = 'Painting'
+		stageLabel = 'Painting',
+		compact = false
 	}: Props = $props();
 
 	let messageIndex = $state(0);
@@ -43,57 +46,101 @@
 	});
 </script>
 
-<div
-	class="rounded-xl border border-stone-300 bg-white p-5 shadow-sm"
-	role="status"
-	aria-live="polite"
->
-	<p class="mb-1 text-sm font-medium text-stone-800">{stageLabel}</p>
-
-	<div class="skeleton mb-4 h-48 w-full max-w-[512px] rounded-lg" aria-hidden="true"></div>
+<div class={['panel', compact && 'panel-compact']} role="status" aria-live="polite">
+	<p class="label">{stageLabel}</p>
 
 	{#if showDeterminateProgress}
-		<div class="mb-4">
-			<progress class="h-3 w-full accent-amber-600" value={progress} max={1} aria-label={stageLabel}
-			></progress>
-			<p class="mt-1 text-sm text-stone-500">{progressPercent}%</p>
+		<div class="meter">
+			<progress class="bar" value={progress} max={1} aria-label={stageLabel}></progress>
+			<p class="percent">{progressPercent}%</p>
 		</div>
 	{:else}
-		<div
-			class="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-stone-200 border-t-amber-600 motion-reduce:animate-none"
-			role="presentation"
-			aria-hidden="true"
-		></div>
+		<div class="spinner" role="presentation" aria-hidden="true"></div>
 	{/if}
 
-	<p class="text-stone-800">{currentMessage}</p>
+	<p class="message">{currentMessage}</p>
 </div>
 
 <style>
-	.skeleton {
-		background: linear-gradient(
-			90deg,
-			rgb(231 229 228) 25%,
-			rgb(245 245 244) 50%,
-			rgb(231 229 228) 75%
-		);
-		background-size: 200% 100%;
-		animation: shimmer 1.5s infinite;
+	.panel {
+		border: 1px solid #d6d3d1;
+		border-radius: 0.75rem;
+		background: #fff;
+		padding: 1.25rem;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+	}
+
+	.panel-compact {
+		box-sizing: border-box;
+		width: 12.5rem;
+		padding: 0.75rem;
+		box-shadow: none;
+	}
+
+	.label {
+		margin: 0 0 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #292524;
+	}
+
+	.meter {
+		margin-bottom: 0.5rem;
+	}
+
+	.bar {
+		display: block;
+		width: 100%;
+		height: 0.5rem;
+		accent-color: #d97706;
+	}
+
+	.panel-compact .bar {
+		height: 0.375rem;
+	}
+
+	.percent {
+		margin: 0.25rem 0 0;
+		font-size: 0.875rem;
+		color: #78716c;
+	}
+
+	.spinner {
+		display: inline-block;
+		width: 1.5rem;
+		height: 1.5rem;
+		margin-bottom: 0.5rem;
+		border: 3px solid #e7e5e4;
+		border-top-color: #d97706;
+		border-radius: 9999px;
+		animation: spin 0.8s linear infinite;
+	}
+
+	.panel-compact .spinner {
+		width: 1.25rem;
+		height: 1.25rem;
+		border-width: 2px;
+	}
+
+	.message {
+		margin: 0;
+		color: #292524;
+	}
+
+	.panel-compact .message {
+		font-size: 0.875rem;
+		line-height: 1.35;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.skeleton {
+		.spinner {
 			animation: none;
-			background: rgb(231 229 228);
 		}
 	}
 
-	@keyframes shimmer {
-		0% {
-			background-position: 200% 0;
-		}
-		100% {
-			background-position: -200% 0;
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
 		}
 	}
 </style>

@@ -8,7 +8,12 @@
 		type SkillGainPreview
 	} from '$lib/game';
 	import type { MumRealCritique } from '$lib/game/mumCritiquePresentation';
-	import { canUnlockMediumTier, MEDIUM_TIERS, DEFAULT_MEDIUM_TIER_ID } from '$lib/data/mediumTiers';
+	import {
+		canUnlockMediumTier,
+		getMediumTier,
+		MEDIUM_TIERS,
+		DEFAULT_MEDIUM_TIER_ID
+	} from '$lib/data/mediumTiers';
 	import { getStallStageLabel, stallMessagesForArtwork } from '$lib/data/stallMessages';
 	import type { Artwork, ClientBrief, Critique, GamePhase } from '$lib/types/contracts';
 	import AbstractBriefHint from './AbstractBriefHint.svelte';
@@ -16,10 +21,12 @@
 	import AuctionResultPanel from './AuctionResultPanel.svelte';
 	import ClientCard from './ClientCard.svelte';
 	import ErrorPanel from './ErrorPanel.svelte';
+	import CritiqueSentToast from './CritiqueSentToast.svelte';
 	import GenerationReadyToast from './GenerationReadyToast.svelte';
 	import GeneratingPanel from './GeneratingPanel.svelte';
 	import IdlePanel from './IdlePanel.svelte';
 	import PracticeDesk from './PracticeDesk.svelte';
+	import ProgressMeter from './ProgressMeter.svelte';
 	import PromptComposer from './PromptComposer.svelte';
 	import ResultsPanel from './ResultsPanel.svelte';
 	import ScoreBadge from './ScoreBadge.svelte';
@@ -216,8 +223,14 @@
 	}
 
 	const showPracticeButton = $derived(!clientSummoned || Boolean(busyLine) || modelLoading);
-	const showReadyToast = $derived(
-		phase === 'generating' && pendingSubmitChoice && Boolean(aiGeneratedImageUrl) && !compareOpen
+	const paintReady = $derived(
+		phase === 'generating' && pendingSubmitChoice && Boolean(aiGeneratedImageUrl)
+	);
+	const mediumName = $derived(getMediumTier(practiceSkill.mediumId).name);
+	const skillLine = $derived(
+		practiceSkill.xpForNext === 0
+			? `${mediumName} · ${practiceSkill.rankLabel} · Max level`
+			: `${mediumName} · ${practiceSkill.rankLabel} · ${practiceSkill.xpIntoLevel}/${practiceSkill.xpForNext} XP`
 	);
 </script>
 
@@ -308,35 +321,60 @@
 					</button>
 				{/if}
 			{:else if phase === 'generating'}
-				<SketchCanvas
-					heading={draftPrompt.trim() || 'Your idea'}
-					bind:hasStrokes={sketchHasStrokes}
-					mediumTierId={activeMediumTierId}
-					onexportready={handleSketchExportReady}
-					fill
-				>
-					{#snippet extraTools()}
-						{@render mediumPicker(true)}
-					{/snippet}
-				</SketchCanvas>
-				<div class="paint-footer">
-					<div class="paint-footer-main">
-						{#if !pendingSubmitChoice}
+				<div class="paint-layout">
+					<div class="paint-canvas">
+						<SketchCanvas
+							heading={draftPrompt.trim() || 'Your idea'}
+							bind:hasStrokes={sketchHasStrokes}
+							mediumTierId={activeMediumTierId}
+							onexportready={handleSketchExportReady}
+							onpracticetick={(deltaMs) => onpracticetick?.(deltaMs)}
+							fill
+						>
+							{#snippet extraTools()}
+								{@render mediumPicker(true)}
+							{/snippet}
+						</SketchCanvas>
+					</div>
+					<div class="paint-status">
+						{#if paintReady}
+							<GenerationReadyToast onopen={() => void openCompare()} />
+						{:else}
 							<GeneratingPanel
+								compact
 								progress={generationProgress}
 								stageLabel="Painting"
 								messages={loadingMessages}
 							/>
 						{/if}
 					</div>
-					<button
-						type="button"
-						class="min-h-11 shrink-0 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-						aria-label="Skip this commission"
-						onclick={declineCommission}
-					>
-						Skip
-					</button>
+					<div class="paint-footer">
+						<div class="paint-progress">
+							<p class="text-sm text-stone-700">{skillLine}</p>
+							<ProgressMeter
+								label="Medium progress"
+								variant="compact"
+								value={practiceSkill.xpForNext === 0 ? 1 : practiceSkill.xpIntoLevel}
+								max={practiceSkill.xpForNext === 0 ? 0 : practiceSkill.xpForNext}
+								hint={practiceSkill.xpForNext === 0
+									? 'Max level'
+									: `${practiceSkill.xpIntoLevel}/${practiceSkill.xpForNext} XP`}
+							/>
+							{#if rankUpLabel}
+								<p class="text-sm font-medium text-amber-900" aria-live="polite">
+									Rank up — {rankUpLabel}
+								</p>
+							{/if}
+						</div>
+						<button
+							type="button"
+							class="min-h-11 shrink-0 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+							aria-label="Skip this commission"
+							onclick={declineCommission}
+						>
+							Skip
+						</button>
+					</div>
 				</div>
 			{:else}
 				<PracticeDesk
@@ -353,9 +391,6 @@
 				/>
 			{/if}
 		</div>
-		{#if showReadyToast}
-			<GenerationReadyToast onopen={() => void openCompare()} />
-		{/if}
 		{#if pendingSubmitChoice && compareOpen && aiGeneratedImageUrl}
 			<SubmitCompareModal
 				{drawingImageUrl}
@@ -368,6 +403,9 @@
 		{/if}
 	</div>
 {:else}
+	{#if phase === 'critiquing' && currentArtwork}
+		<CritiqueSentToast {clientName} />
+	{/if}
 	<aside
 		class="studio-hud flex max-h-[min(70vh,640px)] flex-col gap-3 overflow-y-auto rounded-xl border border-stone-300 bg-stone-50/95 p-3 shadow-sm sm:max-h-none"
 		aria-label="Commission desk"
@@ -546,13 +584,38 @@
 		height: min(52rem, 100%);
 		max-height: 100%;
 		flex-direction: column;
-		gap: 0.75rem;
 		overflow: hidden;
 		padding: 1rem 1.25rem;
 	}
 
+	.paint-layout {
+		display: grid;
+		flex: 1 1 0;
+		min-height: 0;
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-rows: minmax(0, 1fr) auto;
+		gap: 0.75rem 1rem;
+	}
+
+	.paint-canvas {
+		display: flex;
+		min-width: 0;
+		min-height: 0;
+		grid-column: 1;
+		grid-row: 1;
+		flex-direction: column;
+	}
+
+	.paint-status {
+		grid-column: 2;
+		grid-row: 1;
+		align-self: center;
+	}
+
 	.paint-footer {
 		display: flex;
+		grid-column: 1 / -1;
+		grid-row: 2;
 		flex: 0 0 auto;
 		align-items: center;
 		gap: 1rem;
@@ -560,7 +623,7 @@
 		padding-top: 0.75rem;
 	}
 
-	.paint-footer-main {
+	.paint-progress {
 		flex: 1 1 auto;
 		min-width: 0;
 	}

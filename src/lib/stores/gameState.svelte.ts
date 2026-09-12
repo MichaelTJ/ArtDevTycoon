@@ -803,11 +803,13 @@ export class GameStore {
 	}
 
 	/**
-	 * Spec 28 seam: convert pointer-down drawing time into active-medium skill XP.
-	 * Session remainder is not persisted. No-op when practice is closed or `deltaMs` ≤ 0.
+	 * Convert pointer-down drawing time into active-medium skill XP.
+	 * Session remainder is not persisted. No-op unless practising or painting
+	 * a commission that is still generating (`pendingSubmitChoice` is false).
 	 */
 	grantPracticeDrawingMs(deltaMs: number): void {
-		if (!this.practiceOpen) return;
+		const paintingCommission = this.phase === 'generating' && !this.pendingSubmitChoice;
+		if (!this.practiceOpen && !paintingCommission) return;
 		if (deltaMs <= 0) return;
 		const mediumId = this.activeMediumTierId;
 		const before = mediumSkillProgress(
@@ -1491,7 +1493,7 @@ export class GameStore {
 	}
 
 	#applyMediumSkillElapsed(rawElapsed: number): void {
-		if (this.phase === 'generating') {
+		if (this.phase === 'generating' && !this.pendingSubmitChoice) {
 			const elapsed = Math.max(0, rawElapsed);
 			const applied = applyElapsedSkillMs({
 				elapsedMs: elapsed,

@@ -481,7 +481,10 @@
 
 	.pad-fill {
 		flex: 1 1 0;
+		min-width: 0;
 		min-height: 0;
+		width: 100%;
+		height: 100%;
 		overflow: hidden;
 	}
 
@@ -564,10 +567,15 @@
 		object-fit: contain;
 	}
 
+	/* Keep a square CSS box so pointer → canvas mapping stays 1:1. */
 	.pad-fill .surface {
+		width: auto;
+		height: auto;
 		min-width: 0;
 		min-height: 0;
+		max-width: min(24rem, 100%);
 		max-height: 100%;
+		aspect-ratio: 1;
 	}
 
 	.surface.is-disabled {

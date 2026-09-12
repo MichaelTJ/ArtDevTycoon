@@ -1905,6 +1905,22 @@ describe('GameStore Spec 27 medium skill', () => {
 		expect(store.playerMediumSkillXp).toEqual(before);
 	});
 
+	it('stops commission paint XP after generate finishes', async () => {
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique: vi.fn()
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cat';
+		await store.createArt();
+		expect(store.pendingSubmitChoice).toBe(true);
+		const before = store.playerMediumSkillXp.crayon ?? 0;
+		store.tickMediumSkillsForTests(8_000);
+		expect(store.playerMediumSkillXp.crayon ?? 0).toBe(before);
+		store.grantPracticeDrawingMs(10_000);
+		expect(store.playerMediumSkillXp.crayon ?? 0).toBe(before);
+	});
+
 	it('grants hired artist idle XP into the active medium and work XP into the assignment medium', () => {
 		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
 		store.cash = 100;
@@ -2039,6 +2055,20 @@ describe('GameStore Spec 27 medium skill', () => {
 		store.grantPracticeDrawingMs(10_000);
 		expect(store.playerMediumSkillXp.crayon ?? 0).toBe(0);
 		expect(persistSave).not.toHaveBeenCalled();
+	});
+
+	it('grantPracticeDrawingMs while generating grants drawing XP', async () => {
+		const store = createStore({
+			generate: vi.fn(async () => fakeArtwork),
+			critique: vi.fn()
+		});
+		store.inviteClient();
+		store.draftPrompt = 'a cat';
+		const pending = store.createArt();
+		expect(store.phase).toBe('generating');
+		store.grantPracticeDrawingMs(1000);
+		expect(store.playerMediumSkillXp.crayon).toBe(1);
+		await pending;
 	});
 
 	it('practice XP crossing 30 on pencil surfaces Doodler rank-up', () => {

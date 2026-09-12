@@ -50,3 +50,13 @@ test('progress null renders no progress element', async () => {
 	const screen = render(GeneratingPanel, { progress: null });
 	expect(screen.getByRole('progressbar').elements().length).toBe(0);
 });
+
+test('compact still exposes status and the wait line', async () => {
+	const screen = render(GeneratingPanel, {
+		compact: true,
+		messages: ['Mixing quietly…']
+	});
+	await expect.element(screen.getByRole('status')).toBeVisible();
+	await expect.element(screen.getByText('Mixing quietly…')).toBeVisible();
+	await expect.element(screen.getByText('Painting')).toBeVisible();
+});

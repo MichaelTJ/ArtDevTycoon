@@ -3303,3 +3303,54 @@ Full suite: 1059 passed. Zone scoped: 34 passed.
 
 **Known gaps:** None.
 
+---
+
+## 2026-09-12 — Compact commission wait status
+
+**Zone:** `src/lib/components/StudioHudOverlay.svelte` (+ test), `src/lib/components/GeneratingPanel.svelte` (+ test), `src/lib/components/SketchCanvas.svelte`, `src/lib/components/README.md`
+
+**Built:** Commission paint no longer parks a large grey “AI drawing” rectangle under the canvas. Wait UI is a compact spinner/progress column to the right of the pad. Fill-mode canvas CSS keeps a square box so strokes land where the pointer is.
+
+**Public surface:** `GeneratingPanel` `compact` prop. Overlay `.paint-layout` / `.paint-status`.
+
+**Tests:** `npm run test:unit -- --run src/lib/components/GeneratingPanel.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/components/SketchCanvas.svelte.test.ts`
+
+**Decisions:** The old footer skeleton squeezed the canvas into a non-square CSS box, so `getBoundingClientRect` mapping drifted. Critiquing still uses the full `GeneratingPanel` without the placeholder image.
+
+**Requests:** None.
+
+**Known gaps:** No browser MCP in this session; layout verified via component tests.
+
+---
+
+## 2026-09-12 — Finished column, critique float, commission XP bar
+
+**Zone:** `src/lib/components/StudioHudOverlay.svelte` (+ test), `GenerationReadyToast.svelte` (+ test), `CritiqueSentToast.svelte` (+ test), `src/lib/stores/gameState.svelte.ts` (+ test)
+
+**Built:** Wait status stays mounted when AI finishes and becomes **Finished!** so the canvas does not jump. Compare still opens from that column. Submitting AI or drawing shows a **Sent for critique** float. Commission paint shows the same medium XP bar as Practice; brush ticks grant drawing XP while `phase === 'generating'`.
+
+**Public surface:** `GenerationReadyToast` compact **Finished!** card. `CritiqueSentToast` `{ clientName }`. `grantPracticeDrawingMs` also grants during generating.
+
+**Tests:** `npm run test:unit -- --run src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/components/GenerationReadyToast.svelte.test.ts src/lib/components/CritiqueSentToast.svelte.test.ts src/lib/stores/gameState.svelte.test.ts`
+
+**Decisions:** Drop the viewport-fixed ready toast. Keep the right-hand column so pointer mapping and canvas position stay stable.
+
+**Requests:** None.
+
+**Known gaps:** No browser MCP in this session.
+
+---
+
+## 2026-09-12 — Finished click copy and freeze XP after generate
+
+**Zone:** `src/lib/components/GenerationReadyToast.svelte` (+ test), `src/lib/stores/gameState.svelte.ts` (+ test), `src/lib/components/StudioHudOverlay.svelte.test.ts`
+
+**Built:** Ready card copy is **Finished! Click here to compare drawings.** Commission XP (wall-clock and brush) stops once `pendingSubmitChoice` is true.
+
+**Tests:** `npm run test:unit -- --run src/lib/components/GenerationReadyToast.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/stores/gameState.svelte.test.ts`
+
+**Decisions:** Phase stays `generating` during the pick step, so XP gates on `!pendingSubmitChoice`.
+
+**Requests:** None.
+
+**Known gaps:** None.

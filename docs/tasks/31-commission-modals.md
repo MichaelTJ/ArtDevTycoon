@@ -113,11 +113,14 @@ Edit:
    `AssignArtistModal`.
 7. `AssignArtistModal` root overlay class `z-40` → `z-50` so it stacks above the
    briefing dialog.
-8. Generating body, in this order: client name as an `h2` (`{clientName}'s commission`),
-   locked medium picker, `SketchCanvas` (always mounted while `phase === 'generating'`,
-   including after generate finishes), wait copy + `GeneratingPanel` **only while
-   `pendingSubmitChoice` is false**, **Skip**. **MUST NOT** render `ArtworkFrame` /
-   the AI `<img>` in this dialog (slice B owns reveal).
+8. Generating body, in this order: locked medium picker + `SketchCanvas` (always
+   mounted while `phase === 'generating'`, including after generate finishes) with
+   compact `GeneratingPanel` **to the right of the canvas**; when
+   `pendingSubmitChoice` the same column becomes **Finished!** (opens compare) so
+   the canvas does not jump. Footer: medium XP bar + **Skip**. Brush movement
+   grants drawing XP (`onpracticetick`) the same as Practice. **MUST NOT** render
+   `ArtworkFrame` / the AI `<img>` in this dialog (slice B owns reveal). Do **not**
+   use a large grey image placeholder — wait UI is a small spinner/progress + rotating line.
 9. Wait copy (unchanged meaning): `Paint on the canvas while you wait — then pick your drawing or the AI image.`
 10. Idle / results / critiquing / failed keep the existing
     `<aside class="studio-hud …" aria-label="Commission desk">`. Idle **Practice**
@@ -166,9 +169,9 @@ Default omitted / undefined → no Assign button.
 
 ### Locked product rules
 
-1. When `phase === 'generating' && pendingSubmitChoice && aiGeneratedImageUrl` and
-   compare is **closed**, mount `GenerationReadyToast`. When compare is **open**,
-   do not mount the toast.
+1. When `phase === 'generating' && pendingSubmitChoice && aiGeneratedImageUrl`,
+   replace the compact wait column with `GenerationReadyToast` (**Finished!**).
+   Keep that column mounted while compare is open so the canvas does not jump.
 2. `GenerationReadyToast` is presentational:
 
    ```ts
@@ -177,12 +180,11 @@ Default omitted / undefined → no Assign button.
    }
    ```
 
-   Root: `fixed top-20 right-4 z-50` (below `GameMenuBar`, away from
-   `EngineLoadSpinner` at bottom-right).
+   Compact card, same 12.5rem width as wait status — **not** a viewport-fixed toast.
    Wrapper `role="status"` `aria-live="polite"`. Inner control is a real
    `<button type="button">` whose accessible name and visible title are
-   **Your painting is ready**. Subtext (not in the accessible name):
-   **Compare your drawing and the AI image**. `onclick` → `onopen`.
+   **Finished!**. Subtext (in the accessible name):
+   **Click here to compare drawings.** `onclick` → `onopen`.
 
 3. **MUST NOT** render the AI `ArtworkFrame` / `<img alt="Generated art from your idea">`
    inside the generating paint dialog. Reveal happens only in `SubmitCompareModal`.
@@ -232,18 +234,18 @@ Default omitted / undefined → no Assign button.
 
 ### Tests (B)
 
-| Case              | Input / action                                | Expected                                                           |
-| ----------------- | --------------------------------------------- | ------------------------------------------------------------------ |
-| Toast copy        | generating + pending + ai URL, compare closed | button **Your painting is ready**; status text present             |
-| No auto compare   | same, no click                                | no **Compare paintings** dialog; no AI `<img>` in the paint dialog |
-| Canvas stays      | same                                          | **Sketch canvas** still in the document                            |
-| Open compare      | click **Your painting is ready**              | dialog **Compare paintings**; toast button gone                    |
-| AI column         | compare open, `aiGeneratedImageUrl` set       | img alt **Generated art from your idea**                           |
-| Blank drawing     | compare open, no strokes                      | **No drawing yet**; **Submit your drawing** disabled               |
-| Submit AI         | click **Submit AI image**                     | `onconfirmsubmit` ×1 with `'ai'`                                   |
-| Back              | click **Back to painting**                    | compare gone; **Your painting is ready** visible again             |
-| Toast component   | mount `GenerationReadyToast`, click           | `onopen` ×1                                                        |
-| Compare component | `drawingImageUrl: null`, click Back           | `onback` ×1; **No drawing yet**                                    |
+| Case              | Input / action                                | Expected                                                             |
+| ----------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| Toast copy        | generating + pending + ai URL, compare closed | button **Finished! Click here to compare drawings.**                 |
+| No auto compare   | same, no click                                | no **Compare paintings** dialog; no AI `<img>` in the paint dialog   |
+| Canvas stays      | same                                          | **Sketch canvas** still in the document                              |
+| Open compare      | click **Finished!**                           | dialog **Compare paintings**; **Finished!** still in the side column |
+| AI column         | compare open, `aiGeneratedImageUrl` set       | img alt **Generated art from your idea**                             |
+| Blank drawing     | compare open, no strokes                      | **No drawing yet**; **Submit your drawing** disabled                 |
+| Submit AI         | click **Submit AI image**                     | `onconfirmsubmit` ×1 with `'ai'`                                     |
+| Back              | click **Back to painting**                    | compare gone; **Finished!** visible again                            |
+| Toast component   | mount `GenerationReadyToast`, click           | `onopen` ×1                                                          |
+| Compare component | `drawingImageUrl: null`, click Back           | `onback` ×1; **No drawing yet**                                      |
 
 ---
 
