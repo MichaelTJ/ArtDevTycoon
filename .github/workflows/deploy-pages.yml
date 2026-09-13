@@ -21,9 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
       - name: Install Node.js
         uses: actions/setup-node@v5
         with:
@@ -37,6 +34,9 @@ jobs:
         env:
           BASE_PATH: '/${{ github.event.repository.name }}'
         run: npm run build
+
+      - name: Publish app shell as index
+        run: cp build/404.html build/index.html
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v4
