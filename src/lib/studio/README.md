@@ -49,6 +49,7 @@ applies those drafts. Person looks (player, Mum, clients, staff) overlay the sam
 ## Invariants
 
 - Phaser never imports `GameStore` or engines.
+- BootScene loads `/studio/…` tiles through `publicUrl` so GitHub Pages `paths.base` resolves.
 - `StudioBridge.send` before a command handler is registered must not throw.
 - Unit tests must not construct a real `Phaser.Game` (mock `createGame` in component tests).
 - Gallery thumbnails on easels pass `isSafeStudioImageUrl` before `load.image`; textures

@@ -1,4 +1,9 @@
 import Phaser from 'phaser';
+import { publicUrl } from '$lib/publicUrl';
+
+function studioAsset(path: string): string {
+	return publicUrl(`/studio/${path}`);
+}
 
 /** Loads studio atlases then starts StudioScene. */
 export class BootScene extends Phaser.Scene {
@@ -17,57 +22,57 @@ export class BootScene extends Phaser.Scene {
 			this.#loadFailed = true;
 		});
 
-		this.load.image('walls-floors', '/studio/tiles/walls-floors.png');
-		this.load.image('tiny-town', '/studio/tiles/tiny-town.png');
-		this.load.image('tiny-battle', '/studio/tiles/tiny-battle.png');
-		this.load.image('home-interior', '/studio/tiles/home-interior.png');
-		this.load.image('home-indoor', '/studio/tiles/home-indoor.png');
-		this.load.spritesheet('furniture', '/studio/tiles/furniture.png', {
+		this.load.image('walls-floors', studioAsset('tiles/walls-floors.png'));
+		this.load.image('tiny-town', studioAsset('tiles/tiny-town.png'));
+		this.load.image('tiny-battle', studioAsset('tiles/tiny-battle.png'));
+		this.load.image('home-interior', studioAsset('tiles/home-interior.png'));
+		this.load.image('home-indoor', studioAsset('tiles/home-indoor.png'));
+		this.load.spritesheet('furniture', studioAsset('tiles/furniture.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('player', '/studio/characters/player.png', {
+		this.load.spritesheet('player', studioAsset('characters/player.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('clients', '/studio/characters/clients.png', {
+		this.load.spritesheet('clients', studioAsset('characters/clients.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('mum', '/studio/characters/mum.png', {
+		this.load.spritesheet('mum', studioAsset('characters/mum.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('staff', '/studio/characters/staff.png', {
+		this.load.spritesheet('staff', studioAsset('characters/staff.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('tiny-dungeon-folk', '/studio/tiles/walls-floors.png', {
+		this.load.spritesheet('tiny-dungeon-folk', studioAsset('tiles/walls-floors.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('tiny-town-folk', '/studio/tiles/tiny-town.png', {
+		this.load.spritesheet('tiny-town-folk', studioAsset('tiles/tiny-town.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('tiny-battle-units', '/studio/tiles/tiny-battle.png', {
+		this.load.spritesheet('tiny-battle-units', studioAsset('tiles/tiny-battle.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('tiny-creatures', '/studio/characters/tiny-creatures.png', {
+		this.load.spritesheet('tiny-creatures', studioAsset('characters/tiny-creatures.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('home-interior-props', '/studio/tiles/home-interior.png', {
+		this.load.spritesheet('home-interior-props', studioAsset('tiles/home-interior.png'), {
 			frameWidth: 16,
 			frameHeight: 16
 		});
-		this.load.spritesheet('home-indoor-props', '/studio/tiles/home-indoor.png', {
+		this.load.spritesheet('home-indoor-props', studioAsset('tiles/home-indoor.png'), {
 			frameWidth: 16,
 			frameHeight: 16,
 			spacing: 1
 		});
-		this.load.image('prompt-e', '/studio/ui/prompt-e.png');
+		this.load.image('prompt-e', studioAsset('ui/prompt-e.png'));
 	}
 
 	create(): void {

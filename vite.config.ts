@@ -19,7 +19,10 @@ export default defineConfig({
 			},
 			// The whole game is a static bundle: inference runs in the player's browser,
 			// so there is no server to deploy and it hosts anywhere as a plain CDN drop.
-			adapter: adapter()
+			adapter: adapter({ fallback: '404.html' }),
+			paths: {
+				base: process.argv.includes('build') && process.env.BASE_PATH ? process.env.BASE_PATH : ''
+			}
 		})
 	],
 	// These ship their own WASM and worker assets. Letting Vite pre-bundle them rewrites

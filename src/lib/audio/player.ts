@@ -1,3 +1,4 @@
+import { publicUrl } from '$lib/publicUrl';
 import type { AudioClip } from './catalog';
 
 /** Minimal surface we need from HTMLAudioElement (for Node test stubs). */
@@ -38,18 +39,19 @@ export class MuteSafePlayer {
 
 	#elementFor(clip: AudioClip): AudioElementLike | null {
 		if (!this.#AudioCtor) return null;
+		const url = publicUrl(clip.url);
 		let el = this.#elements.get(clip.id);
 		if (!el) {
 			try {
-				el = new this.#AudioCtor(clip.url);
+				el = new this.#AudioCtor(url);
 				el.loop = clip.loop;
 				this.#elements.set(clip.id, el);
 			} catch {
 				return null;
 			}
-		} else if (el.src !== clip.url && !el.src.endsWith(clip.url)) {
+		} else if (el.src !== url && !el.src.endsWith(clip.url)) {
 			try {
-				el.src = clip.url;
+				el.src = url;
 				el.load();
 			} catch {
 				return null;

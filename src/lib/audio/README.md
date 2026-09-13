@@ -26,6 +26,9 @@ import {
 | `playSfx(id)`       | Stable seam for follow-up catalog cues (C5–C7)                       |
 | `adt.audio.v1`      | Zod-validated device prefs (not career save)                         |
 
+`MuteSafePlayer` prefixes catalog `/studio/audio/…` URLs with `publicUrl` so GitHub Pages
+`paths.base` resolves. Catalog strings stay site-root (`/studio/audio/…`).
+
 ## Unlock invariant
 
 1. On init: `unlocked = false`. **No** `play()` for music or SFX.

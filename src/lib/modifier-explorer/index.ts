@@ -1,8 +1,7 @@
 export {
 	EXPLORER_CASE_COUNT,
 	EXPLORER_CATEGORY_LABELS,
-	EXPLORER_PROMPT_CASES,
-	UNLOCK_STYLE_KEYS
+	EXPLORER_PROMPT_CASES
 } from './prompts';
 export { runExplorerBatch } from './runner';
 export {

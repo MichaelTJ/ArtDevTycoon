@@ -30,6 +30,7 @@ describe('MuteSafePlayer', () => {
 		const { el, Ctor } = stubAudio();
 		const player = new MuteSafePlayer({ AudioCtor: Ctor });
 		player.play(SFX['work-pencil'], 0.5);
+		expect(Ctor).toHaveBeenCalledWith('/studio/audio/sfx/work-pencil.wav');
 		expect(el.volume).toBe(0.5);
 		expect(el.play).toHaveBeenCalled();
 	});

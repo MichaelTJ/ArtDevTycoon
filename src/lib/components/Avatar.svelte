@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { publicUrl } from '$lib/publicUrl';
+
 	interface Props {
 		src: string;
 		name: string;
@@ -6,6 +8,7 @@
 	}
 
 	let { src, name, size = 'md' }: Props = $props();
+	const href = $derived(publicUrl(src));
 
 	let imageFailed = $state(false);
 
@@ -49,7 +52,7 @@
 	</div>
 {:else}
 	<img
-		{src}
+		src={href}
 		alt={name}
 		class="shrink-0 rounded-full object-cover {sizeClasses[size]}"
 		onerror={handleError}
