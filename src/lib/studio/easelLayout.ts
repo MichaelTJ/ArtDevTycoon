@@ -21,6 +21,50 @@ function furnitureAt(room: RoomDef, tx: number, ty: number): boolean {
 	return room.furniture.some((prop) => prop.tx === tx && prop.ty === ty);
 }
 
+function solidFurnitureAt(room: RoomDef, tx: number, ty: number): boolean {
+	return room.furniture.some((prop) => prop.tx === tx && prop.ty === ty && prop.solid);
+}
+
+function fridgeAnchorAcceptsMagnet(room: RoomDef, origin: TileMarker): boolean {
+	if (isDeskCell(room, origin.tx, origin.ty)) return false;
+	if (solidFurnitureAt(room, origin.tx, origin.ty)) return true;
+	return !markerWalkable(room, origin);
+}
+
+export interface OccupiedDisplaySlot {
+	tx: number;
+	ty: number;
+	entryId: string | null;
+}
+
+/**
+ * Nearest display slot to the player whose tile center is within rangePx.
+ * Distance: hypot(playerPx - (tx+0.5)*tileSize, playerPy - (ty+0.5)*tileSize).
+ * Empty slots (entryId null) still compete. Tie → earlier array index.
+ */
+export function nearestDisplaySlot(
+	playerPx: number,
+	playerPy: number,
+	slots: readonly OccupiedDisplaySlot[],
+	tileSize: number,
+	rangePx: number
+): OccupiedDisplaySlot | null {
+	let best: OccupiedDisplaySlot | null = null;
+	let bestDist = Infinity;
+	for (const slot of slots) {
+		const dist = Math.hypot(
+			playerPx - (slot.tx + 0.5) * tileSize,
+			playerPy - (slot.ty + 0.5) * tileSize
+		);
+		if (dist >= rangePx) continue;
+		if (dist < bestDist) {
+			best = slot;
+			bestDist = dist;
+		}
+	}
+	return best;
+}
+
 /**
  * Furniture.png frame for a freestanding easel, or `null` to keep the room tile
  * (fridge cabinets, painted fridge sprites, counters). Magnets never spawn a
@@ -83,9 +127,16 @@ function magnetCountForVenue(venueId: string, slotCount: number): number {
 	return 0;
 }
 
+/** Fridge magnets sit on solid cabinets only — never neighbor-floor fill. */
+function fridgeMagnetsFromSolidAnchors(venueId: string, room: RoomDef): boolean {
+	if (venueId === 'fridge') return true;
+	return !(venueId in VENUE_SLOT_COUNTS) && room.id === 'home-kitchen';
+}
+
 /**
  * How many on-floor display slots for a venue id (capped below mega capacity so the
- * HUD strip remains the full list).
+ * HUD strip remains the full list). Fridge magnets come only from solid fridge
+ * cabinets — never neighbor-floor fill.
  */
 export function slotsForVenue(venueId: string, room: RoomDef): EaselSlot[] {
 	const count = VENUE_SLOT_COUNTS[venueId] ?? VENUE_SLOT_COUNTS.fridge;
@@ -94,11 +145,17 @@ export function slotsForVenue(venueId: string, room: RoomDef): EaselSlot[] {
 	const fridgeOrigins = roomFridgeAnchors(room);
 
 	const fridgeKind: EaselSlot['kind'] = magnetCount > 0 ? 'magnet' : 'easel';
+	const solidFridgeMagnets = fridgeMagnetsFromSolidAnchors(venueId, room);
 	for (const origin of fridgeOrigins) {
 		if (slots.length >= count) break;
 		if (slots.some((slot) => markersEqual(slot, origin))) continue;
 		if (isDeskCell(room, origin.tx, origin.ty)) continue;
+		if (solidFridgeMagnets && !fridgeAnchorAcceptsMagnet(room, origin)) continue;
 		slots.push({ tx: origin.tx, ty: origin.ty, kind: fridgeKind });
+	}
+
+	if (solidFridgeMagnets) {
+		return finalizeSlots(slots, room);
 	}
 
 	const neighborOffsets = [

@@ -5,6 +5,7 @@ import {
 	markerWalkable,
 	roomDesks,
 	roomFridgeAnchors,
+	stampKitchenFridgeProps,
 	type RoomId
 } from './rooms';
 import { INDOOR, INTERIOR, DUNGEON, DUNGEON_WALL_FRAMES, FURNITURE_CAP, SHEET } from './roomTiles';
@@ -102,12 +103,55 @@ describe('rooms', () => {
 		expect(getRoomForEnvironment('home-kitchen').id).toBe('home-kitchen');
 	});
 
+	it('kitchen has three solid interactable fridge cabinets', () => {
+		const room = ROOMS['home-kitchen'];
+		const cabinets = room.furniture.filter((prop) => prop.frame === INDOOR.cabinet);
+		expect(cabinets).toHaveLength(3);
+		expect(cabinets.every((prop) => prop.solid)).toBe(true);
+		const tiles = new Set(cabinets.map((prop) => `${prop.tx},${prop.ty}`));
+		expect(tiles).toEqual(new Set(['1,2', '0,2', '0,3']));
+		expect(cabinets.every((prop) => prop.interactableId === 'fridge')).toBe(true);
+		expect(room.fridgeAnchor).toEqual({ tx: 1, ty: 2 });
+		expect(room.fridgeAnchors).toEqual([
+			{ tx: 0, ty: 2 },
+			{ tx: 0, ty: 3 }
+		]);
+
+		const at = (tx: number, ty: number) => room.collision[ty * room.width + tx];
+		expect(at(1, 2)).toBe(1);
+		expect(at(0, 2)).toBe(1);
+		expect(at(0, 3)).toBe(1);
+		expect(at(1, 3)).toBe(0);
+		expect(at(1, 4)).toBe(0);
+		expect(at(2, 2)).toBe(0);
+		expect(FURNITURE_CAP['home-kitchen']).toBe(5);
+		expect(room.furniture.length).toBeLessThanOrEqual(5);
+	});
+
+	it('stampKitchenFridgeProps fills wall-only extra fridge markers', () => {
+		const kitchen = ROOMS['home-kitchen'];
+		expect(stampKitchenFridgeProps(kitchen)).toBe(kitchen);
+		expect(stampKitchenFridgeProps(ROOMS['art-room'])).toBe(ROOMS['art-room']);
+
+		const stripped = {
+			...kitchen,
+			furniture: kitchen.furniture.filter((prop) => !(prop.tx === 0 && prop.ty === 3))
+		};
+		const stamped = stampKitchenFridgeProps(stripped);
+		expect(stamped).not.toBe(stripped);
+		expect(stamped.furniture.find((prop) => prop.tx === 0 && prop.ty === 3)).toMatchObject({
+			frame: INDOOR.cabinet,
+			sheet: SHEET.indoorProps,
+			solid: true,
+			interactableId: 'fridge'
+		});
+	});
+
 	it('tags MVP interactables on kitchen fridge and garage toolkit shelf only', () => {
-		const fridge = ROOMS['home-kitchen'].furniture.find((p) => p.interactableId === 'fridge');
-		expect(fridge).toBeDefined();
-		expect(fridge!.tx).toBe(1);
-		expect(fridge!.ty).toBe(2);
-		expect(fridge!.sheet).toBe(SHEET.indoorProps);
+		const fridges = ROOMS['home-kitchen'].furniture.filter((p) => p.interactableId === 'fridge');
+		expect(fridges).toHaveLength(3);
+		expect(fridges.every((prop) => prop.sheet === SHEET.indoorProps)).toBe(true);
+		expect(fridges.some((prop) => prop.tx === 1 && prop.ty === 2)).toBe(true);
 
 		const shelf = ROOMS['art-room'].furniture.find((p) => p.interactableId === 'toolkit-shelf');
 		expect(shelf).toBeDefined();
@@ -172,8 +216,15 @@ describe('rooms', () => {
 			for (let ty = 2; ty < room.height; ty++) {
 				for (const tx of [0, room.width - 1]) {
 					const i = ty * room.width + tx;
-					expect(room.collision[i]).toBe(0);
-					expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(false);
+					const furnitureSolid = room.furniture.some(
+						(prop) => prop.tx === tx && prop.ty === ty && prop.solid
+					);
+					if (furnitureSolid) {
+						expect(room.collision[i]).toBe(1);
+					} else {
+						expect(room.collision[i]).toBe(0);
+						expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(false);
+					}
 				}
 			}
 			for (let tx = 0; tx < room.width; tx++) {
@@ -195,8 +246,6 @@ describe('rooms', () => {
 		expect(ROOMS['home-kitchen'].ground[2 * ROOMS['home-kitchen'].width + 2]).toBe(
 			INTERIOR.woodFloor
 		);
-		expect(ROOMS['art-room'].ground[2 * ROOMS['art-room'].width + 2]).toBe(
-			INTERIOR.stoneFloor
-		);
+		expect(ROOMS['art-room'].ground[2 * ROOMS['art-room'].width + 2]).toBe(INTERIOR.stoneFloor);
 	});
 });

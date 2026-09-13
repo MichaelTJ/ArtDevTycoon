@@ -5,39 +5,40 @@ saves stay in `$lib/game` / `$lib/stores`.
 
 ## Public surface
 
-| Export                                                                                | Role                                                     |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `STUDIO_FLOOR_ENABLED`                                                                | Feature flag; `false` restores `KitchenScene`            |
-| `StudioBridge`                                                                        | Typed events/commands between Svelte and Phaser          |
-| `createPhaserGame(parent, bridge, options?)`                                          | Boots Phaser; `initialVenueId` picks the plan            |
-| `getRoomForVenue` / `roomIdForVenue`                                                  | Progressive gallery venue → authored floor               |
-| `getRoomForEnvironment` / `ROOMS`                                                     | Tile grids + markers (Level env stubs too)               |
-| `slotsForVenue` / `easelStandFrame`                                                   | Venue → easel/magnet anchors; no stand on fridge tiles   |
-| `buildGroundTilemap`                                                                  | Primary GIDs + off-sheet overlays (`insertNull` empty)   |
-| `nextWanderTarget` / `stepToward` / `withPath`                                        | Pure Mum patrol + path-queue helpers                     |
-| `findPath` / `findPathInRoom`                                                         | 4-neighbour BFS on room collision (spec 21f)             |
-| `interactPromptLabel` / `prefersReducedMotion`                                        | Contextual E verbs + motion helper (21f)                 |
-| `floorStaffFromHired` / `staffAnchorForRole`                                          | Hired staff → floor NPCs (presentation only)             |
-| `clientLookForTier`                                                                   | Door-visitor tint/frame by client tier                   |
-| `nearestInteractable` / `interactPromptText`                                          | Pure prop interact helpers (spec 21b)                    |
-| `FRIDGE` / `TOOLKIT_SHELF`                                                            | Data-driven interactable registry                        |
-| `shouldEmitWorkParticles` / VFX caps                                                  | Pure desk/cash particle helpers (spec 21d)               |
-| `pickBark` / `eligibleBarkSpeakers` / schedule                                        | Ambient bark picker + phase gate (spec 21e)              |
-| `shouldShowBark` / bark lifetime helpers                                              | Bubble gating (prompt + phase)                           |
-| `playerDeskLocked` / `npcAttention` / `showAttentionMark` / `ATTENTION_MARK_OFFSET_Y` | Desk-lock + gold `!` (spec 29/30; mark at `host.y - 12`) |
-| `isDomEditableElement` / `isDomEditableFocused`                                       | DOM focus gate for keyboard walk/interact (P5/P11)       |
-| `applyDomEditableKeyboardGate`                                                        | Release Phaser key captures while DOM fields focus       |
-| `cameraZoomToFitRoom` / `studioViewportSize`                                          | Viewport-fit zoom (≤4×) + parent boot size (P2/P3/P12)   |
+| Export                                                                                | Role                                                                                           |
+| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `STUDIO_FLOOR_ENABLED`                                                                | Feature flag; `false` restores `KitchenScene`                                                  |
+| `StudioBridge`                                                                        | Typed events/commands between Svelte and Phaser                                                |
+| `createPhaserGame(parent, bridge, options?)`                                          | Boots Phaser; `initialVenueId` picks the plan                                                  |
+| `getRoomForVenue` / `roomIdForVenue`                                                  | Progressive gallery venue → authored floor                                                     |
+| `getRoomForEnvironment` / `ROOMS` / `stampKitchenFridgeProps`                         | Tile grids + markers; kitchen fridge markers always get E-interactable cabinets                |
+| `slotsForVenue` / `easelStandFrame`                                                   | Venue → easel/magnet anchors; fridge magnets sit on solid cabinets only                        |
+| `nearestDisplaySlot`                                                                  | Nearest magnet/easel whose tile center is within range; empty slots compete; tie → array order |
+| `buildGroundTilemap` / `overlaySolidCells`                                            | Primary GIDs + off-sheet overlays; overlay furniture cells that need hidden colliders          |
+| `nextWanderTarget` / `stepToward` / `withPath`                                        | Pure Mum patrol + path-queue helpers                                                           |
+| `findPath` / `findPathInRoom`                                                         | 4-neighbour BFS on room collision (spec 21f)                                                   |
+| `interactPromptLabel` / `prefersReducedMotion`                                        | Contextual E verbs + motion helper (21f)                                                       |
+| `floorStaffFromHired` / `staffAnchorForRole`                                          | Hired staff → floor NPCs (presentation only)                                                   |
+| `clientLookForTier`                                                                   | Door-visitor tint/frame by client tier                                                         |
+| `nearestInteractable` / `interactPromptText`                                          | Pure prop interact helpers (spec 21b)                                                          |
+| `FRIDGE` / `TOOLKIT_SHELF`                                                            | Data-driven interactable registry                                                              |
+| `shouldEmitWorkParticles` / VFX caps                                                  | Pure desk/cash particle helpers (spec 21d)                                                     |
+| `pickBark` / `eligibleBarkSpeakers` / schedule                                        | Ambient bark picker + phase gate (spec 21e)                                                    |
+| `shouldShowBark` / bark lifetime helpers                                              | Bubble gating (prompt + phase)                                                                 |
+| `playerDeskLocked` / `npcAttention` / `showAttentionMark` / `ATTENTION_MARK_OFFSET_Y` | Desk-lock + gold `!` (spec 29/30; mark at `host.y - 12`)                                       |
+| `isDomEditableElement` / `isDomEditableFocused`                                       | DOM focus gate for keyboard walk/interact (P5/P11)                                             |
+| `applyDomEditableKeyboardGate`                                                        | Release Phaser key captures while DOM fields focus                                             |
+| `cameraZoomToFitRoom` / `studioViewportSize`                                          | Viewport-fit zoom (≤4×) + parent boot size (P2/P3/P12)                                         |
 
 ## Venue floor plans
 
-| Venue          | Room id        | Size  | Notes                              |
-| -------------- | -------------- | ----- | ---------------------------------- |
-| `fridge`       | `home-kitchen` | 6×6   | Mum resident; warm kitchen palette |
-| `garage`       | `art-room`     | 12×10 | Concrete / workbench               |
-| `storefront`   | `studio`       | 18×12 | Work + window zones                |
-| `gallery-hall` | `gallery`      | 22×14 | Atelier + show gallery             |
-| `mega-museum`  | `mega-museum`  | 28×16 | Atelier + gallery + foyer          |
+| Venue          | Room id        | Size  | Notes                                                           |
+| -------------- | -------------- | ----- | --------------------------------------------------------------- |
+| `fridge`       | `home-kitchen` | 6×6   | Three solid fridge cabinets; Mum resident; warm kitchen palette |
+| `garage`       | `art-room`     | 12×10 | Concrete / workbench                                            |
+| `storefront`   | `studio`       | 18×12 | Work + window zones                                             |
+| `gallery-hall` | `gallery`      | 22×14 | Atelier + show gallery                                          |
+| `mega-museum`  | `mega-museum`  | 28×16 | Atelier + gallery + foyer                                       |
 
 Phaser loads `getRoomForVenue(snapshot.activeVenueId)` on create and rebuilds when the
 venue id changes. `/studio-editor` can override the tile atlas, ground, collision,
@@ -60,20 +61,24 @@ applies those drafts. Person looks (player, Mum, clients, staff) overlay the sam
 - The Phaser canvas uses a fixed **420px** host height and `Scale.RESIZE` — never
   `scale.resize(roomPx)`. Camera zoom magnifies small venues up to **4×** with
   symmetric letterbox margins; `#applyRoomViewport` expands camera bounds and centers
-  on the room midpoint (playtest P2/P3/P12).
+  on the room midpoint (playtest P2/P12). Overlay floors use empty GIDs (`insertNull`),
+  so solid overlay cells (kitchen fridges) get a hidden collider tile — otherwise the
+  player walks through the cabinet. Fridge magnets draw on a cream paper backing above
+  the cabinet sprite.
 
 ## Easel kinds (spec 17 §6.5)
 
-| Venue          | Floor slots | Kind                 |
-| -------------- | ----------- | -------------------- |
-| `fridge`       | 3           | magnets              |
-| `garage`       | 6           | 3 magnets + 3 easels |
-| `storefront`   | 8           | easels               |
-| `gallery-hall` | 10          | easels               |
-| `mega-museum`  | 12          | easels               |
+| Venue          | Floor slots | Kind                                                                                                    |
+| -------------- | ----------- | ------------------------------------------------------------------------------------------------------- |
+| `fridge`       | 3           | magnets on solid cabinets or wall fridge markers at (1,2), (0,2), (0,3); each cabinet is E-interactable |
+| `garage`       | 6           | 3 magnets + 3 easels                                                                                    |
+| `storefront`   | 8           | easels                                                                                                  |
+| `gallery-hall` | 10          | easels                                                                                                  |
+| `mega-museum`  | 12          | easels                                                                                                  |
 
-Editor extras: each extra fridge marker is another painting slot (magnet on fridge/garage,
-easel on storefront+), capped at the venue count. Extra desks are work spots; extra client
+Editor extras: each extra fridge marker is another painting slot (kitchen fridge
+magnets require solid furniture at that tile; garage neighbor-floor magnets and
+storefront+ easels unchanged), capped at the venue count. Extra desks are work spots; extra client
 waits are extra standing tiles (the hired marketing director uses the second wait).
 
 ## Client flow
@@ -117,6 +122,8 @@ Furniture may carry an optional `interactableId` (`rooms.ts`). Registry lives in
 | Computer inbox  | storefront     | Prop at `clientWait`; emit `open-reception` → computer board UI                                         |
 
 Interact priority (must not reorder): talk → deliver → desk → easel → look → **prop**.
+Easel interact picks the **nearest** magnet/easel slot (tile center within
+`INTERACT_RANGE_PX`); an empty nearest fridge does not open a farther piece.
 Commission talk/deliver always wins when in range. World prompts use
 `interactPromptLabel` (Phaser Text) — e.g. “Talk to Mum”, “Practice at desk” while idle
 (otherwise “Work at desk”), “View show”, “Open fridge”. 21b registry `promptLabel` wins

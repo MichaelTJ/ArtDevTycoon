@@ -729,7 +729,12 @@
 {/if}
 
 {#if selectedEntry}
-	<ArtworkFullView entry={selectedEntry} onclose={closeFullView} />
+	<ArtworkFullView
+		entry={selectedEntry}
+		entries={game.displayedGalleryEntries}
+		onclose={closeFullView}
+		onselect={openFullView}
+	/>
 {/if}
 
 {#if game.phase === 'levelComplete'}

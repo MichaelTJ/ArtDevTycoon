@@ -3354,3 +3354,71 @@ Full suite: 1059 passed. Zone scoped: 34 passed.
 **Requests:** None.
 
 **Known gaps:** None.
+
+---
+
+## 2026-09-12 — Kitchen fridge wall (spec 33)
+
+**Zone:** `src/lib/studio/rooms.ts`, `rooms.test.ts`, `roomTiles.ts` (`FURNITURE_CAP['home-kitchen']`), `easelLayout.ts` (+ test), `scenes/StudioScene.ts` (`#nearestTarget` easel branch), `pathfind.test.ts`, `src/lib/components/galleryNav.ts` (+ test), `ArtworkFullView.svelte` (+ test), `ArtworkFrame.svelte` (+ test), `src/lib/components/README.md`, `src/lib/studio/README.md`, `src/routes/+page.svelte` (ArtworkFullView mount), `docs/tasks/33-kitchen-fridges.md`, `docs/agent-log.md`
+
+**Built:** Kitchen display is three solid fridge cabinets at (1,2), (0,2), and (0,3). Magnets sit only on those cabinets — no walkable floor ghosts. E opens the nearest fridge’s piece; an empty nearest slot does not fall through to a farther occupied magnet. ArtworkFullView is a viewport-height dialog with wrapping Previous/Next artwork buttons and ArrowLeft/ArrowRight. Studio-editor kitchen pins updated (authored extras, three cabinets, floor-kind 23).
+
+**Public surface:** `nearestDisplaySlot(playerPx, playerPy, slots, tileSize, rangePx): OccupiedDisplaySlot | null`. `adjacentGalleryEntry(entries, currentId, delta): GalleryEntry | null`. `ArtworkFrame` `size?: 'thumb' | 'full' | 'modal'`. `ArtworkFullView` `entries?` (default `[]`) and `onselect?(entry)`.
+
+**Tests:** Kitchen slots/collision/cap, garage unchanged, nearestDisplaySlot A–D, pathfind B plus blocked extra fridge, adjacentGalleryEntry wrap/short/missing, ArtworkFrame modal/full, ArtworkFullView Close (390×640 via `page.viewport`), arrows, wrap, ArrowRight. Command: `npm run test:unit -- --run src/lib/studio/easelLayout.test.ts src/lib/studio/rooms.test.ts src/lib/components/galleryNav.test.ts src/lib/components/ArtworkFullView.svelte.test.ts src/lib/components/ArtworkFrame.svelte.test.ts src/lib/studio/pathfind.test.ts` (6 files, 50 tests, green). Owned-file prettier + eslint green.
+
+**Decisions:** `#nearestTarget` uses `nearestSlot` rather than the spec’s `nearest` name because the same function already declares `nearest` for `nearestInteractable`. Fridge venue (and unknown-venue kitchen fallback) skips neighbor-floor fill and easel fill so magnets stay on solid cabinets only. Close-button focus `$effect` / `bind:this` kept (DOM side effect, not derived). Modal img tests assert presence, not `toBeVisible`, because `/test.png` 404s.
+
+**Requests:** None.
+
+**Known gaps:** Full-repo `npm run check` fails on inherited `src/lib/modifier-explorer/index.ts` (`UNLOCK_STYLE_KEYS` missing). Full-repo `npm run lint` fails prettier on files outside this zone (architecture.md, other specs, modifier-explorer, studio-editor sources). Owned scoped tests are green, including studio-editor kitchen pins (floor-kind 23, three cabinets, authored fridge extras).
+
+---
+
+## 2026-09-13 — Kitchen fridge collision, magnets, modal crop
+
+**Zone:** `src/lib/studio/tilemapBuild.ts` (+ test), `scenes/StudioScene.ts`, `config.ts`, `ArtworkFrame.svelte`, `ArtworkFullView.svelte`, READMEs, `docs/agent-log.md`
+
+**Built:** Overlay-floor solid cells (the extra kitchen fridges) now get a hidden collider tile because `insertNull` left `getTileAt` null and the player walked through them. Fridge magnets sit on a cream paper backing above the cabinet. Modal `ArtworkFrame` uses a fixed inner height plus `overflow-hidden` so the painting stays inside the frame.
+
+**Public surface:** `overlaySolidCells(room)`. `MAGNET_ART_SIZE_PX` / `MAGNET_ART_OFFSET_Y` / `MAGNET_ART_DEPTH`.
+
+**Tests:** overlaySolidCells includes (1,2)/(0,2)/(0,3) and excludes walkable (1,3)/(2,2). Command: `npm run test:unit -- --run src/lib/studio/tilemapBuild.test.ts src/lib/studio/easelLayout.test.ts src/lib/studio/rooms.test.ts src/lib/components/ArtworkFullView.svelte.test.ts src/lib/components/ArtworkFrame.svelte.test.ts`
+
+**Decisions:** Hidden `DUNGEON.wall` tiles (`setVisible(false)`) keep overlay floors looking like wood while Arcade collides. Magnet backing is a Phaser rectangle, not a new PNG.
+
+**Requests:** None.
+
+**Known gaps:** Same inherited check/lint failures as spec 33.
+
+---
+
+## 2026-09-13 — Every kitchen fridge is an interact target
+
+**Zone:** `easelLayout.ts` (+ test), `rooms.ts` (+ test), `studio-editor/draft.ts` (+ test), studio README, `docs/agent-log.md`
+
+**Built:** A fridge marker on a wall (editor Floor/Wall = Wall, or collision=1) now gets a magnet slot even without a furniture sprite. All three authored cabinets carry `interactableId: 'fridge'`. Tagging Fridge in the studio editor also places a solid cabinet and marks the tile unwalkable.
+
+**Tests:** `npm run test:unit -- --run src/lib/studio/easelLayout.test.ts src/lib/studio/rooms.test.ts src/lib/studio-editor/draft.test.ts`
+
+**Decisions:** Walkable extra fridge markers still do not spawn floor ghosts. Wall extras do, so a fridge painted as a wall is View art / Open fridge from the adjacent tile.
+
+**Requests:** None.
+
+**Known gaps:** Existing editor drafts must be re-tagged Fridge (or reload after this build) so extras pick up cabinet + interactable id; wall+fridge drafts already interact via collision.
+
+---
+
+## 2026-09-13 — Kitchen extras Open/View on E
+
+**Zone:** `rooms.ts` (`stampKitchenFridgeProps` + test), `studio-editor/apply.ts` (+ test), `studio-editor/draft.ts` (restore catalog imports; fridge role stamps cabinet), `scenes/StudioScene.ts` (prop prompt uses the nearest fridge tile), spec 33 extras row, READMEs, `docs/agent-log.md`
+
+**Built:** Play merge stamps a solid `interactableId: 'fridge'` cabinet onto every kitchen fridge marker that is only a wall. Standing at an extra fridge now gets View art (if that magnet has a piece) or Open fridge. Editor Fridge role still paints the cabinet so new tags match.
+
+**Tests:** `npm run test:unit -- --run src/lib/studio/easelLayout.test.ts src/lib/studio/rooms.test.ts src/lib/studio-editor/draft.test.ts src/lib/studio-editor/apply.test.ts src/lib/studio/tilemapBuild.test.ts src/lib/studio/pathfind.test.ts`
+
+**Decisions:** Do not require a re-tag for existing Wall + Fridge drafts. Garage fridgeAnchor is unchanged (`stampKitchenFridgeProps` is kitchen-only).
+
+**Requests:** Restart `npm run dev` in `adt-wt-kitchen-fridges` so Phaser reloads the stamped room.
+
+**Known gaps:** Inherited check/lint failures outside this zone.

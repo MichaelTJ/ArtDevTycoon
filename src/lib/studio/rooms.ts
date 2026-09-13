@@ -238,7 +238,13 @@ function buildKitchen(): RoomDef {
 
 	const desk = { tx: 3, ty: 3 };
 	const fridgeAnchor = { tx: 1, ty: 2 };
-	solidAt(width, collision, 1, 2); // fridge cabinet
+	const fridgeAnchors = [
+		{ tx: 0, ty: 2 },
+		{ tx: 0, ty: 3 }
+	] as const;
+	solidAt(width, collision, 1, 2);
+	solidAt(width, collision, 0, 2);
+	solidAt(width, collision, 0, 3);
 
 	const patrol = [
 		{ tx: 4, ty: 2 },
@@ -261,11 +267,28 @@ function buildKitchen(): RoomDef {
 		desk,
 		playerSpawn: { tx: 1, ty: 4 },
 		fridgeAnchor,
+		fridgeAnchors,
 		furniture: [
 			{
 				frame: INDOOR.cabinet,
 				tx: 1,
 				ty: 2,
+				solid: true,
+				sheet: SHEET.indoorProps,
+				interactableId: 'fridge'
+			},
+			{
+				frame: INDOOR.cabinet,
+				tx: 0,
+				ty: 2,
+				solid: true,
+				sheet: SHEET.indoorProps,
+				interactableId: 'fridge'
+			},
+			{
+				frame: INDOOR.cabinet,
+				tx: 0,
+				ty: 3,
 				solid: true,
 				sheet: SHEET.indoorProps,
 				interactableId: 'fridge'
@@ -553,6 +576,58 @@ const garage = buildGarage();
 const storefront = buildStorefront();
 const galleryHall = buildGalleryHall();
 const megaMuseum = buildMegaMuseum();
+
+/**
+ * Kitchen fridge markers always get a solid E-interactable cabinet.
+ * Editor drafts that tagged Fridge + Wall often stored collision without
+ * furniture, so extras blocked walking but did nothing on E.
+ */
+export function stampKitchenFridgeProps(room: RoomDef): RoomDef {
+	if (room.id !== 'home-kitchen') return room;
+	let collision: number[] | undefined;
+	let furniture: FurnitureProp[] | undefined;
+	let changed = false;
+	for (const origin of roomFridgeAnchors(room)) {
+		if (origin.tx < 0 || origin.ty < 0 || origin.tx >= room.width || origin.ty >= room.height) {
+			continue;
+		}
+		const i = origin.ty * room.width + origin.tx;
+		if (room.collision[i] !== 1) {
+			collision ??= [...room.collision];
+			collision[i] = 1;
+			changed = true;
+		}
+		const existing = (furniture ?? room.furniture).find(
+			(prop) => prop.tx === origin.tx && prop.ty === origin.ty
+		);
+		if (!existing) {
+			furniture ??= [...room.furniture];
+			furniture.push({
+				frame: INDOOR.cabinet,
+				tx: origin.tx,
+				ty: origin.ty,
+				solid: true,
+				sheet: SHEET.indoorProps,
+				interactableId: 'fridge'
+			});
+			changed = true;
+			continue;
+		}
+		if (existing.interactableId === 'fridge' && existing.solid) continue;
+		furniture = (furniture ?? [...room.furniture]).map((prop) =>
+			prop.tx === origin.tx && prop.ty === origin.ty
+				? { ...prop, solid: true, interactableId: 'fridge' as const }
+				: prop
+		);
+		changed = true;
+	}
+	if (!changed) return room;
+	return {
+		...room,
+		collision: collision ?? room.collision,
+		furniture: furniture ?? room.furniture
+	};
+}
 
 export const ROOMS: Record<RoomId, RoomDef> = {
 	'home-kitchen': kitchen,

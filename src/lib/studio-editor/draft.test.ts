@@ -41,23 +41,39 @@ describe('studio-editor drafts', () => {
 
 	it('adds extra fridges and waits; None removes extras or promotes the next', () => {
 		const kitchen = authoredDraft(ROOMS['home-kitchen']);
+		const authoredExtras = [
+			{ tx: 0, ty: 2 },
+			{ tx: 0, ty: 3 }
+		];
+		expect(kitchen.fridgeAnchors).toEqual(authoredExtras);
+
 		const withFridge = applyTileEdit(kitchen, 4, 4, { role: 'fridge' });
 		expect(withFridge.fridgeAnchor).toEqual(kitchen.fridgeAnchor);
-		expect(withFridge.fridgeAnchors).toEqual([{ tx: 4, ty: 4 }]);
+		expect(withFridge.fridgeAnchors).toEqual([...authoredExtras, { tx: 4, ty: 4 }]);
 		expect(roleAt(withFridge, 4, 4)).toBe('fridge');
+		expect(withFridge.collision[4 * withFridge.width + 4]).toBe(1);
+		expect(furnitureAt(withFridge, 4, 4)).toMatchObject({
+			frame: INDOOR.cabinet,
+			sheet: SHEET.indoorProps,
+			solid: true,
+			interactableId: 'fridge'
+		});
 		expect(roleAt(withFridge, kitchen.fridgeAnchor.tx, kitchen.fridgeAnchor.ty)).toBe('fridge');
 
 		const clearedExtra = applyTileEdit(withFridge, 4, 4, { role: 'none' });
 		expect(clearedExtra.fridgeAnchor).toEqual(kitchen.fridgeAnchor);
-		expect(clearedExtra.fridgeAnchors).toBeUndefined();
+		expect(clearedExtra.fridgeAnchors).toEqual(authoredExtras);
 		expect(roleAt(clearedExtra, 4, 4)).toBe('none');
 
 		const promoted = applyTileEdit(withFridge, kitchen.fridgeAnchor.tx, kitchen.fridgeAnchor.ty, {
 			role: 'none'
 		});
-		expect(promoted.fridgeAnchor).toEqual({ tx: 4, ty: 4 });
-		expect(promoted.fridgeAnchors).toBeUndefined();
-		expect(roleAt(promoted, 4, 4)).toBe('fridge');
+		expect(promoted.fridgeAnchor).toEqual({ tx: 0, ty: 2 });
+		expect(promoted.fridgeAnchors).toEqual([
+			{ tx: 0, ty: 3 },
+			{ tx: 4, ty: 4 }
+		]);
+		expect(roleAt(promoted, 0, 2)).toBe('fridge');
 		expect(roleAt(promoted, kitchen.fridgeAnchor.tx, kitchen.fridgeAnchor.ty)).toBe('none');
 
 		const withWait = applyTileEdit(kitchen, 4, 2, { role: 'client-wait' });
@@ -105,11 +121,11 @@ describe('studio-editor drafts', () => {
 			{ ground: DUNGEON.wall, sheet: SHEET.dungeon, count: 10 }
 		]);
 		expect(listFloorKinds(kitchen)).toEqual([
-			{ ground: INTERIOR.woodFloor, sheet: SHEET.interior, count: 25 }
+			{ ground: INTERIOR.woodFloor, sheet: SHEET.interior, count: 23 }
 		]);
 		expect(listFurnitureKinds(kitchen)).toEqual([
 			{ frame: INDOOR.counterL, sheet: SHEET.indoorProps, count: 1 },
-			{ frame: INDOOR.cabinet, sheet: SHEET.indoorProps, count: 1 },
+			{ frame: INDOOR.cabinet, sheet: SHEET.indoorProps, count: 3 },
 			{ frame: INDOOR.sink, sheet: SHEET.indoorProps, count: 1 }
 		]);
 	});
@@ -136,7 +152,7 @@ describe('studio-editor drafts', () => {
 			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior }
 		);
 		expect(listFloorKinds(painted)).toEqual([
-			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior, count: 25 }
+			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior, count: 23 }
 		]);
 		expect(painted.ground[3 * painted.width + 3]).toBe(INTERIOR.carpetBlue);
 		expect(deskGround).toBe(INTERIOR.woodFloor);

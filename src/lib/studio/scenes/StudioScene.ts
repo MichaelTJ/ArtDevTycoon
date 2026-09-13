@@ -28,8 +28,17 @@ import { cameraLetterboxBounds, cameraRoomCenter, cameraZoomToFitRoom } from '..
 import { clientLookForTier } from '../clientLooks';
 import { STUDIO_DOM_EDITABLE_FOCUSED_KEY } from '../domInputFocus';
 import { applyDomEditableKeyboardGate } from '../domInputKeyboardGate';
-import { CLIENT_SPEED, INTERACT_KEYS, INTERACT_RANGE_PX, PLAYER_SPEED, TILE_SIZE } from '../config';
-import { easelStandFrame, slotsForVenue, type EaselSlot } from '../easelLayout';
+import {
+	CLIENT_SPEED,
+	INTERACT_KEYS,
+	INTERACT_RANGE_PX,
+	MAGNET_ART_DEPTH,
+	MAGNET_ART_OFFSET_Y,
+	MAGNET_ART_SIZE_PX,
+	PLAYER_SPEED,
+	TILE_SIZE
+} from '../config';
+import { easelStandFrame, nearestDisplaySlot, slotsForVenue, type EaselSlot } from '../easelLayout';
 import {
 	FRIDGE,
 	fridgeBarkLine,
@@ -57,10 +66,11 @@ import {
 	staffLookForRole,
 	type FloorStaffRoleId
 } from '../staffPresence';
+import { DUNGEON } from '../roomTiles';
 import { getRoomForVenue } from '../venueRooms';
 import { getTileset } from '$lib/studio-editor/catalog';
 import { resolvePersonLook } from '$lib/studio-editor/apply';
-import { buildGroundTilemap } from '../tilemapBuild';
+import { buildGroundTilemap, overlaySolidCells } from '../tilemapBuild';
 import {
 	CASH_BURST_COUNT,
 	CASH_BURST_LIFESPAN_MS,
@@ -90,6 +100,7 @@ interface InteractPropView {
 interface EaselView {
 	slot: EaselSlot;
 	stand: Phaser.GameObjects.Image | null;
+	backing: Phaser.GameObjects.Rectangle | null;
 	art: Phaser.GameObjects.Image | null;
 	entryId: string | null;
 }
@@ -270,6 +281,7 @@ export class StudioScene extends Phaser.Scene {
 
 		for (const view of this.#easels) {
 			view.stand?.destroy();
+			view.backing?.destroy();
 			view.art?.destroy();
 		}
 		this.#easels = [];
@@ -496,6 +508,11 @@ export class StudioScene extends Phaser.Scene {
 				}
 			}
 		}
+		for (const cell of overlaySolidCells(this.#room)) {
+			const tile = layer.putTileAt(DUNGEON.wall, cell.tx, cell.ty);
+			tile?.setVisible(false);
+			tile?.setCollision(true);
+		}
 
 		this.#groundOverlays?.destroy(true);
 		this.#groundOverlays = this.add.group();
@@ -533,6 +550,9 @@ export class StudioScene extends Phaser.Scene {
 			sprite.setDepth(5);
 			if (!prop.solid) {
 				sprite.disableBody(true, false);
+			} else {
+				sprite.body?.setSize(TILE_SIZE, TILE_SIZE);
+				sprite.refreshBody();
 			}
 			if (prop.interactableId) {
 				this.#interactProps.push({
@@ -1290,6 +1310,7 @@ export class StudioScene extends Phaser.Scene {
 	#rebuildEasels(): void {
 		for (const view of this.#easels) {
 			view.stand?.destroy();
+			view.backing?.destroy();
 			view.art?.destroy();
 		}
 		this.#easels = [];
@@ -1310,19 +1331,18 @@ export class StudioScene extends Phaser.Scene {
 				standFrame === null ? null : this.add.image(x, y, 'furniture', standFrame).setDepth(6);
 			const entry = entries[i] ?? null;
 			let art: Phaser.GameObjects.Image | null = null;
+			let backing: Phaser.GameObjects.Rectangle | null = null;
 			if (entry && isSafeStudioImageUrl(entry.imageUrl)) {
 				const key = `art-${entry.id}`;
 				keepKeys.add(key);
+				backing = this.#magnetBacking(slot, x, y);
 				if (!this.textures.exists(key)) {
 					this.load.image(key, entry.imageUrl);
 					this.load.once(Phaser.Loader.Events.COMPLETE, () => {
 						if (loadGeneration !== this.#artLoadGeneration) return;
 						if (!this.textures.exists(key)) return;
 						this.#artTextureKeys.add(key);
-						const img = this.add
-							.image(x, y - 2, key)
-							.setDisplaySize(12, 12)
-							.setDepth(7);
+						const img = this.#placeSlotArt(slot, x, y, key);
 						const found = this.#easels.find((e) => e.entryId === entry.id);
 						if (found) {
 							found.art?.destroy();
@@ -1334,13 +1354,10 @@ export class StudioScene extends Phaser.Scene {
 					this.load.start();
 				} else {
 					this.#artTextureKeys.add(key);
-					art = this.add
-						.image(x, y - 2, key)
-						.setDisplaySize(12, 12)
-						.setDepth(7);
+					art = this.#placeSlotArt(slot, x, y, key);
 				}
 			}
-			this.#easels.push({ slot, stand, art, entryId: entry?.id ?? null });
+			this.#easels.push({ slot, stand, backing, art, entryId: entry?.id ?? null });
 		}
 
 		for (const key of [...this.#artTextureKeys]) {
@@ -1350,6 +1367,36 @@ export class StudioScene extends Phaser.Scene {
 			}
 			this.#artTextureKeys.delete(key);
 		}
+	}
+
+	#slotArtPos(
+		slot: EaselSlot,
+		x: number,
+		y: number
+	): { x: number; y: number; size: number; depth: number } {
+		if (slot.kind === 'magnet') {
+			return {
+				x,
+				y: y + MAGNET_ART_OFFSET_Y,
+				size: MAGNET_ART_SIZE_PX,
+				depth: MAGNET_ART_DEPTH
+			};
+		}
+		return { x, y: y - 2, size: 12, depth: 7 };
+	}
+
+	#magnetBacking(slot: EaselSlot, x: number, y: number): Phaser.GameObjects.Rectangle | null {
+		if (slot.kind !== 'magnet') return null;
+		const pos = this.#slotArtPos(slot, x, y);
+		return this.add
+			.rectangle(pos.x, pos.y, pos.size + 2, pos.size + 2, 0xfaf6ef)
+			.setStrokeStyle(1, 0x44403c)
+			.setDepth(pos.depth - 1);
+	}
+
+	#placeSlotArt(slot: EaselSlot, x: number, y: number, key: string): Phaser.GameObjects.Image {
+		const pos = this.#slotArtPos(slot, x, y);
+		return this.add.image(pos.x, pos.y, key).setDisplaySize(pos.size, pos.size).setDepth(pos.depth);
 	}
 
 	#commissionNpc(): Phaser.Physics.Arcade.Sprite | null {
@@ -1375,7 +1422,7 @@ export class StudioScene extends Phaser.Scene {
 		| { kind: 'desk' }
 		| { kind: 'easel'; entryId: string }
 		| { kind: 'look'; entryId: string | null; zoneId: RoomZone['id'] }
-		| { kind: 'prop'; id: InteractableId }
+		| { kind: 'prop'; id: InteractableId; tx: number; ty: number }
 		| null {
 		const px = this.#player.x;
 		const py = this.#player.y;
@@ -1438,14 +1485,14 @@ export class StudioScene extends Phaser.Scene {
 			return { kind: 'desk' };
 		}
 
-		for (const easel of this.#easels) {
-			if (!easel.entryId) continue;
-			const ex = easel.slot.tx * TILE_SIZE + TILE_SIZE / 2;
-			const ey = easel.slot.ty * TILE_SIZE + TILE_SIZE / 2;
-			if (Phaser.Math.Distance.Between(px, py, ex, ey) < INTERACT_RANGE_PX) {
-				return { kind: 'easel', entryId: easel.entryId };
-			}
-		}
+		const nearestSlot = nearestDisplaySlot(
+			px,
+			py,
+			this.#easels.map((e) => ({ tx: e.slot.tx, ty: e.slot.ty, entryId: e.entryId })),
+			TILE_SIZE,
+			INTERACT_RANGE_PX
+		);
+		if (nearestSlot?.entryId) return { kind: 'easel', entryId: nearestSlot.entryId };
 
 		const showZone = this.#nearestShowZone();
 		if (showZone && this.#inZone(showZone, px, py)) {
@@ -1460,7 +1507,7 @@ export class StudioScene extends Phaser.Scene {
 		}));
 		const nearest = nearestInteractable(px, py, propMarkers, TILE_SIZE);
 		if (nearest) {
-			return { kind: 'prop', id: nearest.interactableId };
+			return { kind: 'prop', id: nearest.interactableId, tx: nearest.tx, ty: nearest.ty };
 		}
 
 		return null;
@@ -1533,7 +1580,10 @@ export class StudioScene extends Phaser.Scene {
 			}
 		}
 		if (target.kind === 'prop') {
-			const prop = this.#interactProps.find((p) => p.id === target.id);
+			const prop =
+				this.#interactProps.find(
+					(p) => p.id === target.id && p.tx === target.tx && p.ty === target.ty
+				) ?? this.#interactProps.find((p) => p.id === target.id);
 			if (prop) {
 				x = prop.sprite.x;
 				y = prop.sprite.y - 12;

@@ -1,5 +1,5 @@
 import { getTileset } from '$lib/studio-editor/catalog';
-import type { RoomDef } from './rooms';
+import type { RoomDef, TileMarker } from './rooms';
 
 /** Phaser 2D-array empty GID when `insertNull` is on — letterbox black, no collision. */
 export const TILEMAP_EMPTY = 0;
@@ -45,4 +45,24 @@ export function buildGroundTilemap(
 		data.push(row);
 	}
 	return { data, overlays };
+}
+
+/**
+ * Solid cells whose primary GID is empty (`insertNull`). Phaser `getTileAt` is
+ * null there, so `#buildTilemap` must stamp a hidden collider or the player
+ * walks through overlay furniture (kitchen fridges).
+ */
+export function overlaySolidCells(
+	room: Pick<RoomDef, 'width' | 'height' | 'collision' | 'ground' | 'groundSheets' | 'tilesetId'>
+): TileMarker[] {
+	const { data } = buildGroundTilemap(room);
+	const cells: TileMarker[] = [];
+	for (let ty = 0; ty < room.height; ty++) {
+		for (let tx = 0; tx < room.width; tx++) {
+			if (room.collision[ty * room.width + tx] !== 1) continue;
+			if (data[ty]?.[tx] !== TILEMAP_EMPTY) continue;
+			cells.push({ tx, ty });
+		}
+	}
+	return cells;
 }

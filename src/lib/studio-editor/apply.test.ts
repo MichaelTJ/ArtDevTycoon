@@ -52,4 +52,22 @@ describe('studio-editor apply', () => {
 			spriteKey: 'tiny-creatures'
 		});
 	});
+
+	it('stamps interactable cabinets onto kitchen fridge markers missing furniture', () => {
+		const authored = ROOMS['home-kitchen'];
+		const draft = authoredDraft(authored);
+		draft.furniture = draft.furniture.filter(
+			(prop) => !(prop.tx === 0 && (prop.ty === 2 || prop.ty === 3))
+		);
+		const state: StudioEditorState = {
+			version: 1,
+			rooms: { 'home-kitchen': draft },
+			people: {}
+		};
+		const merged = resolveRoomForPlay(authored, state);
+		const fridges = merged.furniture.filter((prop) => prop.interactableId === 'fridge');
+		expect(fridges).toHaveLength(3);
+		expect(fridges.some((prop) => prop.tx === 0 && prop.ty === 2)).toBe(true);
+		expect(fridges.some((prop) => prop.tx === 0 && prop.ty === 3)).toBe(true);
+	});
 });

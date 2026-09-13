@@ -97,7 +97,7 @@ export const SHEET = {
 
 /** Hard max furniture props per authored room (sparse layouts). */
 export const FURNITURE_CAP = {
-	'home-kitchen': 3,
+	'home-kitchen': 5,
 	'art-room': 3,
 	studio: 4,
 	gallery: 4,

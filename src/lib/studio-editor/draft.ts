@@ -7,6 +7,7 @@ import {
 	type RoomDef,
 	type TileMarker
 } from '$lib/studio/rooms';
+import { INDOOR, SHEET } from '$lib/studio/roomTiles';
 import { TILESETS, getTileset, isTilesetId, type TileRole, type TilesetId } from './catalog';
 import {
 	cloneFurniture,
@@ -337,7 +338,8 @@ function setFurniture(
 	tx: number,
 	ty: number,
 	frame: number | null,
-	sheet?: string
+	sheet?: string,
+	interactableId?: FurnitureProp['interactableId']
 ): void {
 	const existing = furnitureAt(draft, tx, ty);
 	const rest = draft.furniture.filter((prop) => !(prop.tx === tx && prop.ty === ty));
@@ -345,12 +347,13 @@ function setFurniture(
 		draft.furniture = rest;
 		return;
 	}
+	const nextId = interactableId ?? existing?.interactableId;
 	const next: FurnitureProp = {
 		frame,
 		tx,
 		ty,
 		solid: true,
-		...(existing?.interactableId ? { interactableId: existing.interactableId } : {}),
+		...(nextId ? { interactableId: nextId } : {}),
 		...(sheet && sheet !== 'furniture' ? { sheet } : {})
 	};
 	draft.furniture = [...rest, next];
@@ -386,6 +389,10 @@ export function applyTileEdit(draft: RoomDraft, tx: number, ty: number, edit: Ti
 	}
 	if (edit.role !== undefined) {
 		assignRole(next, tx, ty, edit.role);
+		if (edit.role === 'fridge') {
+			next.collision[i] = 1;
+			setFurniture(next, tx, ty, INDOOR.cabinet, SHEET.indoorProps, 'fridge');
+		}
 	}
 	return next;
 }

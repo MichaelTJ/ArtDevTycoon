@@ -1,4 +1,4 @@
-import type { RoomDef } from '$lib/studio/rooms';
+import { stampKitchenFridgeProps, type RoomDef } from '$lib/studio/rooms';
 import { getPeopleSheet, sheetTileCount, type PersonSlotId } from './catalog';
 import { authoredDraft, mergeDraftOntoRoom } from './draft';
 import type { PersonLook } from './schema';
@@ -50,8 +50,8 @@ export function resolvePersonLook(
 
 export function resolveRoomForPlay(authored: RoomDef, state = loadStudioEditorState()): RoomDef {
 	const draft = state.rooms[authored.id];
-	if (!draft) return authored;
-	return mergeDraftOntoRoom(authored, draft);
+	const merged = draft ? mergeDraftOntoRoom(authored, draft) : authored;
+	return stampKitchenFridgeProps(merged);
 }
 
 export function overlayClientLook(

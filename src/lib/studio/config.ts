@@ -5,6 +5,12 @@ export const TILE_SIZE = 16;
 export const PLAYER_SPEED = 80;
 export const CLIENT_SPEED = 60;
 export const INTERACT_RANGE_PX = 28;
+/** Fridge-magnet thumbnail size (px). Larger than easel art so it reads on a cabinet. */
+export const MAGNET_ART_SIZE_PX = 14;
+/** Nudge magnets up onto the cabinet door face. */
+export const MAGNET_ART_OFFSET_Y = -3;
+/** Above furniture (5) and easel stands (6). */
+export const MAGNET_ART_DEPTH = 16;
 /** Keyboard interact. Also accept Space later — not required for v1. */
 export const INTERACT_KEYS = ['E', 'e'] as const;
 

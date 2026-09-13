@@ -185,6 +185,7 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 30  | [Playtest 5 bundle](./30-engine-ui-playtest.md)      | Crayon modal + engine overlay, Mum `!` height, editor v1 restore, medium XP ×3, welcome one-pager                                 | 03, 04, 05, 20, 27–29           |
 | 31  | [Commission desk modals](./31-commission-modals.md)  | Briefing/paint viewport dialogs; generation-ready toast + drawing/AI compare                                                      | 03, 04, 11/P6, 24, 25           |
 | 32  | [Premium medium palettes](./32-premium-media.md)     | Watercolour/acrylic/oil RGB picker; oil stroke textures (round/bristle/flat/knife)                                                | 25                              |
+| 33  | [Kitchen fridge wall](./33-kitchen-fridges.md)       | Three solid kitchen fridges; nearest-magnet View art; ArtworkFullView fits viewport                                               | 17, 19, 21b                     |
 
 ```
 Wave C  (after 16 is merged — presentation)
@@ -249,6 +250,12 @@ Wave P  (playtest 5 bundle — after 29 on main; one worktree, slices A–E)
 
 Wave Q  (commission desk modals — after 29 on main; do not overlap spec 30 +page)
    └── 31 Commission desk modals → ../adt-wt-commission-modals  branch agent/commission-modals
+
+Wave R  (kitchen fridge playtest — worktree from committed main)
+   └── 33 Kitchen fridge wall → ../adt-wt-kitchen-fridges  branch agent/kitchen-fridges
+
+Wave S  (practice keep / storage / wall sales — worktree from committed main; do not overlap 33 on rooms.ts / StudioScene)
+   └── 34 Practice keep & storage → ../adt-wt-practice-storage  branch agent/practice-storage
 
 Playtest follow-ups (docs/playtest-notes.md — not separate specs)
    ├── Playtest 3 P19–P23 ✅ (engine load, no level wipe, Mum max, abstract gates, ink)

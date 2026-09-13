@@ -30,6 +30,19 @@ test('caption shows in full size and is absent in thumb', async () => {
 	expect(thumb.container.textContent).not.toContain('Sunset Sail');
 });
 
+test('modal size shows the image and caption', async () => {
+	const screen = render(ArtworkFrame, {
+		imageUrl: '/test.png',
+		title: 'Sunset Sail',
+		alt: 'A sailboat at sunset',
+		size: 'modal'
+	});
+	expect(
+		screen.getByRole('img', { name: 'A sailboat at sunset' }).elements().length
+	).toBeGreaterThan(0);
+	await expect.element(screen.getByText('Sunset Sail')).toBeVisible();
+});
+
 test('long caption text remains fully visible in the document', async () => {
 	const longTitle = 'Meditation on Regal Whisker Crown Garden Sunlight Afternoon Studio Session';
 	const screen = render(ArtworkFrame, {

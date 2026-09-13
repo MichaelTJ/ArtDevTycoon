@@ -1,15 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { EASEL_STAND_FRAME, easelStandFrame, slotsForVenue } from './easelLayout';
+import {
+	EASEL_STAND_FRAME,
+	easelStandFrame,
+	nearestDisplaySlot,
+	slotsForVenue
+} from './easelLayout';
 import { ROOMS } from './rooms';
 import { getRoomForVenue } from './venueRooms';
 
 describe('slotsForVenue', () => {
 	const room = ROOMS['home-kitchen'];
 
-	it('fridge yields 3 magnets inside 6×6', () => {
+	it('fridge yields 3 magnets on the solid cabinets, not floor tiles', () => {
 		const slots = slotsForVenue('fridge', room);
 		expect(slots).toHaveLength(3);
 		expect(slots.every((s) => s.kind === 'magnet')).toBe(true);
+		const tiles = new Set(slots.map((s) => `${s.tx},${s.ty}`));
+		expect(tiles).toEqual(new Set(['1,2', '0,2', '0,3']));
+		expect(slots.some((s) => s.tx === 1 && s.ty === 3)).toBe(false);
+		expect(slots.some((s) => s.tx === 2 && s.ty === 2)).toBe(false);
 		for (const slot of slots) {
 			expect(slot.tx).toBeLessThan(6);
 			expect(slot.ty).toBeLessThan(6);
@@ -55,15 +64,31 @@ describe('slotsForVenue', () => {
 		expect(hallSlots.every((s) => s.kind === 'easel')).toBe(true);
 	});
 
-	it('extra fridge anchors become extra magnet slots', () => {
+	it('fridge extra anchors without solid furniture do not fill neighbor floors', () => {
 		const kitchen = {
 			...ROOMS['home-kitchen'],
 			fridgeAnchors: [{ tx: 4, ty: 4 }]
 		};
 		const slots = slotsForVenue('fridge', kitchen);
-		expect(slots).toHaveLength(3);
 		expect(slots.some((slot) => slot.tx === 1 && slot.ty === 2)).toBe(true);
+		expect(slots.some((slot) => slot.tx === 4 && slot.ty === 4)).toBe(false);
+		expect(slots.some((slot) => slot.tx === 1 && slot.ty === 3)).toBe(false);
+		expect(slots.some((slot) => slot.tx === 2 && slot.ty === 2)).toBe(false);
+	});
+
+	it('wall-only fridge anchors still get magnet slots', () => {
+		const kitchen = ROOMS['home-kitchen'];
+		const collision = [...kitchen.collision];
+		collision[4 * kitchen.width + 4] = 1;
+		const wallFridge = {
+			...kitchen,
+			collision,
+			fridgeAnchors: [{ tx: 4, ty: 4 }]
+		};
+		const slots = slotsForVenue('fridge', wallFridge);
 		expect(slots.some((slot) => slot.tx === 4 && slot.ty === 4)).toBe(true);
+		expect(slots.some((slot) => slot.tx === 1 && slot.ty === 2)).toBe(true);
+		expect(slots.every((slot) => slot.kind === 'magnet')).toBe(true);
 	});
 
 	it('does not cover fridge cabinets or magnet slots with a furniture stand', () => {
@@ -124,5 +149,55 @@ describe('slotsForVenue', () => {
 				expect(slot.ty).toBeLessThan(kitchen.height);
 			}
 		}
+	});
+});
+
+describe('nearestDisplaySlot', () => {
+	const tileSize = 16;
+	const rangePx = 28;
+	const fridgeSlots = [
+		{ tx: 1, ty: 2, entryId: 'a' },
+		{ tx: 0, ty: 2, entryId: 'b' },
+		{ tx: 0, ty: 3, entryId: 'c' }
+	] as const;
+
+	function tileCenter(tx: number, ty: number): { px: number; py: number } {
+		return { px: (tx + 0.5) * tileSize, py: (ty + 0.5) * tileSize };
+	}
+
+	it('A: player at (0,3) picks that fridge', () => {
+		const { px, py } = tileCenter(0, 3);
+		expect(nearestDisplaySlot(px, py, fridgeSlots, tileSize, rangePx)).toEqual({
+			tx: 0,
+			ty: 3,
+			entryId: 'c'
+		});
+	});
+
+	it('B: empty nearest slot still wins over farther occupied ones', () => {
+		const { px, py } = tileCenter(0, 3);
+		const slots = [
+			{ tx: 1, ty: 2, entryId: 'a' },
+			{ tx: 0, ty: 2, entryId: 'b' },
+			{ tx: 0, ty: 3, entryId: null }
+		];
+		expect(nearestDisplaySlot(px, py, slots, tileSize, rangePx)).toEqual({
+			tx: 0,
+			ty: 3,
+			entryId: null
+		});
+	});
+
+	it('C: player far away returns null', () => {
+		expect(nearestDisplaySlot(200, 200, fridgeSlots, tileSize, rangePx)).toBeNull();
+	});
+
+	it('D: equal distance keeps the earlier array index', () => {
+		const slots = [
+			{ tx: 0, ty: 0, entryId: 'a' },
+			{ tx: 2, ty: 0, entryId: 'b' }
+		];
+		const { px, py } = tileCenter(1, 0);
+		expect(nearestDisplaySlot(px, py, slots, tileSize, rangePx)).toEqual(slots[0]);
 	});
 });

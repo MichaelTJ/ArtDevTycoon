@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { DUNGEON, INTERIOR, SHEET } from './roomTiles';
 import { ROOMS } from './rooms';
-import { TILEMAP_EMPTY, buildGroundTilemap } from './tilemapBuild';
+import { TILEMAP_EMPTY, buildGroundTilemap, overlaySolidCells } from './tilemapBuild';
 
 describe('buildGroundTilemap', () => {
-	it('paints Mum\'s kitchen as native north bricks over empty walkable floors', () => {
+	it("paints Mum's kitchen as native north bricks over empty walkable floors", () => {
 		const kitchen = ROOMS['home-kitchen'];
 		const { data, overlays } = buildGroundTilemap(kitchen);
 
@@ -26,6 +26,18 @@ describe('buildGroundTilemap', () => {
 		expect(overlays.some((overlay) => overlay.x === 0 && overlay.y === 5)).toBe(true);
 		expect(overlays.some((overlay) => overlay.x === 0 && overlay.y === 0)).toBe(false);
 		expect(data[2]?.[1]).toBe(TILEMAP_EMPTY);
+	});
+
+	it('lists kitchen fridge cabinets as overlay solids (empty GID + collision)', () => {
+		const kitchen = ROOMS['home-kitchen'];
+		const cells = overlaySolidCells(kitchen);
+		const keys = new Set(cells.map((cell) => `${cell.tx},${cell.ty}`));
+		expect(keys.has('1,2')).toBe(true);
+		expect(keys.has('0,2')).toBe(true);
+		expect(keys.has('0,3')).toBe(true);
+		expect(keys.has('1,3')).toBe(false);
+		expect(keys.has('2,2')).toBe(false);
+		expect(keys.has('0,0')).toBe(false);
 	});
 
 	it('keeps north-band bricks on the primary dungeon sheet for every venue', () => {
