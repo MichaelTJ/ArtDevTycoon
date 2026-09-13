@@ -12,7 +12,6 @@ import {
 	type RoomDef,
 	type TileMarker
 } from '$lib/studio/rooms';
-import { INDOOR, SHEET } from '$lib/studio/roomTiles';
 import { TILESETS, getTileset, isTilesetId, type TileRole, type TilesetId } from './catalog';
 import {
 	cloneFurniture,

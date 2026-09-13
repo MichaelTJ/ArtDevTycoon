@@ -8,7 +8,7 @@ import {
 	stampKitchenFridgeProps,
 	type RoomId
 } from './rooms';
-import { INTERIOR, DUNGEON, DUNGEON_WALL_FRAMES, FURNITURE_CAP, SHEET } from './roomTiles';
+import { INTERIOR, DUNGEON, DUNGEON_WALL_FRAMES, FURNITURE_CAP, INDOOR, SHEET } from './roomTiles';
 
 describe('rooms', () => {
 	it('home-kitchen is 6×6 with Mum resident and walkable markers', () => {
