@@ -22,6 +22,14 @@ export default defineConfig({
 			adapter: adapter({ fallback: '404.html' }),
 			paths: {
 				base: process.argv.includes('build') && process.env.BASE_PATH ? process.env.BASE_PATH : ''
+			},
+			trailingSlash: 'always',
+			prerender: {
+				handleHttpError: ({ path, message }) => {
+					// With paths.base, a crawler hit on `/` is outside the app (the game is `/ArtDevTycoon/`).
+					if (path === '/') return;
+					throw new Error(message);
+				}
 			}
 		})
 	],
