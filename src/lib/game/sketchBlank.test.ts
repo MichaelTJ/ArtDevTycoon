@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSketchBlank } from './sketchBlank';
+import { isSketchBlank, paintCoverage01 } from './sketchBlank';
 
 function imageData(
 	width: number,
@@ -31,5 +31,33 @@ describe('isSketchBlank', () => {
 		img.data[1] = 10;
 		img.data[2] = 10;
 		expect(isSketchBlank(img)).toBe(false);
+	});
+});
+
+describe('paintCoverage01', () => {
+	it('returns 0 for four white pixels', () => {
+		expect(paintCoverage01(imageData(2, 2, [255, 255, 255, 255]))).toBe(0);
+	});
+
+	it('returns 0.25 when one of four pixels is painted', () => {
+		const img = imageData(2, 2, [255, 255, 255, 255]);
+		img.data[0] = 0;
+		img.data[1] = 0;
+		img.data[2] = 0;
+		img.data[3] = 255;
+		expect(paintCoverage01(img)).toBe(0.25);
+	});
+
+	it('returns 0 when the only non-white pixel is fully transparent', () => {
+		const img = imageData(2, 2, [255, 255, 255, 255]);
+		img.data[0] = 0;
+		img.data[1] = 0;
+		img.data[2] = 0;
+		img.data[3] = 0;
+		expect(paintCoverage01(img)).toBe(0);
+	});
+
+	it('returns 0 for empty data', () => {
+		expect(paintCoverage01({ data: [] })).toBe(0);
 	});
 });

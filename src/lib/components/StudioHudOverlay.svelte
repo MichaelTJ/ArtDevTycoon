@@ -92,6 +92,14 @@
 		onpractice?: () => void;
 		onpracticetick?: (deltaMs: number) => void;
 		onexitpractice?: () => void;
+		practiceStrokeMs?: number;
+		venueId?: string;
+		onkeeppractice?: (payload: {
+			destination: 'gallery' | 'storage';
+			askingPrice: number | null;
+			imageUrl: string;
+			coverage01: number;
+		}) => void;
 		/** Spec 29 — engine is downloading/compiling. Default false. */
 		modelLoading?: boolean;
 		/** Spec 29 — busy/critique flavour copy for the desk card. */
@@ -139,6 +147,9 @@
 		onpractice,
 		onpracticetick,
 		onexitpractice,
+		practiceStrokeMs = 0,
+		venueId = 'fridge',
+		onkeeppractice,
 		modelLoading = false,
 		busyLine = null
 	}: Props = $props();
@@ -384,10 +395,14 @@
 					{reputation}
 					skill={practiceSkill}
 					{rankUpLabel}
+					{practiceStrokeMs}
+					{venueId}
+					skillLevel={practiceSkill.level}
 					fill
 					onselectmedium={(id) => onselectmedium?.(id)}
 					onpracticetick={(deltaMs) => onpracticetick?.(deltaMs)}
-					ondone={() => onexitpractice?.()}
+					onscrap={() => onexitpractice?.()}
+					onkeep={(payload) => onkeeppractice?.(payload)}
 				/>
 			{/if}
 		</div>

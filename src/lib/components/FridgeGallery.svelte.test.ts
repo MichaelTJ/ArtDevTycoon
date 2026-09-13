@@ -47,6 +47,21 @@ test('clicking a magnet calls onselect with the entry', async () => {
 	expect(onselect).toHaveBeenCalledWith(entry);
 });
 
+test('practice listings show a for-sale caption', async () => {
+	const entry: GalleryEntry = {
+		id: 'p1',
+		imageUrl: '/art/p1.png',
+		title: 'Practice — Crayons & Construction Paper',
+		payout: 4,
+		score: 1,
+		clientName: 'Practice',
+		briefId: 'practice:p1',
+		completedAt: 1
+	};
+	const screen = render(FridgeGallery, { entries: [entry], onselect: vi.fn() });
+	await expect.element(screen.getByText('For sale · $4')).toBeVisible();
+});
+
 test('accepts an optional layoutClassName without changing entry count', async () => {
 	const screen = render(FridgeGallery, {
 		entries: [makeEntry('1', 100, 'One', 10), makeEntry('2', 200, 'Two', 20)],

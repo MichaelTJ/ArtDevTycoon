@@ -96,6 +96,7 @@ describe('save', () => {
 			artistAssignment: null,
 			majorProjectProgress: null,
 			careerMilestoneAcknowledged: false,
+			practiceArtworks: [],
 			savedAt: 1_700_000_000_000
 		};
 		persistSave(saved);
@@ -265,6 +266,54 @@ describe('save', () => {
 		expect(loaded.cash).toBe(100);
 		expect(loaded.savedAt).toBe(7);
 		expect(loaded.lastIncomeTickAt).toBe(7);
+	});
+
+	it('defaults practiceArtworks to an empty array', () => {
+		expect(createDefaultSave(100, () => 1).practiceArtworks).toEqual([]);
+		expect(loadSave(100, () => 1).practiceArtworks).toEqual([]);
+	});
+
+	it('parses old saves without practiceArtworks as []', () => {
+		const data = createDefaultSave(100, () => 1);
+		const { practiceArtworks: _dropped, ...legacy } = data;
+		void _dropped;
+		persistSave(legacy as SaveData);
+		expect(loadSave(100, () => 0).practiceArtworks).toEqual([]);
+	});
+
+	it('round-trips one storage piece and one gallery listing', () => {
+		const data = createDefaultSave(100, () => 1);
+		data.practiceArtworks = [
+			{
+				id: 'stored-1',
+				imageUrl: 'data:image/png;base64,aa',
+				title: 'Practice — Crayons & Construction Paper',
+				mediumTierId: 'crayon',
+				strokeMs: 8000,
+				coverage01: 0.05,
+				skillLevel: 1,
+				askingPrice: null,
+				location: 'storage',
+				createdAt: 10
+			},
+			{
+				id: 'hung-1',
+				imageUrl: 'data:image/png;base64,bb',
+				title: 'Practice — Crayons & Construction Paper',
+				mediumTierId: 'crayon',
+				strokeMs: 9000,
+				coverage01: 0.05,
+				skillLevel: 1,
+				askingPrice: 4,
+				location: 'gallery',
+				createdAt: 20
+			}
+		];
+		persistSave(data);
+		const loaded = loadSave(100, () => 0);
+		expect(loaded.practiceArtworks.map((p) => p.id)).toEqual(['stored-1', 'hung-1']);
+		expect(loaded.practiceArtworks[0]?.askingPrice).toBeNull();
+		expect(loaded.practiceArtworks[1]?.askingPrice).toBe(4);
 	});
 
 	it('round-trips careerMilestoneAcknowledged through the active slot', () => {

@@ -28,7 +28,7 @@ const furniturePropSchema = z.object({
 	tx: z.number().int().nonnegative(),
 	ty: z.number().int().nonnegative(),
 	solid: z.boolean(),
-	interactableId: z.enum(['fridge', 'toolkit-shelf']).optional(),
+	interactableId: z.enum(['fridge', 'toolkit-shelf', 'storage']).optional(),
 	sheet: z.string().min(1).optional()
 });
 
@@ -52,6 +52,8 @@ export const roomDraftSchema = z.object({
 	desk: tileMarkerSchema,
 	playerSpawn: tileMarkerSchema,
 	fridgeAnchor: tileMarkerSchema,
+	/** Optional so pre-spec-34 localStorage drafts still parse. */
+	storageAnchor: tileMarkerSchema.optional(),
 	desks: z.array(tileMarkerSchema).optional(),
 	fridgeAnchors: z.array(tileMarkerSchema).optional(),
 	clientWaits: z.array(tileMarkerSchema).optional(),
@@ -139,6 +141,7 @@ export function roomToDraft(room: RoomDef, tilesetId: TilesetId = 'tiny-dungeon'
 		desk: cloneMarker(room.desk),
 		playerSpawn: cloneMarker(room.playerSpawn),
 		fridgeAnchor: cloneMarker(room.fridgeAnchor),
+		storageAnchor: cloneMarker(room.storageAnchor),
 		...(cloneMarkerList(room.desks) ? { desks: cloneMarkerList(room.desks) } : {}),
 		...(cloneMarkerList(room.fridgeAnchors)
 			? { fridgeAnchors: cloneMarkerList(room.fridgeAnchors) }

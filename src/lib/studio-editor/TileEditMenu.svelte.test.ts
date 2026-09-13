@@ -20,6 +20,8 @@ test('tile menu exposes options and close', async () => {
 	await expect.element(screen.getByRole('button', { name: 'Wall' })).toBeVisible();
 	await expect.element(screen.getByRole('button', { name: 'Table' })).toBeVisible();
 	await expect.element(screen.getByRole('button', { name: 'Desk' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Storage' })).toBeVisible();
+	await expect.element(screen.getByRole('button', { name: 'Toolkit' })).toBeVisible();
 	await expect.element(screen.getByRole('button', { name: 'Close tile menu' })).toBeVisible();
 });
 

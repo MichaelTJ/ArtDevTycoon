@@ -186,6 +186,7 @@ like a place you inhabit rather than a stack of menus. They sit on top of specs 
 | 31  | [Commission desk modals](./31-commission-modals.md)  | Briefing/paint viewport dialogs; generation-ready toast + drawing/AI compare                                                      | 03, 04, 11/P6, 24, 25           |
 | 32  | [Premium medium palettes](./32-premium-media.md)     | Watercolour/acrylic/oil RGB picker; oil stroke textures (round/bristle/flat/knife)                                                | 25                              |
 | 33  | [Kitchen fridge wall](./33-kitchen-fridges.md)       | Three solid kitchen fridges; nearest-magnet View art; ArtworkFullView fits viewport                                               | 17, 19, 21b                     |
+| 34  | [Practice keep & storage](./34-practice-storage.md)  | Scrap/Keep practice; priced wall listings; per-venue storage; visitor sale ticks                                                  | 14, 21b, 27, 28                 |
 
 ```
 Wave C  (after 16 is merged — presentation)

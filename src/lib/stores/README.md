@@ -45,7 +45,12 @@ before the gallery entry is persisted.
   `mediumSkillXp` (look, not speed) and `grantPracticeDrawingMs` for Spec 28. Spec 28 adds
   session-only `practiceOpen` / `enterPractice` / `exitPractice` (not a `GamePhase`, not in
   `saveDataSchema`). Auto-invite is paused while practising; leaked canvas ticks grant no XP
-  after **Done**.
+  after **Scrap**. Spec 34 persists `practiceArtworks`; session `practiceStrokeMs` /
+  `lastPracticeSale`. `keepPractice` / `hangPracticeFromStorage` / `movePracticeToStorage`
+  manage keep vs wall vs crate. `displayedGalleryEntries` hangs practice first (newest
+  `createdAt`), then commissions in remaining venue capacity; overflow practice goes to
+  storage. Idle sale ticks (`PRACTICE_SALE_TICK_MS`) pay cash only — no reputation, no
+  commission count, no offline catch-up. `GameStoreDeps.random` seeds the roll.
 - `createArt()` calls `engines.setSwitchingLocked(true)` until `confirmSubmitChoice` finishes (or generation fails).
 - Playtest P6: `createArt()` runs prompt-only generate, then `pendingSubmitChoice` until the player calls `confirmSubmitChoice('drawing' | 'ai', sketchBlob?)`; critique uses the chosen `imageUrl` (no new `GamePhase` — still `generating` during the choice step).
 - Hidden prompt modifiers are applied inside `createArt()` via `buildPrompt(..., skillLevel)`

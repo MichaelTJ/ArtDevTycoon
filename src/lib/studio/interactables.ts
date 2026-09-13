@@ -1,13 +1,14 @@
 import { INTERACT_RANGE_PX } from './config';
 
 /** Stable ids placed on RoomDef furniture via `interactableId`. */
-export type InteractableId = 'fridge' | 'toolkit-shelf';
+export type InteractableId = 'fridge' | 'toolkit-shelf' | 'storage';
 
 export type StudioShopId = 'toolkit' | 'gallery' | 'staff';
 
 export type InteractIntent =
 	| { type: 'toggle-fridge' }
 	| { type: 'open-shop'; shop: StudioShopId }
+	| { type: 'open-storage' }
 	| { type: 'bark'; lines: readonly string[] };
 
 /**
@@ -53,6 +54,13 @@ export const TOOLKIT_SHELF: InteractableDef = {
 	intent: { type: 'open-shop', shop: 'toolkit' }
 };
 
+/** Fallback prompt; the scene uses `storageForVenue(activeVenueId).promptLabel`. */
+export const STORAGE: InteractableDef = {
+	id: 'storage',
+	promptLabel: 'Open storage',
+	intent: { type: 'open-storage' }
+};
+
 export interface PropMarker {
 	interactableId: InteractableId;
 	tx: number;
@@ -65,6 +73,27 @@ export interface PropMarker {
  * When two props tie, prefer the one with smaller distance; if still tied, stable
  * by array order.
  */
+export interface RankedInteract {
+	dist: number;
+	/** Lower wins on a distance tie. Desk 0, easel 1, prop 2. */
+	priority: number;
+}
+
+/** Closest item wins; equal distance prefers the lower priority (desk over easel over prop). */
+export function pickNearestRanked<T extends RankedInteract>(items: readonly T[]): T | null {
+	let best: T | null = null;
+	for (const item of items) {
+		if (
+			!best ||
+			item.dist < best.dist ||
+			(item.dist === best.dist && item.priority < best.priority)
+		) {
+			best = item;
+		}
+	}
+	return best;
+}
+
 export function nearestInteractable(
 	playerPx: number,
 	playerPy: number,
@@ -91,8 +120,14 @@ export function nearestInteractable(
 }
 
 export function defForInteractable(id: InteractableId): InteractableDef | FridgeInteractableDef {
-	if (id === 'fridge') return FRIDGE;
-	return TOOLKIT_SHELF;
+	switch (id) {
+		case 'fridge':
+			return FRIDGE;
+		case 'storage':
+			return STORAGE;
+		case 'toolkit-shelf':
+			return TOOLKIT_SHELF;
+	}
 }
 
 /** Pick a bark line. `index` modulo length; tests pass an explicit index. */
@@ -106,11 +141,17 @@ export function fridgeBarkLine(lines: readonly string[], index: number): string 
  * kind 'fridge' uses open state; others use def.promptLabel.
  */
 export function interactPromptText(
-	input: { kind: 'fridge'; open: boolean } | { kind: 'toolkit-shelf' }
+	input:
+		| { kind: 'fridge'; open: boolean }
+		| { kind: 'toolkit-shelf' }
+		| { kind: 'storage'; label: string }
 ): string {
 	if (input.kind === 'fridge') {
 		const label = input.open ? FRIDGE.promptLabelOpen : FRIDGE.promptLabelClosed;
 		return `E — ${label}`;
+	}
+	if (input.kind === 'storage') {
+		return `E — ${input.label}`;
 	}
 	return `E — ${TOOLKIT_SHELF.promptLabel}`;
 }

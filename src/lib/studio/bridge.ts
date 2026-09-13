@@ -15,6 +15,8 @@ export type StudioOutboundEvent =
 	| { type: 'inspect-zone'; zoneId: RoomZoneId }
 	/** Spec 21b — Svelte opens the matching shop modal. */
 	| { type: 'open-shop'; shop: StudioShopId }
+	/** Spec 34 — Svelte opens StoragePanel. */
+	| { type: 'open-storage' }
 	/** Spec 24 — receptionist opens the commission board in Svelte. */
 	| { type: 'open-reception' }
 	/**

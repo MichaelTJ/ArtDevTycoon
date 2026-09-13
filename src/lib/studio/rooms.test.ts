@@ -8,7 +8,7 @@ import {
 	stampKitchenFridgeProps,
 	type RoomId
 } from './rooms';
-import { INDOOR, INTERIOR, DUNGEON, DUNGEON_WALL_FRAMES, FURNITURE_CAP, SHEET } from './roomTiles';
+import { INTERIOR, DUNGEON, DUNGEON_WALL_FRAMES, FURNITURE_CAP, SHEET } from './roomTiles';
 
 describe('rooms', () => {
 	it('home-kitchen is 6×6 with Mum resident and walkable markers', () => {
@@ -125,7 +125,9 @@ describe('rooms', () => {
 		expect(at(1, 4)).toBe(0);
 		expect(at(2, 2)).toBe(0);
 		expect(FURNITURE_CAP['home-kitchen']).toBe(5);
-		expect(room.furniture.length).toBeLessThanOrEqual(5);
+		const authored = room.furniture.filter((prop) => prop.interactableId !== 'storage');
+		expect(authored.length).toBeLessThanOrEqual(5);
+		expect(room.furniture.length).toBeLessThanOrEqual(6);
 	});
 
 	it('stampKitchenFridgeProps fills wall-only extra fridge markers', () => {
@@ -147,7 +149,7 @@ describe('rooms', () => {
 		});
 	});
 
-	it('tags MVP interactables on kitchen fridge and garage toolkit shelf only', () => {
+	it('tags MVP interactables on kitchen fridge, garage toolkit, and one storage per venue', () => {
 		const fridges = ROOMS['home-kitchen'].furniture.filter((p) => p.interactableId === 'fridge');
 		expect(fridges).toHaveLength(3);
 		expect(fridges.every((prop) => prop.sheet === SHEET.indoorProps)).toBe(true);
@@ -159,9 +161,29 @@ describe('rooms', () => {
 		expect(shelf!.ty).toBe(5);
 		expect(shelf!.sheet).toBe(SHEET.indoorProps);
 
-		for (const id of ['studio', 'gallery', 'mega-museum'] as const) {
-			const tagged = ROOMS[id].furniture.filter((p) => p.interactableId != null);
-			expect(tagged).toHaveLength(0);
+		const kitchenStorage = ROOMS['home-kitchen'].furniture.find(
+			(p) => p.interactableId === 'storage'
+		);
+		expect(kitchenStorage).toEqual(
+			expect.objectContaining({ tx: 5, ty: 4, frame: 193, sheet: SHEET.interiorProps })
+		);
+		expect(ROOMS['art-room'].furniture.find((p) => p.interactableId === 'storage')).toEqual(
+			expect.objectContaining({ tx: 10, ty: 8 })
+		);
+		expect(ROOMS.studio.furniture.find((p) => p.interactableId === 'storage')).toEqual(
+			expect.objectContaining({ tx: 1, ty: 10 })
+		);
+		expect(ROOMS.gallery.furniture.find((p) => p.interactableId === 'storage')).toEqual(
+			expect.objectContaining({ tx: 3, ty: 12 })
+		);
+		expect(ROOMS['mega-museum'].furniture.find((p) => p.interactableId === 'storage')).toEqual(
+			expect.objectContaining({ tx: 25, ty: 14 })
+		);
+
+		for (const id of ['home-kitchen', 'art-room', 'studio', 'gallery', 'mega-museum'] as const) {
+			const storage = ROOMS[id].furniture.filter((p) => p.interactableId === 'storage');
+			expect(storage).toHaveLength(1);
+			expect(ROOMS[id].storageAnchor).toEqual({ tx: storage[0]!.tx, ty: storage[0]!.ty });
 		}
 	});
 
@@ -169,6 +191,7 @@ describe('rooms', () => {
 		for (const room of Object.values(ROOMS)) {
 			expect(room.tilesetId).toBe(SHEET.dungeon);
 			for (const prop of room.furniture) {
+				if (prop.interactableId === 'storage' && !prop.sheet) continue;
 				expect(prop.sheet).toBeDefined();
 				expect(prop.sheet).not.toBe('furniture');
 			}
@@ -189,7 +212,9 @@ describe('rooms', () => {
 	it('keeps furniture sparse and below the north wall band', () => {
 		for (const [id, cap] of Object.entries(FURNITURE_CAP)) {
 			const room = ROOMS[id as RoomId];
-			expect(room.furniture.length).toBeLessThanOrEqual(cap);
+			const authored = room.furniture.filter((prop) => prop.interactableId !== 'storage');
+			expect(authored.length).toBeLessThanOrEqual(cap);
+			expect(room.furniture.length).toBeLessThanOrEqual(cap + 1);
 			for (const prop of room.furniture) {
 				expect(prop.ty).toBeGreaterThanOrEqual(2);
 			}
@@ -213,6 +238,10 @@ describe('rooms', () => {
 				}
 			}
 
+			const solidFurniture = new Set(
+				room.furniture.filter((prop) => prop.solid).map((prop) => `${prop.tx},${prop.ty}`)
+			);
+
 			for (let ty = 2; ty < room.height; ty++) {
 				for (const tx of [0, room.width - 1]) {
 					const i = ty * room.width + tx;
@@ -229,8 +258,9 @@ describe('rooms', () => {
 			}
 			for (let tx = 0; tx < room.width; tx++) {
 				const i = (room.height - 1) * room.width + tx;
-				expect(room.collision[i]).toBe(0);
 				expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(false);
+				if (solidFurniture.has(`${tx},${room.height - 1}`)) continue;
+				expect(room.collision[i]).toBe(0);
 			}
 		}
 	});

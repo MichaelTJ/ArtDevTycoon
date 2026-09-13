@@ -7,6 +7,7 @@ export type InteractPromptKind =
 	| 'look'
 	| 'fridge' // 21b — if absent from scene, never requested
 	| 'toolkit'
+	| 'storage'
 	| 'radio'
 	| 'mail'
 	| 'doorbell'
@@ -51,6 +52,8 @@ export function interactPromptLabel(input: InteractPromptInput): string {
 			return 'Open fridge';
 		case 'toolkit':
 			return 'Open toolkit';
+		case 'storage':
+			return 'Open storage';
 		case 'radio':
 			return 'Toggle radio';
 		case 'mail':

@@ -44,8 +44,8 @@
 				<h2 class="text-lg font-semibold text-stone-800">Tile {tx}, {ty}</h2>
 				<p class="mt-1 text-sm text-stone-500">
 					Pick a floor tile, mark this cell as floor or wall, place furniture, and set a marker —
-					then close. Desk, fridge, and client wait can be placed on many tiles. Door and player
-					spawn stay unique. Each fridge is a painting spot.
+					then close. Desk, fridge, and client wait can be placed on many tiles. Door, player spawn,
+					storage, and toolkit stay unique. Each fridge is a painting spot.
 				</p>
 			</div>
 			<button

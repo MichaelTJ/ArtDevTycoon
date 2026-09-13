@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+	STORAGE,
 	TOOLKIT_SHELF,
 	fridgeBarkLine,
 	interactPromptText,
 	nearestInteractable,
+	pickNearestRanked,
 	type PropMarker
 } from './interactables';
 
@@ -27,6 +29,24 @@ describe('nearestInteractable', () => {
 	});
 });
 
+describe('pickNearestRanked', () => {
+	it('picks kitchen storage over the desk when the player stands west of the crate', () => {
+		const desk = { dist: Math.hypot(16, 16), priority: 0, id: 'desk' };
+		const storage = { dist: 16, priority: 2, id: 'storage' };
+		expect(pickNearestRanked([desk, storage])?.id).toBe('storage');
+	});
+
+	it('keeps desk on a distance tie', () => {
+		const desk = { dist: 16, priority: 0, id: 'desk' };
+		const prop = { dist: 16, priority: 2, id: 'prop' };
+		expect(pickNearestRanked([prop, desk])?.id).toBe('desk');
+	});
+
+	it('returns null for an empty list', () => {
+		expect(pickNearestRanked([])).toBeNull();
+	});
+});
+
 describe('fridgeBarkLine', () => {
 	it('cycles lines by index', () => {
 		expect(fridgeBarkLine(['a', 'b'], 0)).toBe('a');
@@ -44,6 +64,15 @@ describe('interactPromptText', () => {
 		expect(interactPromptText({ kind: 'fridge', open: false })).toBe('E — Open fridge');
 		expect(interactPromptText({ kind: 'fridge', open: true })).toBe('E — Close fridge');
 		expect(interactPromptText({ kind: 'toolkit-shelf' })).toBe('E — Open toolkit');
+		expect(interactPromptText({ kind: 'storage', label: 'Open crate' })).toBe('E — Open crate');
+		expect(interactPromptText({ kind: 'storage', label: 'Open vault' })).toBe('E — Open vault');
+	});
+});
+
+describe('STORAGE', () => {
+	it('opens storage rather than falling through to toolkit', () => {
+		expect(STORAGE.intent).toEqual({ type: 'open-storage' });
+		expect(STORAGE.promptLabel).toBe('Open storage');
 	});
 });
 

@@ -70,6 +70,8 @@ export const TILE_ROLES = [
 	'desk',
 	'player-spawn',
 	'fridge',
+	'storage',
+	'toolkit',
 	'client-wait'
 ] as const;
 export type TileRole = (typeof TILE_ROLES)[number];
@@ -354,6 +356,8 @@ export const TILE_ROLE_LABELS: Record<TileRole, string> = {
 	desk: 'Desk',
 	'player-spawn': 'Player spawn',
 	fridge: 'Fridge',
+	storage: 'Storage',
+	toolkit: 'Toolkit',
 	'client-wait': 'Client wait'
 };
 

@@ -87,12 +87,21 @@ import {
 	SKILL_IDS,
 	toGalleryScore,
 	workDurationMs,
+	canListPracticeForSale,
+	clampAskingPrice,
+	practiceAsGalleryEntry,
+	practiceBuyerLabel,
+	practiceFairValue,
+	tickPracticeSales,
+	PRACTICE_KEEP_MIN_COVERAGE,
+	PRACTICE_SALE_TICK_MS,
 	type ArtistAssignment,
 	type HiredArtistState,
 	type MajorProjectProgress,
 	type MediumSkillProgress,
 	type MediumSkillXpMap,
 	type NextUnlock,
+	type PracticeArtwork,
 	type SaveData,
 	type SaveSlotId,
 	type SaveSlotListItem,
@@ -238,6 +247,16 @@ export class GameStore {
 	 * Reloads drop the open canvas; XP stays in `playerMediumSkillXp`.
 	 */
 	practiceOpen = $state(false);
+	/** Spec 34 — session stroke clock while the practice desk is open. */
+	practiceStrokeMs = $state(0);
+	/** Spec 34 — last visitor purchase; parent clears after the toast. */
+	lastPracticeSale = $state<{
+		title: string;
+		price: number;
+		buyerLabel: string;
+	} | null>(null);
+	/** Spec 34 — kept practice sketches (gallery listings and storage). */
+	practiceArtworks = $state<PracticeArtwork[]>([]);
 	/** Spec 28 — last practice rank-up to announce; parent clears after a short delay. */
 	lastMediumSkillRankUp = $state<{ mediumId: string; rankLabel: string } | null>(null);
 	/** Previewed XP while in `results`; cleared on collect / reset. */
@@ -296,13 +315,29 @@ export class GameStore {
 		return owned[0]?.id ?? this.activeLayoutId;
 	});
 
-	/** Capacity-capped gallery wall. Curator sorts by score; otherwise by recency. */
+	/** Capacity-capped gallery wall. Hung practice occupies slots before commissions. */
 	displayedGalleryEntries = $derived.by(() => {
+		const practiceHung = this.practiceArtworks
+			.filter((piece) => piece.location === 'gallery')
+			.sort((a, b) => b.createdAt - a.createdAt)
+			.map(practiceAsGalleryEntry);
+		const commissionSlots = Math.max(0, this.venue.capacity - practiceHung.length);
 		const curates = this.hiredStaffIds.some((id) => getStaffRole(id)?.autoCurates);
-		const sorted = curates
-			? [...this.galleryHistory].sort((a, b) => b.score - a.score)
-			: [...this.galleryHistory].sort((a, b) => b.completedAt - a.completedAt);
-		return sorted.slice(0, this.venue.capacity);
+		const commissions = (
+			curates
+				? [...this.galleryHistory].sort((a, b) => b.score - a.score)
+				: [...this.galleryHistory].sort((a, b) => b.completedAt - a.completedAt)
+		).slice(0, commissionSlots);
+		return [...practiceHung, ...commissions];
+	});
+
+	/** Commission history that no longer fits the wall (not for sale). */
+	archivedCommissionEntries = $derived.by(() => {
+		const shown: Record<string, true> = {};
+		for (const entry of this.displayedGalleryEntries) {
+			shown[entry.id] = true;
+		}
+		return this.galleryHistory.filter((entry) => !shown[entry.id]);
 	});
 
 	/**
@@ -378,6 +413,7 @@ export class GameStore {
 
 	#autoInviteTimer: ReturnType<typeof setTimeout> | null = null;
 	#incomeTicker: ReturnType<typeof setInterval> | null = null;
+	#practiceSaleTimer: ReturnType<typeof setInterval> | null = null;
 	/** Prevents a double-click from banking the same commission twice while durableizing. */
 	#collectingCash = false;
 	#playerPaintRemainderMs = 0;
@@ -403,6 +439,7 @@ export class GameStore {
 		this.#slotsEpoch += 1;
 
 		this.#scheduleAutoInvite();
+		this.#syncPracticeSaleTimer();
 	}
 
 	/** Abort in-flight commission, hydrate from slot, persist pointer. */
@@ -553,9 +590,8 @@ export class GameStore {
 		this.pendingSubmitChoice = false;
 		this.aiGeneratedImageUrl = null;
 		this.phase = 'briefing';
+		this.#syncPracticeSaleTimer();
 	}
-
-	/** Spec 24 — 2–4 commission choices for the reception desk. */
 	pickCommissionBoardOffers(count = 3): ClientBrief[] {
 		return pickBoardOffers({
 			excludeIds: this.galleryHistory.map((entry) => entry.briefId),
@@ -588,6 +624,7 @@ export class GameStore {
 		this.aiGeneratedImageUrl = null;
 		this.artistAssignment = null;
 		this.phase = 'briefing';
+		this.#syncPracticeSaleTimer();
 	}
 
 	/**
@@ -621,6 +658,7 @@ export class GameStore {
 		}
 		this.#unlockArtistGenerateIfNeeded();
 		this.#scheduleAutoInvite();
+		this.#syncPracticeSaleTimer();
 		this.#persist();
 	}
 
@@ -783,7 +821,9 @@ export class GameStore {
 		if (this.majorProjectProgress?.activeBeatIndex != null) return false;
 		if (this.practiceOpen) return false;
 		this.practiceOpen = true;
+		this.practiceStrokeMs = 0;
 		this.#clearAutoInvite();
+		this.#syncPracticeSaleTimer();
 		return true;
 	}
 
@@ -793,8 +833,10 @@ export class GameStore {
 	exitPractice(): void {
 		if (!this.practiceOpen) return;
 		this.practiceOpen = false;
+		this.practiceStrokeMs = 0;
 		this.lastMediumSkillRankUp = null;
 		if (this.phase === 'idle') this.#scheduleAutoInvite();
+		this.#syncPracticeSaleTimer();
 	}
 
 	/** Clears the Spec 28 rank-up announcement after the parent has shown it. */
@@ -811,6 +853,9 @@ export class GameStore {
 		const paintingCommission = this.phase === 'generating' && !this.pendingSubmitChoice;
 		if (!this.practiceOpen && !paintingCommission) return;
 		if (deltaMs <= 0) return;
+		if (this.practiceOpen) {
+			this.practiceStrokeMs += deltaMs;
+		}
 		const mediumId = this.activeMediumTierId;
 		const before = mediumSkillProgress(
 			mediumId,
@@ -837,6 +882,172 @@ export class GameStore {
 			}
 			this.#persist();
 		}
+	}
+
+	/**
+	 * Spec 34 — keep the current practice canvas in storage or list it for sale.
+	 * Converts blob URLs to durable data URLs. Closes practice on success.
+	 */
+	async keepPractice(input: {
+		imageUrl: string;
+		coverage01: number;
+		destination: 'gallery' | 'storage';
+		askingPrice?: number;
+		id?: string;
+	}): Promise<boolean> {
+		if (!this.practiceOpen) return false;
+		if (input.coverage01 < PRACTICE_KEEP_MIN_COVERAGE) return false;
+		if (
+			input.destination === 'gallery' &&
+			!canListPracticeForSale({
+				strokeMs: this.practiceStrokeMs,
+				coverage01: input.coverage01
+			})
+		) {
+			return false;
+		}
+
+		const imageUrl = await ensureDurableImageUrl(input.imageUrl);
+		const skillLevel = mediumSkillProgress(
+			this.activeMediumTierId,
+			mediumSkillXpOf(this.playerMediumSkillXp, this.activeMediumTierId)
+		).level;
+		const title = `Practice — ${getMediumTier(this.activeMediumTierId).name}`;
+		const createdAt = this.#now();
+		const id = input.id ?? `practice-${createdAt}-${this.practiceArtworks.length}`;
+
+		if (input.destination === 'storage') {
+			const piece: PracticeArtwork = {
+				id,
+				imageUrl,
+				title,
+				mediumTierId: this.activeMediumTierId,
+				strokeMs: this.practiceStrokeMs,
+				coverage01: input.coverage01,
+				skillLevel,
+				askingPrice: null,
+				location: 'storage',
+				createdAt
+			};
+			this.practiceArtworks = [...this.practiceArtworks, piece];
+			this.#persist();
+			this.exitPractice();
+			return true;
+		}
+
+		const fairValue = practiceFairValue({
+			mediumTierId: this.activeMediumTierId,
+			strokeMs: this.practiceStrokeMs,
+			coverage01: input.coverage01,
+			skillLevel,
+			venueId: this.unlockedVenueId,
+			reputation: this.reputation
+		});
+		const askingPrice = clampAskingPrice(input.askingPrice ?? fairValue);
+		this.#kickOldestHungPracticeIfFull();
+		const piece: PracticeArtwork = {
+			id,
+			imageUrl,
+			title,
+			mediumTierId: this.activeMediumTierId,
+			strokeMs: this.practiceStrokeMs,
+			coverage01: input.coverage01,
+			skillLevel,
+			askingPrice,
+			location: 'gallery',
+			createdAt
+		};
+		this.practiceArtworks = [...this.practiceArtworks, piece];
+		this.#persist();
+		this.exitPractice();
+		return true;
+	}
+
+	/** Take a hung practice piece off the wall into venue storage. */
+	movePracticeToStorage(id: string): boolean {
+		const piece = this.practiceArtworks.find((p) => p.id === id);
+		if (!piece) return false;
+		this.practiceArtworks = this.practiceArtworks.map((p) =>
+			p.id === id ? { ...p, location: 'storage' as const, askingPrice: null } : p
+		);
+		this.#persist();
+		return true;
+	}
+
+	/** List a stored practice piece on the wall at a clamped asking price. */
+	hangPracticeFromStorage(id: string, askingPrice: number): boolean {
+		const piece = this.practiceArtworks.find((p) => p.id === id);
+		if (!piece) return false;
+		if (
+			!canListPracticeForSale({
+				strokeMs: piece.strokeMs,
+				coverage01: piece.coverage01
+			})
+		) {
+			return false;
+		}
+		const price = clampAskingPrice(askingPrice);
+		this.#kickOldestHungPracticeIfFull();
+		this.practiceArtworks = this.practiceArtworks.map((p) =>
+			p.id === id ? { ...p, location: 'gallery' as const, askingPrice: price } : p
+		);
+		this.#persist();
+		return true;
+	}
+
+	/** Dismiss the visitor-bought toast. */
+	clearPracticeSaleToast(): void {
+		this.lastPracticeSale = null;
+	}
+
+	#kickOldestHungPracticeIfFull(): void {
+		const hung = this.practiceArtworks.filter((p) => p.location === 'gallery');
+		if (hung.length < this.venue.capacity) return;
+		const oldest = [...hung].sort((a, b) => a.createdAt - b.createdAt)[0];
+		if (!oldest) return;
+		this.practiceArtworks = this.practiceArtworks.map((p) =>
+			p.id === oldest.id ? { ...p, location: 'storage' as const, askingPrice: null } : p
+		);
+	}
+
+	#clearPracticeSaleTimer(): void {
+		if (this.#practiceSaleTimer !== null) {
+			clearInterval(this.#practiceSaleTimer);
+			this.#practiceSaleTimer = null;
+		}
+	}
+
+	#syncPracticeSaleTimer(): void {
+		if (this.phase === 'idle' && !this.practiceOpen) {
+			if (this.#practiceSaleTimer !== null) return;
+			this.#practiceSaleTimer = setInterval(() => {
+				this.#onPracticeSaleTick();
+			}, PRACTICE_SALE_TICK_MS);
+			return;
+		}
+		this.#clearPracticeSaleTimer();
+	}
+
+	#onPracticeSaleTick(): void {
+		if (this.phase !== 'idle' || this.practiceOpen) return;
+		const { soldId } = tickPracticeSales({
+			artworks: this.practiceArtworks,
+			venueId: this.unlockedVenueId,
+			reputation: this.reputation,
+			random: this.#random
+		});
+		if (!soldId) return;
+		const piece = this.practiceArtworks.find((p) => p.id === soldId);
+		if (!piece || piece.askingPrice == null) return;
+		const price = piece.askingPrice;
+		this.cash += price;
+		this.practiceArtworks = this.practiceArtworks.filter((p) => p.id !== soldId);
+		this.lastPracticeSale = {
+			title: piece.title,
+			price,
+			buyerLabel: practiceBuyerLabel(this.unlockedVenueId)
+		};
+		this.#persist();
 	}
 
 	/**
@@ -1148,6 +1359,7 @@ export class GameStore {
 			if (this.phase === 'idle') {
 				this.#scheduleAutoInvite();
 			}
+			this.#syncPracticeSaleTimer();
 		} finally {
 			this.#collectingCash = false;
 		}
@@ -1192,6 +1404,7 @@ export class GameStore {
 
 		this.#catchUpSimulatedWork();
 		this.#tickMediumSkills();
+		this.#syncPracticeSaleTimer();
 
 		this.#incomeTicker = setInterval(() => {
 			const { earned } = computeIdleEarnings(
@@ -1210,6 +1423,7 @@ export class GameStore {
 
 		return () => {
 			this.#clearIncomeTicker();
+			this.#clearPracticeSaleTimer();
 		};
 	}
 
@@ -1235,6 +1449,7 @@ export class GameStore {
 		this.phase = 'idle';
 		this.#persist();
 		this.#scheduleAutoInvite();
+		this.#syncPracticeSaleTimer();
 	}
 
 	/**
@@ -1295,6 +1510,7 @@ export class GameStore {
 		}
 		this.errorMessage = null;
 		this.phase = 'briefing';
+		this.#syncPracticeSaleTimer();
 	}
 
 	dismissError(): void {
@@ -1306,12 +1522,14 @@ export class GameStore {
 		this.pendingSubmitChoice = false;
 		this.aiGeneratedImageUrl = null;
 		this.phase = 'briefing';
+		this.#syncPracticeSaleTimer();
 	}
 
 	reset(): void {
 		this.exitPractice();
 		this.#clearAutoInvite();
 		this.#clearIncomeTicker();
+		this.#clearPracticeSaleTimer();
 		this.#clearSave();
 		this.phase = 'idle';
 		this.cash = LEVEL_1.startingCash;
@@ -1342,6 +1560,9 @@ export class GameStore {
 		this.playerMediumSkillXp = createEmptyMediumSkillXp();
 		this.lastMediumSkillTickAt = this.#now();
 		this.practiceOpen = false;
+		this.practiceStrokeMs = 0;
+		this.lastPracticeSale = null;
+		this.practiceArtworks = [];
 		this.lastMediumSkillRankUp = null;
 		this.hiredArtists = this.hiredArtists.map((artist) => ({
 			...artist,
@@ -1352,12 +1573,15 @@ export class GameStore {
 		this.lastCollectedGains = null;
 		this.careerMilestoneAcknowledged = false;
 		this.#slotsEpoch += 1;
+		this.#syncPracticeSaleTimer();
 	}
 
 	/** Apply a slot blob and return to idle (aborts any in-flight commission). */
 	#applySlotSave(save: SaveData): void {
 		this.#clearAutoInvite();
 		this.practiceOpen = false;
+		this.practiceStrokeMs = 0;
+		this.lastPracticeSale = null;
 		this.lastMediumSkillRankUp = null;
 		this.#resetMediumSkillSession();
 		this.#hydrateFromSave(save);
@@ -1381,6 +1605,7 @@ export class GameStore {
 		this.#setSwitchingLocked(false);
 		this.#slotsEpoch += 1;
 		this.#scheduleAutoInvite();
+		this.#syncPracticeSaleTimer();
 	}
 
 	#hydrateFromSave(save: SaveData): void {
@@ -1414,6 +1639,7 @@ export class GameStore {
 		this.lastIncomeTickAt = save.lastIncomeTickAt ?? this.#now();
 		this.lastMediumSkillTickAt = save.lastMediumSkillTickAt ?? this.#now();
 		this.careerMilestoneAcknowledged = save.careerMilestoneAcknowledged;
+		this.practiceArtworks = save.practiceArtworks.map((piece) => ({ ...piece }));
 	}
 
 	/**
@@ -1458,6 +1684,7 @@ export class GameStore {
 		data.skillXpImagination = this.skillXp.imagination;
 		data.skillXpHustle = this.skillXp.hustle;
 		data.careerMilestoneAcknowledged = this.careerMilestoneAcknowledged;
+		data.practiceArtworks = this.practiceArtworks.map((piece) => ({ ...piece }));
 		return data;
 	}
 

@@ -52,6 +52,7 @@ export {
 	listFurnitureKinds,
 	listWallKinds,
 	mergeDraftOntoRoom,
+	ensureStorageOnDraft,
 	recolorFloors,
 	recolorFurniture,
 	recolorWalls,

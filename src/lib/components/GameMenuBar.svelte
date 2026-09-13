@@ -3,6 +3,7 @@
 	import { ATMOSPHERE_ITEMS } from '$lib/data/galleryAtmosphere';
 	import { GALLERY_LAYOUTS } from '$lib/data/galleryLayouts';
 	import { GALLERY_VENUES } from '$lib/data/galleryVenues';
+	import { storageForVenue } from '$lib/data/studioStorage';
 	import { MEDIUM_TIERS } from '$lib/data/mediumTiers';
 	import { getArtistCatalogEntry } from '$lib/data/artists';
 	import { STAFF_ROLES } from '$lib/data/staffRoles';
@@ -18,6 +19,7 @@
 	import StaffOffice from './StaffOffice.svelte';
 	import TeamRoster from './TeamRoster.svelte';
 	import MajorProjectPanel from './MajorProjectPanel.svelte';
+	import StoragePanel from './StoragePanel.svelte';
 	import ToolkitShop from './ToolkitShop.svelte';
 	import WorkGainToast from './WorkGainToast.svelte';
 
@@ -33,6 +35,8 @@
 		onopenenginemenu: () => void;
 		/** Increment to request opening the toolkit (studio floor E). */
 		openToolkitNonce?: number;
+		/** Increment to request opening storage (studio floor E). */
+		openStorageNonce?: number;
 		/** Fired after a slot switch/new/delete so the page can dismiss studio clients. */
 		onafterslotchange?: () => void;
 		/** Spec 23 — show Dev menu entry when resolveDevMode is on. */
@@ -55,6 +59,7 @@
 		engineMenuDisabled,
 		onopenenginemenu,
 		openToolkitNonce = 0,
+		openStorageNonce = 0,
 		onafterslotchange,
 		devEnabled = false,
 		devReason = 'off',
@@ -63,6 +68,7 @@
 	}: Props = $props();
 
 	let showToolkit = $state(false);
+	let showStorage = $state(false);
 	let showGalleryUpgrades = $state(false);
 	let showStaffOffice = $state(false);
 	let showTeamRoster = $state(false);
@@ -72,12 +78,21 @@
 	let showAudio = $state(false);
 	let showDev = $state(false);
 	let lastToolkitNonce = 0;
+	let lastStorageNonce = 0;
 
 	$effect(() => {
 		const n = openToolkitNonce;
 		if (n > lastToolkitNonce) {
 			lastToolkitNonce = n;
 			showToolkit = true;
+		}
+	});
+
+	$effect(() => {
+		const n = openStorageNonce;
+		if (n > lastStorageNonce) {
+			lastStorageNonce = n;
+			showStorage = true;
 		}
 	});
 
@@ -122,6 +137,14 @@
 			catalogId: row.catalogId,
 			name: getArtistCatalogEntry(row.catalogId)?.name ?? row.catalogId
 		}))
+	);
+
+	const storageDef = $derived(storageForVenue(game.unlockedVenueId));
+	const practiceStored = $derived(
+		game.practiceArtworks.filter((piece) => piece.location === 'storage')
+	);
+	const practiceHung = $derived(
+		game.practiceArtworks.filter((piece) => piece.location === 'gallery')
 	);
 
 	const toolkitButtonLabel = $derived(
@@ -212,6 +235,16 @@
 					></span>
 					<span class="sr-only">Upgrades available</span>
 				{/if}
+			</button>
+			<button
+				type="button"
+				class="min-h-11 self-start rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 shadow-sm hover:bg-stone-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+				aria-label="Open storage"
+				onclick={() => {
+					showStorage = true;
+				}}
+			>
+				Storage
 			</button>
 			<button
 				type="button"
@@ -351,6 +384,27 @@
 		}}
 		onclose={() => {
 			showToolkit = false;
+		}}
+	/>
+{/if}
+
+{#if showStorage}
+	<StoragePanel
+		storageName={storageDef.name}
+		tagline={storageDef.tagline}
+		{practiceStored}
+		{practiceHung}
+		archivedCommissions={game.archivedCommissionEntries}
+		venueId={game.unlockedVenueId}
+		reputation={game.reputation}
+		onhangpractice={(id, askingPrice) => {
+			game.hangPracticeFromStorage(id, askingPrice);
+		}}
+		ontakepractice={(id) => {
+			game.movePracticeToStorage(id);
+		}}
+		onclose={() => {
+			showStorage = false;
 		}}
 	/>
 {/if}

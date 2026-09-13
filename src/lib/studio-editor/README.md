@@ -17,8 +17,8 @@ server — drafts never write into `rooms.ts`.
 
 Route: `/studio-editor`. Click a tile or person, pick options, then close. Floors, walls, and
 furniture appear as palettes under the grid — click a kind to re-skin every match, using any
-tileset in the catalog. Desk, fridge, and client-wait markers can occupy many tiles; door and
-player-spawn stay unique. Each fridge is a painting spot.
+tileset in the catalog. Desk, fridge, and client-wait markers can occupy many tiles; door, player-spawn,
+storage, and toolkit stay unique. Each fridge is a painting spot.
 
 ## Invariants
 

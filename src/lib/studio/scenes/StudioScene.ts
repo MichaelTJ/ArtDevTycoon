@@ -39,10 +39,12 @@ import {
 	TILE_SIZE
 } from '../config';
 import { easelStandFrame, nearestDisplaySlot, slotsForVenue, type EaselSlot } from '../easelLayout';
+import { storageForVenue } from '$lib/data/studioStorage';
 import {
 	FRIDGE,
+	defForInteractable,
 	fridgeBarkLine,
-	nearestInteractable,
+	pickNearestRanked,
 	TOOLKIT_SHELF,
 	type InteractableId
 } from '../interactables';
@@ -1478,11 +1480,23 @@ export class StudioScene extends Phaser.Scene {
 		const desk = this.#nearestDeskTile();
 		const deskX = desk.tx * TILE_SIZE + TILE_SIZE / 2;
 		const deskY = desk.ty * TILE_SIZE + TILE_SIZE / 2;
+		const pointTargets: Array<{
+			dist: number;
+			priority: number;
+			target:
+				| { kind: 'desk' }
+				| { kind: 'easel'; entryId: string }
+				| { kind: 'prop'; id: InteractableId; tx: number; ty: number };
+		}> = [];
 		if (
 			(phase === 'briefing' || phase === 'idle') &&
 			Phaser.Math.Distance.Between(px, py, deskX, deskY) < INTERACT_RANGE_PX
 		) {
-			return { kind: 'desk' };
+			pointTargets.push({
+				dist: Phaser.Math.Distance.Between(px, py, deskX, deskY),
+				priority: 0,
+				target: { kind: 'desk' }
+			});
 		}
 
 		const nearestSlot = nearestDisplaySlot(
@@ -1492,22 +1506,42 @@ export class StudioScene extends Phaser.Scene {
 			TILE_SIZE,
 			INTERACT_RANGE_PX
 		);
-		if (nearestSlot?.entryId) return { kind: 'easel', entryId: nearestSlot.entryId };
+		if (nearestSlot?.entryId) {
+			const dist = Phaser.Math.Distance.Between(
+				px,
+				py,
+				nearestSlot.tx * TILE_SIZE + TILE_SIZE / 2,
+				nearestSlot.ty * TILE_SIZE + TILE_SIZE / 2
+			);
+			pointTargets.push({
+				dist,
+				priority: 1,
+				target: { kind: 'easel', entryId: nearestSlot.entryId }
+			});
+		}
+
+		for (const prop of this.#interactProps) {
+			const def = defForInteractable(prop.id);
+			const range = def.rangePx ?? INTERACT_RANGE_PX;
+			const cx = prop.tx * TILE_SIZE + TILE_SIZE / 2;
+			const cy = prop.ty * TILE_SIZE + TILE_SIZE / 2;
+			const dist = Phaser.Math.Distance.Between(px, py, cx, cy);
+			if (dist < range) {
+				pointTargets.push({
+					dist,
+					priority: 2,
+					target: { kind: 'prop', id: prop.id, tx: prop.tx, ty: prop.ty }
+				});
+			}
+		}
+
+		const nearestPoint = pickNearestRanked(pointTargets);
+		if (nearestPoint) return nearestPoint.target;
 
 		const showZone = this.#nearestShowZone();
 		if (showZone && this.#inZone(showZone, px, py)) {
 			const first = this.#snapshot?.displayedEntries[0] ?? null;
 			return { kind: 'look', entryId: first?.id ?? null, zoneId: showZone.id };
-		}
-
-		const propMarkers = this.#interactProps.map((p) => ({
-			interactableId: p.id,
-			tx: p.tx,
-			ty: p.ty
-		}));
-		const nearest = nearestInteractable(px, py, propMarkers, TILE_SIZE);
-		if (nearest) {
-			return { kind: 'prop', id: nearest.interactableId, tx: nearest.tx, ty: nearest.ty };
 		}
 
 		return null;
@@ -1533,6 +1567,12 @@ export class StudioScene extends Phaser.Scene {
 			}
 			if (target.id === 'toolkit-shelf') {
 				return { kind: 'toolkit', registryLabel: TOOLKIT_SHELF.promptLabel };
+			}
+			if (target.id === 'storage') {
+				return {
+					kind: 'storage',
+					registryLabel: storageForVenue(this.#snapshot?.activeVenueId ?? 'fridge').promptLabel
+				};
 			}
 			return { kind: 'prop' };
 		}
@@ -1703,6 +1743,10 @@ export class StudioScene extends Phaser.Scene {
 			}
 			if (target.id === 'toolkit-shelf') {
 				this.#bridge.emit({ type: 'open-shop', shop: 'toolkit' });
+				return;
+			}
+			if (target.id === 'storage') {
+				this.#bridge.emit({ type: 'open-storage' });
 				return;
 			}
 			return;

@@ -20,8 +20,8 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `interactPromptLabel` / `prefersReducedMotion`                                        | Contextual E verbs + motion helper (21f)                                                       |
 | `floorStaffFromHired` / `staffAnchorForRole`                                          | Hired staff → floor NPCs (presentation only)                                                   |
 | `clientLookForTier`                                                                   | Door-visitor tint/frame by client tier                                                         |
-| `nearestInteractable` / `interactPromptText`                                          | Pure prop interact helpers (spec 21b)                                                          |
-| `FRIDGE` / `TOOLKIT_SHELF`                                                            | Data-driven interactable registry                                                              |
+| `nearestInteractable` / `interactPromptText` / `pickNearestRanked`                    | Pure prop interact helpers (spec 21b / 34)                                                     |
+| `FRIDGE` / `TOOLKIT_SHELF` / `STORAGE`                                                | Data-driven interactable registry                                                              |
 | `shouldEmitWorkParticles` / VFX caps                                                  | Pure desk/cash particle helpers (spec 21d)                                                     |
 | `pickBark` / `eligibleBarkSpeakers` / schedule                                        | Ambient bark picker + phase gate (spec 21e)                                                    |
 | `shouldShowBark` / bark lifetime helpers                                              | Bubble gating (prompt + phase)                                                                 |
@@ -117,6 +117,7 @@ Furniture may carry an optional `interactableId` (`rooms.ts`). Registry lives in
 | --------------- | -------------- | ------------------------------------------------------------------------------------------------------- |
 | `fridge`        | `home-kitchen` | Toggle chest frame (2↔3), emit `prop-bark`, auto-close after 2s                                         |
 | `toolkit-shelf` | `art-room`     | Emit `open-shop` / `toolkit` → `+page` bumps `openToolkitNonce` → menu bar opens existing `ToolkitShop` |
+| `storage`       | every venue    | Emit `open-storage` → `+page` bumps `openStorageNonce` → menu bar opens `StoragePanel`                  |
 | Receptionist    | gallery-hall+  | NPC at `clientWait`; emit `open-reception` → `ReceptionDesk` (receptionist copy)                        |
 | Letterbox       | garage         | Prop at `clientWait`; emit `open-reception` → letterbox board UI                                        |
 | Computer inbox  | storefront     | Prop at `clientWait`; emit `open-reception` → computer board UI                                         |
@@ -127,7 +128,11 @@ Easel interact picks the **nearest** magnet/easel slot (tile center within
 Commission talk/deliver always wins when in range. World prompts use
 `interactPromptLabel` (Phaser Text) — e.g. “Talk to Mum”, “Practice at desk” while idle
 (otherwise “Work at desk”), “View show”, “Open fridge”. 21b registry `promptLabel` wins
-when present. The `prompt-e` glyph stays loaded but unused (text-only UI approach).
+when present except storage, which uses `storageForVenue(activeVenueId).promptLabel`
+(“Open drawers”, “Open shelves”, “Open stock”, “Open archive”, “Open vault”). `defForInteractable` switches on id so storage does
+not fall through to the toolkit. The `prompt-e` glyph stays loaded but unused (text-only UI approach).
+
+Kitchen storage is the dresser at **(5, 4)** — not Spec 33 cabinet tiles `(0,2)` / `(0,3)` / `(1,2)`. Sprites are home-interior dresser / empty shelves / bookshelf / chest, plus a cottage cupboard in the storefront — not the dungeon `furniture.png` strip. CSS kitchen (no floor) opens the same panel from GameMenuBar **Storage**.
 
 **Manual check:** kitchen E on fridge swaps frame + bark; garage E on west workbench
 opens ToolkitShop; standing on Mum while armed still Talks, not Open fridge.

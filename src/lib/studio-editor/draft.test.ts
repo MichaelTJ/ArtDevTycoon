@@ -8,6 +8,7 @@ import {
 	listFloorKinds,
 	listFurnitureKinds,
 	listWallKinds,
+	mergeDraftOntoRoom,
 	recolorFloors,
 	recolorFurniture,
 	recolorWalls,
@@ -94,6 +95,26 @@ describe('studio-editor drafts', () => {
 		expect(roleAt(spawn, kitchen.playerSpawn.tx, kitchen.playerSpawn.ty)).toBe('none');
 	});
 
+	it('marks authored storage and relocates it uniquely with the venue sprite', () => {
+		const kitchen = authoredDraft(ROOMS['home-kitchen']);
+		expect(kitchen.storageAnchor).toEqual({ tx: 5, ty: 4 });
+		expect(roleAt(kitchen, 5, 4)).toBe('storage');
+		expect(furnitureAt(kitchen, 5, 4)?.interactableId).toBe('storage');
+
+		const moved = applyTileEdit(kitchen, 4, 5, { role: 'storage' });
+		expect(moved.storageAnchor).toEqual({ tx: 4, ty: 5 });
+		expect(roleAt(moved, 4, 5)).toBe('storage');
+		expect(furnitureAt(moved, 4, 5)?.interactableId).toBe('storage');
+		expect(roleAt(moved, 5, 4)).toBe('none');
+		expect(furnitureAt(moved, 5, 4)?.interactableId).not.toBe('storage');
+	});
+
+	it('marks the garage toolkit shelf from its furniture tag', () => {
+		const garage = authoredDraft(ROOMS['art-room']);
+		expect(roleAt(garage, 3, 5)).toBe('toolkit');
+		expect(furnitureAt(garage, 3, 5)?.interactableId).toBe('toolkit-shelf');
+	});
+
 	it('clears furniture with null and ignores out-of-bounds edits', () => {
 		const kitchen = authoredDraft(ROOMS['home-kitchen']);
 		const withBarrel = applyTileEdit(kitchen, 4, 4, { furnitureFrame: 1 });
@@ -121,12 +142,13 @@ describe('studio-editor drafts', () => {
 			{ ground: DUNGEON.wall, sheet: SHEET.dungeon, count: 10 }
 		]);
 		expect(listFloorKinds(kitchen)).toEqual([
-			{ ground: INTERIOR.woodFloor, sheet: SHEET.interior, count: 23 }
+			{ ground: INTERIOR.woodFloor, sheet: SHEET.interior, count: 22 }
 		]);
 		expect(listFurnitureKinds(kitchen)).toEqual([
 			{ frame: INDOOR.counterL, sheet: SHEET.indoorProps, count: 1 },
 			{ frame: INDOOR.cabinet, sheet: SHEET.indoorProps, count: 3 },
-			{ frame: INDOOR.sink, sheet: SHEET.indoorProps, count: 1 }
+			{ frame: INDOOR.sink, sheet: SHEET.indoorProps, count: 1 },
+			{ frame: 193, sheet: SHEET.interiorProps, count: 1 }
 		]);
 	});
 
@@ -152,7 +174,7 @@ describe('studio-editor drafts', () => {
 			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior }
 		);
 		expect(listFloorKinds(painted)).toEqual([
-			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior, count: 23 }
+			{ ground: INTERIOR.carpetBlue, sheet: SHEET.interior, count: 22 }
 		]);
 		expect(painted.ground[3 * painted.width + 3]).toBe(INTERIOR.carpetBlue);
 		expect(deskGround).toBe(INTERIOR.woodFloor);
@@ -172,5 +194,18 @@ describe('studio-editor drafts', () => {
 		});
 		expect(furnitureAt(swapped, 1, 2)?.frame).toBe(INDOOR.sink);
 		expect(furnitureAt(swapped, 1, 2)?.sheet).toBe(SHEET.indoorProps);
+	});
+
+	it('restores missing storage furniture when merging an old kitchen draft', () => {
+		const authored = ROOMS['home-kitchen'];
+		const draft = authoredDraft(authored);
+		draft.furniture = draft.furniture.filter((prop) => prop.interactableId !== 'storage');
+		delete draft.storageAnchor;
+		const merged = mergeDraftOntoRoom(authored, draft);
+		expect(merged.furniture.find((prop) => prop.interactableId === 'fridge')).toBeDefined();
+		expect(merged.furniture.find((prop) => prop.interactableId === 'storage')).toEqual(
+			expect.objectContaining({ tx: 5, ty: 4 })
+		);
+		expect(merged.storageAnchor).toEqual({ tx: 5, ty: 4 });
 	});
 });

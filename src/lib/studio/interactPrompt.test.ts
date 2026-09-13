@@ -29,6 +29,7 @@ describe('interactPromptLabel', () => {
 			{ kind: 'look', label: 'View show' },
 			{ kind: 'fridge', label: 'Open fridge' },
 			{ kind: 'toolkit', label: 'Open toolkit' },
+			{ kind: 'storage', label: 'Open storage' },
 			{ kind: 'radio', label: 'Toggle radio' },
 			{ kind: 'mail', label: 'Read mail' },
 			{ kind: 'doorbell', label: 'Ring doorbell' },

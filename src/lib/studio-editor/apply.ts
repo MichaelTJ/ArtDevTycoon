@@ -1,6 +1,6 @@
 import { stampKitchenFridgeProps, type RoomDef } from '$lib/studio/rooms';
 import { getPeopleSheet, sheetTileCount, type PersonSlotId } from './catalog';
-import { authoredDraft, mergeDraftOntoRoom } from './draft';
+import { authoredDraft, ensureStorageOnDraft, mergeDraftOntoRoom } from './draft';
 import type { PersonLook } from './schema';
 import { loadStudioEditorState } from './storage';
 
@@ -82,5 +82,6 @@ export function overlayStaffLook(
 
 /** Convenience for the editor UI — authored room plus any stored draft. */
 export function resolveRoomDraft(authored: RoomDef, state = loadStudioEditorState()) {
-	return state.rooms[authored.id] ?? authoredDraft(authored);
+	const draft = state.rooms[authored.id] ?? authoredDraft(authored);
+	return ensureStorageOnDraft(authored, draft);
 }

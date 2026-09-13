@@ -3422,3 +3422,39 @@ Full suite: 1059 passed. Zone scoped: 34 passed.
 **Requests:** Restart `npm run dev` in `adt-wt-kitchen-fridges` so Phaser reloads the stamped room.
 
 **Known gaps:** Inherited check/lint failures outside this zone.
+
+---
+
+## 2026-09-12 — Spec 34 practice keep & storage
+
+**Zone:** `src/lib/game/practiceSale.ts` (+ test), `src/lib/data/studioStorage.ts` (+ test), `src/lib/components/StoragePanel.svelte` (+ test), `src/lib/components/PracticeSaleToast.svelte` (+ test), `src/lib/game/{save,sketchBlank,index,README}`, `src/lib/stores/gameState.svelte.ts` (+ test, README), `src/lib/components/{PracticeDesk,StudioHudOverlay,FridgeGallery,GameMenuBar,index,README}`, `src/lib/studio/{interactables,interactPrompt,rooms,bridge,scenes/StudioScene,README}`, `src/routes/+page.svelte`, `docs/tasks/{34-practice-storage.md,README.md}`, `docs/agent-log.md`
+
+**Built:** Practice footer is Scrap / Keep. Keep offers **Add to gallery** (visible **Recommended price: $X**, player asking price) or **Put in storage**. Each venue has one uniquely named storage prop; overflow wall pieces go there; off-wall commissions show as archive. Idle ticks sell listed practice for cash only and toast a visitor. Fair value uses spec literals (venue prestige × Spec 15 client-market). CSS kitchen opens the same panel from GameMenuBar **Storage**.
+
+**Public surface:** `$lib/game`: `paintCoverage01`, `practiceFairValue`, `practiceBuyChance`, `tickPracticeSales`, `practiceAsGalleryEntry`, `canListPracticeForSale`, `clampAskingPrice`, `practiceBuyerLabel`, `PracticeArtwork`, `practiceArtworkSchema`. `$lib/data/studioStorage`: `VENUE_STORAGE`, `storageForVenue`. `GameStore.keepPractice` / `hangPracticeFromStorage` / `movePracticeToStorage` / `clearPracticeSaleToast`; session `practiceStrokeMs` / `lastPracticeSale`; persisted `practiceArtworks`. Bridge `{ type: 'open-storage' }`. InteractableId `'storage'`. Components: `StoragePanel`, `PracticeSaleToast`.
+
+**Tests:** Zone 255 passed: `npm run test:unit -- --run src/lib/game/practiceSale.test.ts src/lib/game/sketchBlank.test.ts src/lib/data/studioStorage.test.ts src/lib/game/save.test.ts src/lib/stores/gameState.svelte.test.ts src/lib/components/PracticeDesk.svelte.test.ts src/lib/components/StoragePanel.svelte.test.ts src/lib/components/PracticeSaleToast.svelte.test.ts src/lib/components/StudioHudOverlay.svelte.test.ts src/lib/components/FridgeGallery.svelte.test.ts src/lib/components/GameMenuBar.svelte.test.ts src/lib/studio/interactables.test.ts src/lib/studio/rooms.test.ts src/lib/studio/bridge.test.ts src/lib/studio/interactPrompt.test.ts`. Zone ESLint clean. Full `npm run test:unit -- --run`: 1179 passed, 4 failed in `src/lib/studio-editor` (out of zone). `npm run check` fails there plus inherited `modifier-explorer` `UNLOCK_STYLE_KEYS`. `npm run lint` fails inherited Prettier outside the zone.
+
+**Decisions:** Kitchen crate `(5,4)` is solid on the east wall; rooms tests skip solid furniture when asserting walkable side tiles. Sale timer uses existing `GameStoreDeps.random`. `PracticeDesk` `coverageOverride` for Chromium blob decode. GameMenuBar storage nonce matches toolkit (`$effect` assigns `showStorage`). Toast auto-clears at 4s like rank-up. `archivedCommissionEntries` uses a `Record` instead of `Set` (svelte/prefer-svelte-reactivity). `practiceBuyChance` `else chance = 0` omitted as redundant with the initializer (same literals).
+
+**Requests:** None remaining. Orchestrator added `'storage'` to `furniturePropSchema.interactableId` and pinned kitchen floor-kind count at 24 in `draft.test.ts`.
+
+**Known gaps:** No Phaser shopper NPCs (spec out of scope). IdlePanel unchanged (GameMenuBar Storage is enough for CSS kitchen). Full-repo check/lint still red outside this zone; InteractableId `'storage'` is the only cascade.
+
+---
+
+## 2026-09-13 — Spec 34 storage marker and E interact
+
+**Zone:** `src/lib/studio/rooms.ts` (+ test), `interactables.ts` (+ test), `scenes/StudioScene.ts`, `src/lib/studio-editor/{catalog,schema,draft,apply,TileEditMenu}` (+ tests), READMEs, `docs/agent-log.md`
+
+**Built:** Storage is a unique studio-editor Marker (toolkit too, from its furniture tag). Old `adt.studio-editor.v2` drafts that predate the crate get authored storage furniture + `storageAnchor` on play and in the editor. Kitchen E picks the closer of desk / easel / prop so standing west of Mum's rainy-day box opens storage instead of practice.
+
+**Public surface:** `RoomDef.storageAnchor`. `roomStorageAnchor`, `storagePropSheet`, `venueIdForRoomId`. `ensureStorageOnDraft`. `pickNearestRanked`. Tile roles `storage` and `toolkit`.
+
+**Tests:** `npm run test:unit -- --run src/lib/studio/rooms.test.ts src/lib/studio/interactables.test.ts src/lib/studio-editor/draft.test.ts src/lib/studio-editor/apply.test.ts src/lib/studio-editor/TileEditMenu.svelte.test.ts`
+
+**Decisions:** Storage stays unique like door/spawn, not a fridge extra. `storageAnchor` is optional on drafts so pre-spec-34 JSON still parses. Closest-wins keeps talk/deliver/reception first; look-zone is after point targets.
+
+**Requests:** None.
+
+**Known gaps:** Furniture picker still lists only the dungeon barrel/chest strip; storage uses interior/indoor props via the Marker. Reload Phaser after merge so injected draft furniture appears.

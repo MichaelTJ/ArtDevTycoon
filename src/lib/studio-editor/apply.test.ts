@@ -70,4 +70,21 @@ describe('studio-editor apply', () => {
 		expect(fridges.some((prop) => prop.tx === 0 && prop.ty === 2)).toBe(true);
 		expect(fridges.some((prop) => prop.tx === 0 && prop.ty === 3)).toBe(true);
 	});
+
+	it('injects authored storage into a pre-spec-34 kitchen draft', () => {
+		const authored = ROOMS['home-kitchen'];
+		const draft = authoredDraft(authored);
+		draft.furniture = draft.furniture.filter((prop) => prop.interactableId !== 'storage');
+		delete draft.storageAnchor;
+		const merged = resolveRoomForPlay(authored, {
+			version: 1,
+			rooms: { 'home-kitchen': draft },
+			people: {}
+		});
+		expect(merged.furniture.find((prop) => prop.interactableId === 'storage')).toEqual(
+			expect.objectContaining({ tx: 5, ty: 4, interactableId: 'storage' })
+		);
+		expect(merged.storageAnchor).toEqual({ tx: 5, ty: 4 });
+		expect(merged.collision[4 * merged.width + 5]).toBe(1);
+	});
 });

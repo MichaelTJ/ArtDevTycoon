@@ -25,7 +25,27 @@ export {
 } from './abstractCritique';
 export type { ClusterMatch } from './abstractCritique';
 export { isLevelComplete, levelProgress } from './levelRules';
-export { isSketchBlank } from './sketchBlank';
+export { isSketchBlank, paintCoverage01 } from './sketchBlank';
+export {
+	PRACTICE_FULL_EFFORT_MS,
+	PRACTICE_MIN_LIST_STROKE_MS,
+	PRACTICE_MIN_LIST_COVERAGE,
+	PRACTICE_SALE_TICK_MS,
+	PRACTICE_ASK_MIN,
+	PRACTICE_ASK_MAX,
+	PRACTICE_KEEP_MIN_COVERAGE,
+	PRACTICE_SALE_BASE,
+	PRACTICE_VENUE_PRESTIGE,
+	practiceClientMarket,
+	canListPracticeForSale,
+	practiceFairValue,
+	practiceBuyChance,
+	clampAskingPrice,
+	tickPracticeSales,
+	practiceBuyerLabel,
+	practiceAsGalleryEntry,
+	type PracticeArtwork
+} from './practiceSale';
 export {
 	MEDIUM_SKILL_LEVEL_CAP,
 	MEDIUM_SKILL_RANK_LABELS,
@@ -78,6 +98,7 @@ export {
 	CURRENT_SAVE_VERSION,
 	saveDataSchema,
 	hiredArtistSchema,
+	practiceArtworkSchema,
 	artistAssignmentSchema,
 	majorProjectProgressSchema,
 	createDefaultSave,
@@ -86,6 +107,7 @@ export {
 	clearSave,
 	type SaveData,
 	type HiredArtistSave,
+	type PracticeArtworkSave,
 	type ArtistAssignmentSave,
 	type MajorProjectProgressSave
 } from './save';

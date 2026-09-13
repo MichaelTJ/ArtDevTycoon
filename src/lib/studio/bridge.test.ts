@@ -56,15 +56,17 @@ describe('StudioBridge', () => {
 		bridge.subscribe(listener);
 
 		bridge.emit({ type: 'open-shop', shop: 'toolkit' });
+		bridge.emit({ type: 'open-storage' });
 		bridge.emit({ type: 'prop-bark', propId: 'fridge', text: 'Leftover casserole.' });
 		bridge.emit({ type: 'open-reception' });
 
 		expect(listener).toHaveBeenNthCalledWith(1, { type: 'open-shop', shop: 'toolkit' });
-		expect(listener).toHaveBeenNthCalledWith(2, {
+		expect(listener).toHaveBeenNthCalledWith(2, { type: 'open-storage' });
+		expect(listener).toHaveBeenNthCalledWith(3, {
 			type: 'prop-bark',
 			propId: 'fridge',
 			text: 'Leftover casserole.'
 		});
-		expect(listener).toHaveBeenNthCalledWith(3, { type: 'open-reception' });
+		expect(listener).toHaveBeenNthCalledWith(4, { type: 'open-reception' });
 	});
 });

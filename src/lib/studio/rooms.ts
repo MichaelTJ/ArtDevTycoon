@@ -1,4 +1,5 @@
 import type { InteractableId } from './interactables';
+import { storageForVenue } from '$lib/data/studioStorage';
 import { DUNGEON, INDOOR, INTERIOR, SHEET } from './roomTiles';
 
 export type RoomId = 'home-kitchen' | 'art-room' | 'studio' | 'gallery' | 'mega-museum';
@@ -38,6 +39,39 @@ export function roomFridgeAnchors(
 
 export function roomClientWaits(room: Pick<RoomDef, 'clientWait' | 'clientWaits'>): TileMarker[] {
 	return collectMarkers(room.clientWait, room.clientWaits);
+}
+
+/** One storage object per venue. Missing on pre-spec-34 editor drafts. */
+export function roomStorageAnchor(
+	room: Pick<RoomDef, 'storageAnchor'> | { storageAnchor?: TileMarker }
+): TileMarker | undefined {
+	return room.storageAnchor;
+}
+
+/** Phaser sheet key for a venue storage sprite (`home-indoor` / `home-interior` packs). */
+export function storagePropSheet(sheet: 'home-indoor' | 'home-interior'): string {
+	return sheet === 'home-indoor' ? SHEET.indoorProps : SHEET.interiorProps;
+}
+
+/**
+ * Authored room id → progressive venue id (inverse of `roomIdForVenue`).
+ * Kept here so the studio-editor can stamp storage furniture without importing venueRooms
+ * (that module loads editor drafts and would cycle).
+ */
+export function venueIdForRoomId(roomId: string): string {
+	switch (roomId) {
+		case 'art-room':
+			return 'garage';
+		case 'studio':
+			return 'storefront';
+		case 'gallery':
+			return 'gallery-hall';
+		case 'mega-museum':
+			return 'mega-museum';
+		case 'home-kitchen':
+		default:
+			return 'fridge';
+	}
 }
 
 /**
@@ -91,6 +125,8 @@ export interface RoomDef {
 	desk: TileMarker;
 	playerSpawn: TileMarker;
 	fridgeAnchor: TileMarker;
+	/** Unique per venue — practice archive / crate / vault. */
+	storageAnchor: TileMarker;
 	/** Extra desks beyond `desk`. Door and player-spawn stay unique. */
 	desks?: readonly TileMarker[];
 	/** Extra fridge / painting anchors beyond `fridgeAnchor`. */
@@ -207,6 +243,19 @@ function solidAt(width: number, collision: number[], tx: number, ty: number): vo
 	collision[idx(width, tx, ty)] = 1;
 }
 
+function storageFurniture(venueId: string, width: number, collision: number[]): FurnitureProp {
+	const def = storageForVenue(venueId);
+	solidAt(width, collision, def.tx, def.ty);
+	return {
+		frame: def.frame,
+		tx: def.tx,
+		ty: def.ty,
+		solid: true,
+		interactableId: 'storage',
+		sheet: storagePropSheet(def.sheet)
+	};
+}
+
 function compactGroundSheets(
 	sheets: (string | undefined)[]
 ): readonly (string | undefined)[] | undefined {
@@ -242,6 +291,8 @@ function buildKitchen(): RoomDef {
 		{ tx: 0, ty: 2 },
 		{ tx: 0, ty: 3 }
 	] as const;
+	const storageDef = storageForVenue('fridge');
+	const storageAnchor = { tx: storageDef.tx, ty: storageDef.ty };
 	solidAt(width, collision, 1, 2);
 	solidAt(width, collision, 0, 2);
 	solidAt(width, collision, 0, 3);
@@ -268,6 +319,7 @@ function buildKitchen(): RoomDef {
 		playerSpawn: { tx: 1, ty: 4 },
 		fridgeAnchor,
 		fridgeAnchors,
+		storageAnchor,
 		furniture: [
 			{
 				frame: INDOOR.cabinet,
@@ -294,7 +346,8 @@ function buildKitchen(): RoomDef {
 				interactableId: 'fridge'
 			},
 			{ frame: INDOOR.counterL, tx: 3, ty: 2, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.sink, tx: 4, ty: 2, solid: false, sheet: SHEET.indoorProps }
+			{ frame: INDOOR.sink, tx: 4, ty: 2, solid: false, sheet: SHEET.indoorProps },
+			storageFurniture('fridge', width, collision)
 		],
 		zones: [],
 		residents: [
@@ -353,6 +406,7 @@ function buildGarage(): RoomDef {
 		desk: { tx: 5, ty: 5 },
 		playerSpawn: { tx: 2, ty: 7 },
 		fridgeAnchor: { tx: 2, ty: 2 },
+		storageAnchor: { tx: storageForVenue('garage').tx, ty: storageForVenue('garage').ty },
 		furniture: [
 			{
 				frame: INDOOR.counterL,
@@ -362,7 +416,8 @@ function buildGarage(): RoomDef {
 				sheet: SHEET.indoorProps,
 				interactableId: 'toolkit-shelf'
 			},
-			{ frame: INDOOR.paintingA, tx: 10, ty: 3, solid: false, sheet: SHEET.indoorProps }
+			{ frame: INDOOR.paintingA, tx: 10, ty: 3, solid: false, sheet: SHEET.indoorProps },
+			storageFurniture('garage', width, collision)
 		],
 		zones: [],
 		residents: [],
@@ -421,11 +476,13 @@ function buildStorefront(): RoomDef {
 		desk: { tx: 5, ty: 6 },
 		playerSpawn: { tx: 2, ty: 9 },
 		fridgeAnchor: { tx: 2, ty: 2 },
+		storageAnchor: { tx: storageForVenue('storefront').tx, ty: storageForVenue('storefront').ty },
 		furniture: [
 			{ frame: INDOOR.counterL, tx: 14, ty: 8, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingA, tx: 15, ty: 3, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingB, tx: 15, ty: 7, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INDOOR.plantMed, tx: 12, ty: 3, solid: false, sheet: SHEET.indoorProps }
+			{ frame: INDOOR.plantMed, tx: 12, ty: 3, solid: false, sheet: SHEET.indoorProps },
+			storageFurniture('storefront', width, collision)
 		],
 		zones,
 		residents: [],
@@ -484,11 +541,16 @@ function buildGalleryHall(): RoomDef {
 		desk: { tx: 6, ty: 7 },
 		playerSpawn: { tx: 2, ty: 11 },
 		fridgeAnchor: { tx: 2, ty: 2 },
+		storageAnchor: {
+			tx: storageForVenue('gallery-hall').tx,
+			ty: storageForVenue('gallery-hall').ty
+		},
 		furniture: [
 			{ frame: INDOOR.paintingA, tx: 12, ty: 3, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingB, tx: 17, ty: 3, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingA, tx: 19, ty: 5, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INTERIOR.plantMed, tx: 16, ty: 3, solid: false, sheet: SHEET.interiorProps }
+			{ frame: INTERIOR.plantMed, tx: 16, ty: 3, solid: false, sheet: SHEET.interiorProps },
+			storageFurniture('gallery-hall', width, collision)
 		],
 		zones,
 		residents: [],
@@ -558,12 +620,14 @@ export function buildMegaMuseum(): RoomDef {
 		desk: { tx: 6, ty: 7 },
 		playerSpawn: { tx: 2, ty: 13 },
 		fridgeAnchor: { tx: 2, ty: 2 },
+		storageAnchor: { tx: storageForVenue('mega-museum').tx, ty: storageForVenue('mega-museum').ty },
 		furniture: [
 			{ frame: INDOOR.paintingA, tx: 13, ty: 4, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingB, tx: 15, ty: 4, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingA, tx: 22, ty: 5, solid: false, sheet: SHEET.indoorProps },
 			{ frame: INDOOR.paintingB, tx: 24, ty: 10, solid: false, sheet: SHEET.indoorProps },
-			{ frame: INTERIOR.plantTall, tx: 21, ty: 3, solid: false, sheet: SHEET.interiorProps }
+			{ frame: INTERIOR.plantTall, tx: 21, ty: 3, solid: false, sheet: SHEET.interiorProps },
+			storageFurniture('mega-museum', width, collision)
 		],
 		zones,
 		residents: [],

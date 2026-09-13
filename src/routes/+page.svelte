@@ -12,7 +12,8 @@
 		StudioFloor,
 		StudioHudOverlay,
 		EngineLoadSpinner,
-		WelcomeTutorial
+		WelcomeTutorial,
+		PracticeSaleToast
 	} from '$lib/components';
 	import {
 		attachAudioUnlock,
@@ -56,6 +57,7 @@
 	let sketchExporter: (() => Promise<Blob | null>) | null = $state(null);
 	/** Bumped when Phaser emits open-shop / toolkit (spec 21b). */
 	let openToolkitNonce = $state(0);
+	let openStorageNonce = $state(0);
 	/** Spec 21d — OS/browser prefers-reduced-motion → Phaser skips floor particles. */
 	let reducedVfx = $state(false);
 	/** Bumped after Dev latch write/clear so resolveDevMode re-reads localStorage. */
@@ -348,6 +350,15 @@
 		return () => clearTimeout(handle);
 	});
 
+	$effect(() => {
+		const sale = game.lastPracticeSale;
+		if (!sale) return;
+		const handle = setTimeout(() => {
+			game.clearPracticeSaleToast();
+		}, 4000);
+		return () => clearTimeout(handle);
+	});
+
 	onMount(() => {
 		reducedVfx = queryPrefersReducedMotion();
 		const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -384,6 +395,10 @@
 			}
 			if (event.type === 'open-shop' && event.shop === 'toolkit') {
 				openToolkitNonce += 1;
+				return;
+			}
+			if (event.type === 'open-storage') {
+				openStorageNonce += 1;
 				return;
 			}
 			if (event.type === 'interact-desk') {
@@ -499,6 +514,7 @@
 				game.phase === 'critiquing'}
 			onopenenginemenu={openEngineMenu}
 			{openToolkitNonce}
+			{openStorageNonce}
 			onafterslotchange={() => {
 				clientSummoned = false;
 				studioBridge.send({ type: 'dismiss-client' });
@@ -588,6 +604,15 @@
 						onpractice={() => game.enterPractice()}
 						onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
 						onexitpractice={() => game.exitPractice()}
+						practiceStrokeMs={game.practiceStrokeMs}
+						venueId={game.unlockedVenueId}
+						onkeeppractice={(payload) =>
+							void game.keepPractice({
+								imageUrl: payload.imageUrl,
+								coverage01: payload.coverage01,
+								destination: payload.destination,
+								askingPrice: payload.askingPrice ?? undefined
+							})}
 						modelLoading={engines.isBusy}
 						{busyLine}
 						onassignartist={() => {
@@ -654,6 +679,15 @@
 						onpractice={() => game.enterPractice()}
 						onpracticetick={(deltaMs) => game.grantPracticeDrawingMs(deltaMs)}
 						onexitpractice={() => game.exitPractice()}
+						practiceStrokeMs={game.practiceStrokeMs}
+						venueId={game.unlockedVenueId}
+						onkeeppractice={(payload) =>
+							void game.keepPractice({
+								imageUrl: payload.imageUrl,
+								coverage01: payload.coverage01,
+								destination: payload.destination,
+								askingPrice: payload.askingPrice ?? undefined
+							})}
 						modelLoading={engines.isBusy}
 						{busyLine}
 					/>
@@ -663,6 +697,8 @@
 		{/if}
 	</div>
 </main>
+
+<PracticeSaleToast sale={game.lastPracticeSale} />
 
 {#if showEngineMenu}
 	<div

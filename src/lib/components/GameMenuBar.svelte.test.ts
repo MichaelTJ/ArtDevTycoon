@@ -47,6 +47,12 @@ test("openToolkitNonce opens the Artist's Toolkit dialog", async () => {
 	await expect.element(screen.getByRole('button', { name: 'Close toolkit' })).toBeVisible();
 });
 
+test('openStorageNonce opens storage titled with the venue storage name', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, { ...defaultProps, openStorageNonce: 1 });
+	await expect.element(screen.getByRole('dialog', { name: "Mum's rainy-day box" })).toBeVisible();
+});
+
 test('gallery upgrades button opens the Gallery Upgrades dialog', async () => {
 	game.reset();
 	const screen = render(GameMenuBar, defaultProps);

@@ -1,8 +1,13 @@
+import { storageForVenue } from '$lib/data/studioStorage';
+import { INDOOR, SHEET } from '$lib/studio/roomTiles';
 import {
 	markersEqual,
 	roomClientWaits,
 	roomDesks,
 	roomFridgeAnchors,
+	roomStorageAnchor,
+	storagePropSheet,
+	venueIdForRoomId,
 	type FurnitureProp,
 	type RoomDef,
 	type TileMarker
@@ -35,6 +40,10 @@ export function roleAt(draft: RoomDraft, tx: number, ty: number): TileRole {
 	if (roomDesks(draft).some((marker) => markersEqual(marker, here))) return 'desk';
 	if (markersEqual(draft.playerSpawn, here)) return 'player-spawn';
 	if (roomFridgeAnchors(draft).some((marker) => markersEqual(marker, here))) return 'fridge';
+	const storage = roomStorageAnchor(draft);
+	if (storage && markersEqual(storage, here)) return 'storage';
+	if (furnitureAt(draft, tx, ty)?.interactableId === 'storage') return 'storage';
+	if (furnitureAt(draft, tx, ty)?.interactableId === 'toolkit-shelf') return 'toolkit';
 	if (roomClientWaits(draft).some((marker) => markersEqual(marker, here))) return 'client-wait';
 	return 'none';
 }
@@ -53,6 +62,7 @@ export function cloneDraft(draft: RoomDraft): RoomDraft {
 		desk: cloneMarker(draft.desk),
 		playerSpawn: cloneMarker(draft.playerSpawn),
 		fridgeAnchor: cloneMarker(draft.fridgeAnchor),
+		...(draft.storageAnchor ? { storageAnchor: cloneMarker(draft.storageAnchor) } : {}),
 		...(cloneMarkerList(draft.desks) ? { desks: cloneMarkerList(draft.desks) } : {}),
 		...(cloneMarkerList(draft.fridgeAnchors)
 			? { fridgeAnchors: cloneMarkerList(draft.fridgeAnchors) }
@@ -302,18 +312,90 @@ function displaceIfSame(current: TileMarker, from: TileMarker, fallback: TileMar
 	return current;
 }
 
-function clearCellMarkers(draft: RoomDraft, cell: TileMarker, fallback: TileMarker): void {
+function tagFurniture(
+	draft: RoomDraft,
+	tx: number,
+	ty: number,
+	frame: number,
+	sheet: string,
+	interactableId: FurnitureProp['interactableId']
+): void {
+	setFurniture(draft, tx, ty, frame, sheet);
+	const prop = furnitureAt(draft, tx, ty);
+	if (prop && interactableId) prop.interactableId = interactableId;
+	draft.collision[idx(draft.width, tx, ty)] = 1;
+}
+
+function withoutInteractable(prop: FurnitureProp): FurnitureProp {
+	return {
+		frame: prop.frame,
+		tx: prop.tx,
+		ty: prop.ty,
+		solid: prop.solid,
+		...(prop.sheet ? { sheet: prop.sheet } : {})
+	};
+}
+
+function stripInteractable(
+	draft: RoomDraft,
+	id: NonNullable<FurnitureProp['interactableId']>
+): void {
+	draft.furniture = draft.furniture.map((prop) =>
+		prop.interactableId === id ? withoutInteractable(prop) : prop
+	);
+}
+
+function stampStorageFurniture(draft: RoomDraft, cell: TileMarker): void {
+	const prev = draft.furniture.find((prop) => prop.interactableId === 'storage');
+	if (prev && (prev.tx !== cell.tx || prev.ty !== cell.ty)) {
+		setFurniture(draft, prev.tx, prev.ty, null);
+	}
+	stripInteractable(draft, 'storage');
+	const def = storageForVenue(venueIdForRoomId(draft.id));
+	tagFurniture(draft, cell.tx, cell.ty, def.frame, storagePropSheet(def.sheet), 'storage');
+	draft.storageAnchor = cloneMarker(cell);
+}
+
+function stampToolkitFurniture(draft: RoomDraft, cell: TileMarker): void {
+	stripInteractable(draft, 'toolkit-shelf');
+	const existing = furnitureAt(draft, cell.tx, cell.ty);
+	tagFurniture(
+		draft,
+		cell.tx,
+		cell.ty,
+		existing?.frame ?? INDOOR.counterL,
+		existing?.sheet ?? SHEET.indoorProps,
+		'toolkit-shelf'
+	);
+}
+
+function clearCellMarkers(
+	draft: RoomDraft,
+	cell: TileMarker,
+	fallback: TileMarker,
+	keepStorage = false
+): void {
 	draft.door = displaceIfSame(draft.door, cell, fallback);
 	draft.playerSpawn = displaceIfSame(draft.playerSpawn, cell, fallback);
+	if (!keepStorage && draft.storageAnchor && markersEqual(draft.storageAnchor, cell)) {
+		stampStorageFurniture(draft, displaceIfSame(draft.storageAnchor, cell, fallback));
+	}
 	for (const role of REPEATABLE_ROLES) {
 		if (hasRepeatableAt(draft, role, cell)) {
 			removeRepeatableAt(draft, role, cell, fallback);
 		}
 	}
+	const furniture = furnitureAt(draft, cell.tx, cell.ty);
+	if (furniture?.interactableId === 'toolkit-shelf') {
+		draft.furniture = draft.furniture.map((prop) =>
+			prop.tx === cell.tx && prop.ty === cell.ty ? withoutInteractable(prop) : prop
+		);
+	}
 }
 
 /**
- * Door and player-spawn stay unique. Desk, fridge, and client-wait can occupy many tiles.
+ * Door, player-spawn, storage, and toolkit stay unique. Desk, fridge, and
+ * client-wait can occupy many tiles.
  */
 function assignRole(draft: RoomDraft, tx: number, ty: number, role: TileRole): void {
 	const here = { tx, ty };
@@ -326,6 +408,16 @@ function assignRole(draft: RoomDraft, tx: number, ty: number, role: TileRole): v
 		clearCellMarkers(draft, here, fallback);
 		if (role === 'door') draft.door = here;
 		else draft.playerSpawn = here;
+		return;
+	}
+	if (role === 'storage') {
+		clearCellMarkers(draft, here, fallback, true);
+		stampStorageFurniture(draft, here);
+		return;
+	}
+	if (role === 'toolkit') {
+		clearCellMarkers(draft, here, fallback);
+		stampToolkitFurniture(draft, here);
 		return;
 	}
 	if (hasRepeatableAt(draft, role, here)) return;
@@ -409,6 +501,35 @@ export function switchTileset(draft: RoomDraft, tilesetId: TilesetId): RoomDraft
 	return next;
 }
 
+/**
+ * Old studio-editor saves replace the whole furniture list. Storage was added after
+ * those drafts, so inject the authored crate/archive/vault (and its marker) when missing.
+ */
+export function ensureStorageOnDraft(authored: RoomDef, draft: RoomDraft): RoomDraft {
+	const next = cloneDraft(draft);
+	const hasStorage = next.furniture.some((prop) => prop.interactableId === 'storage');
+	if (!hasStorage) {
+		const authoredStorage = authored.furniture.filter((prop) => prop.interactableId === 'storage');
+		if (authoredStorage.length > 0) {
+			const occupied = new Set(authoredStorage.map((prop) => `${prop.tx},${prop.ty}`));
+			next.furniture = [
+				...next.furniture.filter((prop) => !occupied.has(`${prop.tx},${prop.ty}`)),
+				...cloneFurniture(authoredStorage)
+			];
+			for (const prop of authoredStorage) {
+				next.collision[idx(next.width, prop.tx, prop.ty)] = 1;
+			}
+		}
+	}
+	if (!next.storageAnchor) {
+		const tagged = next.furniture.find((prop) => prop.interactableId === 'storage');
+		next.storageAnchor = cloneMarker(
+			tagged ? { tx: tagged.tx, ty: tagged.ty } : authored.storageAnchor
+		);
+	}
+	return next;
+}
+
 export function mergeDraftOntoRoom(authored: RoomDef, draft: RoomDraft): RoomDef {
 	if (
 		draft.id !== authored.id ||
@@ -423,25 +544,27 @@ export function mergeDraftOntoRoom(authored: RoomDef, draft: RoomDraft): RoomDef
 	) {
 		return authored;
 	}
+	const withStorage = ensureStorageOnDraft(authored, draft);
 	return {
 		...authored,
-		tilesetId: draft.tilesetId,
-		collision: [...draft.collision],
-		ground: [...draft.ground],
-		...(draft.groundSheet?.some((sheet) => sheet)
+		tilesetId: withStorage.tilesetId,
+		collision: [...withStorage.collision],
+		ground: [...withStorage.ground],
+		...(withStorage.groundSheet?.some((sheet) => sheet)
 			? {
-					groundSheets: draft.groundSheet.map((sheet) => sheet ?? undefined)
+					groundSheets: withStorage.groundSheet.map((sheet) => sheet ?? undefined)
 				}
 			: {}),
-		door: cloneMarker(draft.door),
-		clientWait: cloneMarker(draft.clientWait),
-		desk: cloneMarker(draft.desk),
-		playerSpawn: cloneMarker(draft.playerSpawn),
-		fridgeAnchor: cloneMarker(draft.fridgeAnchor),
-		desks: cloneMarkerList(draft.desks),
-		fridgeAnchors: cloneMarkerList(draft.fridgeAnchors),
-		clientWaits: cloneMarkerList(draft.clientWaits),
-		furniture: cloneFurniture(draft.furniture)
+		door: cloneMarker(withStorage.door),
+		clientWait: cloneMarker(withStorage.clientWait),
+		desk: cloneMarker(withStorage.desk),
+		playerSpawn: cloneMarker(withStorage.playerSpawn),
+		fridgeAnchor: cloneMarker(withStorage.fridgeAnchor),
+		storageAnchor: cloneMarker(withStorage.storageAnchor ?? authored.storageAnchor),
+		desks: cloneMarkerList(withStorage.desks),
+		fridgeAnchors: cloneMarkerList(withStorage.fridgeAnchors),
+		clientWaits: cloneMarkerList(withStorage.clientWaits),
+		furniture: cloneFurniture(withStorage.furniture)
 	};
 }
 

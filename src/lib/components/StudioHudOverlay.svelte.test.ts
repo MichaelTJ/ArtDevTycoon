@@ -145,7 +145,7 @@ test('practiceOpen shows Practice as a viewport dialog not the side rail', async
 		.not.toBeInTheDocument();
 });
 
-test('practice desk Done fires onexitpractice', async () => {
+test('practice desk Scrap fires onexitpractice', async () => {
 	const onexitpractice = vi.fn();
 	const screen = render(StudioHudOverlay, {
 		...base,
@@ -162,7 +162,7 @@ test('practice desk Done fires onexitpractice', async () => {
 			fill: 0
 		}
 	});
-	await screen.getByRole('button', { name: 'Finish practising' }).click();
+	await screen.getByRole('button', { name: 'Scrap this practice painting' }).click();
 	expect(onexitpractice).toHaveBeenCalledTimes(1);
 });
 

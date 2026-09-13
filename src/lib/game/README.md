@@ -17,7 +17,7 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `abstractCritique.ts`        | `usesInterpretationScoring`, `selectBestCluster`, `critiqueTargetsForBrief`, `isAbstractParrot`, `ClusterMatch`                                                                                   |
 | `levelRules.ts`              | `isLevelComplete`, `levelProgress`                                                                                                                                                                |
 | `operations.ts`              | `filterGalleryEntries`, `identifyOperationalNeeds`, `buildOperationsSummary`, `buildOperationalSnapshot` and their input/output types                                                             |
-| `save.ts`                    | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` (+ spec 24 artist fields)                                   |
+| `save.ts`                    | `SAVE_STORAGE_KEY`, `CURRENT_SAVE_VERSION`, `saveDataSchema`, `SaveData`, `createDefaultSave`, `loadSave`, `persistSave`, `clearSave` (+ spec 24 artist fields, spec 34 `practiceArtworks`)       |
 | `artistTraining.ts`          | Spec 24 — artist level/XP curve, mock completion scores                                                                                                                                           |
 | `commissionChannel.ts`       | P27 — `commissionChannelForVenue`, `commissionBoardAvailable`, `CommissionChannel`                                                                                                                |
 | `assignCommission.ts`        | Spec 24 — board offers, work timer, mock artist artwork URL                                                                                                                                       |
@@ -30,7 +30,8 @@ Import from `$lib/game` via the barrel in `index.ts`.
 | `nextUnlock.ts`              | `buildProgressMeters`, `lockedReputationGates`, `NextUnlock`, `ProgressionSnapshot`                                                                                                               |
 | `affordabilityBadges.ts`     | `computeAffordabilityBadges`, per-menu helpers — P17 menu notification dots                                                                                                                       |
 | `submitChoice.ts`            | `SubmitChoice`, `artworkForSubmitChoice`, `blobToDataUrl` — P6 submit drawing vs AI before critique                                                                                               |
-| `sketchBlank.ts`             | `isSketchBlank(data, threshold?)` — near-white / fully transparent pixel check for sketch bitmaps                                                                                                 |
+| `sketchBlank.ts`             | `isSketchBlank(data, threshold?)`, `paintCoverage01(data, threshold?)` — blank check plus opaque non-white fraction                                                                               |
+| `practiceSale.ts`            | Spec 34 — `practiceFairValue`, `practiceBuyChance`, `tickPracticeSales`, `practiceAsGalleryEntry`, `canListPracticeForSale`, `clampAskingPrice`, `practiceBuyerLabel`, `PracticeArtwork`          |
 | `mumCritiquePresentation.ts` | `isMumCommission`, `captureMumRealCritique`, `MUM_DISPLAY_SCORE`, `MUM_PAYOUT_CASH`, `MUM_REPUTATION_GAIN`, `mumSkillGains`, `pickMumPraiseLine`, `praiseSeedFromArtworkId`, `MumRealCritique`    |
 | `brushStroke.ts`             | Spec 25 — `applyBrushStrokeStyle`, `effectiveBrushSize`, `stampCrayonGrain`, `stampCharcoalGrain`, `stampBrushGrain`, `stampInkBleed`, `grainSeed`, re-exports `getBrushProfile` / `BrushProfile` |
 
@@ -62,7 +63,7 @@ Import from `$lib/game` via the barrel in `index.ts`.
 ## Persistence (`save.ts` / `saveSlots.ts`)
 
 Banked meta-progression (`cash`, `reputation`, lifetime commissions, `galleryHistory`,
-unlock fields for specs 13–16, and Spec 20 craft XP) lives in up to three named slots
+unlock fields for specs 13–16, Spec 20 craft XP, and Spec 34 `practiceArtworks`) lives in up to three named slots
 under `adt.save.slots.v1`, with the active pointer in `adt.save.activeSlot`.
 `loadSave` / `persistSave` always target the active slot. Legacy `adt.save.v1` migrates
 into slot 0 on first boot. The in-flight commission does not persist. Load/persist never
@@ -79,6 +80,15 @@ a remainder. Spec 28 calls `GameStore.grantPracticeDrawingMs`. Spec 30 triples t
 bar: 2666 ms/XP while generating, 1000 ms/XP while practising, 20_000 idle / 666 assigned
 for hired artists. Rank table (`mediumSkillXpToNext`) is 30 + 15 per step (half the original
 60 / +30 curve).
+
+## Practice sales (`practiceSale.ts`)
+
+Kept practice pieces are player sketches, not commissions. Fair value is
+`base × effort × coverage × rank × venue prestige × client-market`, floored at $1.
+`practiceClientMarket` uses Spec 15 reputation gates (12 / 30 / 50). Listing needs
+8s of stroke time and 2% coverage. Sale ticks use an injected `random`; junk listed
+above ~2.5× fair value never sells. `practiceAsGalleryEntry` uses `briefId`
+`practice:${id}`, `clientName` `Practice`, and `payout` = asking price.
 
 ## Craft skills (`skills.ts`)
 

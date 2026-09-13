@@ -20,6 +20,22 @@ export const hiredArtistSchema = z.object({
 
 export type HiredArtistSave = z.infer<typeof hiredArtistSchema>;
 
+/** Spec 34 — player-kept practice sketch. Not a commission. */
+export const practiceArtworkSchema = z.object({
+	id: z.string().min(1),
+	imageUrl: z.string().min(1),
+	title: z.string().min(1),
+	mediumTierId: z.string().min(1),
+	strokeMs: z.number().nonnegative(),
+	coverage01: z.number().min(0).max(1),
+	skillLevel: z.number().int().min(1).max(7),
+	askingPrice: z.number().int().min(1).nullable(),
+	location: z.enum(['gallery', 'storage']),
+	createdAt: z.number().int().nonnegative()
+});
+
+export type PracticeArtworkSave = z.infer<typeof practiceArtworkSchema>;
+
 /** Active hand-off of the live commission to one artist (simulated timer). */
 export const artistAssignmentSchema = z.object({
 	artistCatalogId: z.string().min(1),
@@ -101,6 +117,9 @@ export const saveDataSchema = z.object({
 	 * both LEVEL_1 cash and commission targets are met). Progress is never wiped on win.
 	 */
 	careerMilestoneAcknowledged: z.boolean().default(false),
+
+	/** Spec 34. Kept practice sketches (gallery listings and storage). */
+	practiceArtworks: z.array(practiceArtworkSchema).default([]),
 
 	/** Epoch ms this blob was written. Not shown to the player; useful for debugging. */
 	savedAt: z.number().int().nonnegative()

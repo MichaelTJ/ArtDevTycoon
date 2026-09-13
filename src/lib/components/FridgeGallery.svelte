@@ -64,6 +64,9 @@
 						/>
 					</button>
 					<p class="mt-1 truncate text-sm font-medium text-stone-800">{entry.title}</p>
+					{#if entry.briefId.startsWith('practice:') && entry.payout > 0}
+						<p class="text-xs text-stone-500">For sale · ${entry.payout}</p>
+					{/if}
 				</li>
 			{/each}
 		</ul>

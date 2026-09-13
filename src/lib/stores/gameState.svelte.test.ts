@@ -19,10 +19,11 @@ import {
 	scorePrompt,
 	skillPayoutMultiplier,
 	xpThresholdForLevel,
+	PRACTICE_SALE_TICK_MS,
 	type SaveData
 } from '$lib/game';
 import { BASE_AUTO_INVITE_DELAY_MS, computeIdleEarnings } from '$lib/game/idleIncome';
-import { LEVEL_1, type Artwork, type CritiqueDraft } from '$lib/types/contracts';
+import { LEVEL_1, type Artwork, type CritiqueDraft, type GalleryEntry } from '$lib/types/contracts';
 import { GameStore } from './gameState.svelte';
 
 function createMemoryStorage() {
@@ -2203,6 +2204,245 @@ describe('GameStore Spec 27 medium skill', () => {
 		await Promise.resolve();
 		expect(store.currentArtwork).toBeNull();
 		expect(store.phase).toBe('idle');
+	});
+});
+
+function commissionEntry(id: string, completedAt: number, score = 5): GalleryEntry {
+	return {
+		id,
+		imageUrl: `/${id}.png`,
+		title: id,
+		payout: 10,
+		score,
+		clientName: 'C',
+		briefId: `c-${id}`,
+		completedAt
+	};
+}
+
+describe('GameStore practice keep, storage, and sales', () => {
+	const practiceImage = 'data:image/png;base64,aa';
+
+	it('keepPractice to storage after 8000ms drawing', async () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(8000);
+		const kept = await store.keepPractice({
+			imageUrl: practiceImage,
+			coverage01: 0.05,
+			destination: 'storage',
+			id: 'p-store'
+		});
+		expect(kept).toBe(true);
+		expect(store.practiceArtworks[0]?.location).toBe('storage');
+		expect(store.practiceArtworks[0]?.askingPrice).toBeNull();
+		expect(store.practiceOpen).toBe(false);
+		expect(store.practiceArtworks[0]?.title).toBe('Practice — Crayons & Construction Paper');
+	});
+
+	it('keepPractice to gallery lists the piece first on the wall', async () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(8000);
+		const kept = await store.keepPractice({
+			imageUrl: practiceImage,
+			coverage01: 0.05,
+			destination: 'gallery',
+			askingPrice: 4,
+			id: 'p-hang'
+		});
+		expect(kept).toBe(true);
+		expect(store.practiceArtworks[0]?.location).toBe('gallery');
+		expect(store.practiceArtworks[0]?.askingPrice).toBe(4);
+		expect(store.displayedGalleryEntries[0]?.id).toBe('p-hang');
+	});
+
+	it('rejects gallery keep when strokeMs is 1000', async () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(1000);
+		const kept = await store.keepPractice({
+			imageUrl: practiceImage,
+			coverage01: 0.05,
+			destination: 'gallery',
+			askingPrice: 4,
+			id: 'too-soon'
+		});
+		expect(kept).toBe(false);
+		expect(store.practiceArtworks).toEqual([]);
+		expect(store.practiceOpen).toBe(true);
+	});
+
+	it('hanging a 4th practice on fridge capacity 3 kicks the oldest to storage', async () => {
+		let nowMs = 1_000;
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { now: () => nowMs });
+		for (const id of ['a', 'b', 'c']) {
+			expect(store.enterPractice()).toBe(true);
+			store.grantPracticeDrawingMs(8000);
+			expect(
+				await store.keepPractice({
+					imageUrl: practiceImage,
+					coverage01: 0.05,
+					destination: 'gallery',
+					askingPrice: 2,
+					id
+				})
+			).toBe(true);
+			nowMs += 1;
+		}
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(8000);
+		expect(
+			await store.keepPractice({
+				imageUrl: practiceImage,
+				coverage01: 0.05,
+				destination: 'gallery',
+				askingPrice: 3,
+				id: 'd'
+			})
+		).toBe(true);
+		const stored = store.practiceArtworks.find((p) => p.location === 'storage');
+		expect(stored?.id).toBe('a');
+		expect(stored?.askingPrice).toBeNull();
+		expect(store.displayedGalleryEntries.map((e) => e.id)).toEqual(['d', 'c', 'b']);
+		expect(store.displayedGalleryEntries).toHaveLength(3);
+	});
+
+	it('shows 2 hung practice then 1 commission on fridge capacity 3', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.practiceArtworks = [
+			{
+				id: 'p1',
+				imageUrl: practiceImage,
+				title: 'Practice — Crayons & Construction Paper',
+				mediumTierId: 'crayon',
+				strokeMs: 8000,
+				coverage01: 0.05,
+				skillLevel: 1,
+				askingPrice: 2,
+				location: 'gallery',
+				createdAt: 200
+			},
+			{
+				id: 'p2',
+				imageUrl: practiceImage,
+				title: 'Practice — Crayons & Construction Paper',
+				mediumTierId: 'crayon',
+				strokeMs: 8000,
+				coverage01: 0.05,
+				skillLevel: 1,
+				askingPrice: 3,
+				location: 'gallery',
+				createdAt: 100
+			}
+		];
+		store.galleryHistory = [
+			commissionEntry('c1', 1),
+			commissionEntry('c2', 2),
+			commissionEntry('c3', 3),
+			commissionEntry('c4', 4),
+			commissionEntry('c5', 5)
+		];
+		expect(store.displayedGalleryEntries).toHaveLength(3);
+		expect(store.displayedGalleryEntries.map((e) => e.id)).toEqual(['p1', 'p2', 'c5']);
+		expect(store.archivedCommissionEntries.map((e) => e.id)).toEqual(['c1', 'c2', 'c3', 'c4']);
+	});
+
+	it('sale tick pays cash, removes the piece, and leaves reputation unchanged', () => {
+		vi.useFakeTimers();
+		try {
+			const rolls = [0, 0.27];
+			const store = createStore(
+				{ generate: vi.fn(), critique: vi.fn() },
+				{ random: () => rolls.shift() ?? 1 }
+			);
+			store.setAutoInviteAction(() => {});
+			const cashBefore = store.cash;
+			const repBefore = store.reputation;
+			const commissionsBefore = store.commissionsCompleted;
+			store.practiceArtworks = [
+				{
+					id: 'for-sale',
+					imageUrl: practiceImage,
+					title: 'Practice — Oil on Canvas',
+					mediumTierId: 'oil',
+					strokeMs: 90_000,
+					coverage01: 0.5,
+					skillLevel: 7,
+					askingPrice: 17,
+					location: 'gallery',
+					createdAt: 1
+				}
+			];
+			vi.advanceTimersByTime(PRACTICE_SALE_TICK_MS);
+			expect(store.cash).toBe(cashBefore + 17);
+			expect(store.practiceArtworks).toEqual([]);
+			expect(store.lastPracticeSale?.price).toBe(17);
+			expect(store.lastPracticeSale?.buyerLabel).toBe('A neighbour');
+			expect(store.reputation).toBe(repBefore);
+			expect(store.commissionsCompleted).toBe(commissionsBefore);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('does not sell while practiceOpen', () => {
+		vi.useFakeTimers();
+		try {
+			const store = createStore({ generate: vi.fn(), critique: vi.fn() }, { random: () => 0 });
+			store.setAutoInviteAction(() => {});
+			store.practiceArtworks = [
+				{
+					id: 'for-sale',
+					imageUrl: practiceImage,
+					title: 'Practice — Oil on Canvas',
+					mediumTierId: 'oil',
+					strokeMs: 90_000,
+					coverage01: 0.5,
+					skillLevel: 7,
+					askingPrice: 17,
+					location: 'gallery',
+					createdAt: 1
+				}
+			];
+			expect(store.enterPractice()).toBe(true);
+			vi.advanceTimersByTime(PRACTICE_SALE_TICK_MS);
+			expect(store.practiceArtworks).toHaveLength(1);
+			expect(store.lastPracticeSale).toBeNull();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('enterPractice zeros practiceStrokeMs', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		expect(store.enterPractice()).toBe(true);
+		store.grantPracticeDrawingMs(5000);
+		expect(store.practiceStrokeMs).toBe(5000);
+		store.exitPractice();
+		expect(store.practiceStrokeMs).toBe(0);
+		expect(store.enterPractice()).toBe(true);
+		expect(store.practiceStrokeMs).toBe(0);
+	});
+
+	it('hangPracticeFromStorage is false for unlistable doodles', () => {
+		const store = createStore({ generate: vi.fn(), critique: vi.fn() });
+		store.practiceArtworks = [
+			{
+				id: 'doodle',
+				imageUrl: practiceImage,
+				title: 'Practice — Crayons & Construction Paper',
+				mediumTierId: 'crayon',
+				strokeMs: 1000,
+				coverage01: 0.01,
+				skillLevel: 1,
+				askingPrice: null,
+				location: 'storage',
+				createdAt: 1
+			}
+		];
+		expect(store.hangPracticeFromStorage('doodle', 4)).toBe(false);
+		expect(store.practiceArtworks[0]?.location).toBe('storage');
 	});
 });
 
