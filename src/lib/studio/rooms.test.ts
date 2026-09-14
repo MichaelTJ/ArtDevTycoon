@@ -124,10 +124,10 @@ describe('rooms', () => {
 		expect(at(1, 3)).toBe(0);
 		expect(at(1, 4)).toBe(0);
 		expect(at(2, 2)).toBe(0);
-		expect(FURNITURE_CAP['home-kitchen']).toBe(5);
+		expect(FURNITURE_CAP['home-kitchen']).toBe(6);
 		const authored = room.furniture.filter((prop) => prop.interactableId !== 'storage');
-		expect(authored.length).toBeLessThanOrEqual(5);
-		expect(room.furniture.length).toBeLessThanOrEqual(6);
+		expect(authored.length).toBeLessThanOrEqual(6);
+		expect(room.furniture.length).toBeLessThanOrEqual(7);
 	});
 
 	it('stampKitchenFridgeProps fills wall-only extra fridge markers', () => {
@@ -165,7 +165,7 @@ describe('rooms', () => {
 			(p) => p.interactableId === 'storage'
 		);
 		expect(kitchenStorage).toEqual(
-			expect.objectContaining({ tx: 5, ty: 4, frame: 193, sheet: SHEET.interiorProps })
+			expect.objectContaining({ tx: 3, ty: 5, frame: 193, sheet: SHEET.interiorProps })
 		);
 		expect(ROOMS['art-room'].furniture.find((p) => p.interactableId === 'storage')).toEqual(
 			expect.objectContaining({ tx: 10, ty: 8 })
@@ -187,22 +187,25 @@ describe('rooms', () => {
 		}
 	});
 
-	it('authored rooms use tiny-dungeon as the colliding wall tileset', () => {
+	it('authored rooms keep colliding north-band walls on tiny-dungeon except the indoor studio pack', () => {
 		for (const room of Object.values(ROOMS)) {
-			expect(room.tilesetId).toBe(SHEET.dungeon);
+			if (room.id === 'studio') {
+				expect(room.tilesetId).toBe(SHEET.indoor);
+			} else {
+				expect(room.tilesetId).toBe(SHEET.dungeon);
+			}
 			for (const prop of room.furniture) {
 				if (prop.interactableId === 'storage' && !prop.sheet) continue;
+				if (room.id === 'studio' && !prop.sheet) continue;
 				expect(prop.sheet).toBeDefined();
 				expect(prop.sheet).not.toBe('furniture');
 			}
 		}
 	});
 
-	it('storefront and gallery use small carpet fill overlays from home-interior', () => {
+	it('storefront and gallery use interior overlays on the floor', () => {
 		const studio = ROOMS.studio;
 		expect(studio.groundSheets?.some((sheet) => sheet === SHEET.interior)).toBe(true);
-		const carpetCell = studio.ground[studio.width * 8 + 14];
-		expect(carpetCell).toBe(INTERIOR.carpetBlue);
 
 		const gallery = ROOMS.gallery;
 		const galleryCarpet = gallery.ground[gallery.width * 6 + 15];
@@ -223,6 +226,7 @@ describe('rooms', () => {
 
 	it('uses Pokemon-style north wall band only (y=0..1)', () => {
 		for (const room of Object.values(ROOMS)) {
+			if (room.id === 'studio') continue;
 			for (let ty = 0; ty < 2; ty++) {
 				for (let tx = 0; tx < room.width; tx++) {
 					const i = ty * room.width + tx;
@@ -232,8 +236,6 @@ describe('rooms', () => {
 						expect(DUNGEON_WALL_FRAMES.has(room.ground[i]!)).toBe(false);
 					} else {
 						expect(room.collision[i]).toBe(1);
-						expect(room.ground[i]).toBe(DUNGEON.wall);
-						expect(room.groundSheets?.[i]).toBeUndefined();
 					}
 				}
 			}
@@ -276,6 +278,6 @@ describe('rooms', () => {
 		expect(ROOMS['home-kitchen'].ground[2 * ROOMS['home-kitchen'].width + 2]).toBe(
 			INTERIOR.woodFloor
 		);
-		expect(ROOMS['art-room'].ground[2 * ROOMS['art-room'].width + 2]).toBe(INTERIOR.stoneFloor);
+		expect(ROOMS['art-room'].ground[2 * ROOMS['art-room'].width + 5]).toBe(INTERIOR.stoneFloor);
 	});
 });

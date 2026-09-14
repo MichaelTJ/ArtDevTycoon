@@ -2,7 +2,9 @@
 
 Authoring tools for venue floor plans and character looks. Phaser reads the same
 localStorage blob so a reload of the game picks up the last save. There is no
-server — drafts never write into `rooms.ts`.
+server — drafts never write into `rooms.ts`. Playtest layouts from this machine's
+editor blob are hardcoded in `$lib/studio/bakedEditorLayouts.ts` and applied when
+building `ROOMS`, so GitHub Pages and a fresh browser match the local floors.
 
 ## Public surface
 
@@ -26,7 +28,8 @@ storage, and toolkit stay unique. Each fridge is a painting spot.
 - Restored JSON is parsed with Zod; a corrupt blob is ignored.
 - Load prefers a non-empty v2 blob. If v2 is missing or both `rooms` and `people` are
   empty, a non-empty v1 blob is copied into v2 (v1 is never deleted).
-- Default (no draft) looks and rooms are bit-identical to specs 17–21a.
+- Default (no draft) looks and rooms match the baked playtest layouts (kitchen, garage,
+  storefront, and character sprites from the local editor blob).
 - New tilesets are free/open (CC0 or CC BY-SA); credit lives in `static/studio/CREDITS.md`.
 - Fridge / desk / client-wait extras persist on the draft as `fridgeAnchors`, `desks`, and
   `clientWaits`. None on an extra deletes it; None on the primary promotes the next.

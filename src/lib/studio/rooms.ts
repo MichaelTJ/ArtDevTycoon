@@ -1,5 +1,6 @@
 import type { InteractableId } from './interactables';
 import { storageForVenue } from '$lib/data/studioStorage';
+import { bakeAuthoredRoom } from './bakedEditorLayouts';
 import { DUNGEON, INDOOR, INTERIOR, SHEET } from './roomTiles';
 
 export type RoomId = 'home-kitchen' | 'art-room' | 'studio' | 'gallery' | 'mega-museum';
@@ -635,11 +636,11 @@ export function buildMegaMuseum(): RoomDef {
 	};
 }
 
-const kitchen = buildKitchen();
-const garage = buildGarage();
-const storefront = buildStorefront();
-const galleryHall = buildGalleryHall();
-const megaMuseum = buildMegaMuseum();
+const kitchen = stampKitchenFridgeProps(bakeAuthoredRoom(buildKitchen()));
+const garage = bakeAuthoredRoom(buildGarage());
+const storefront = bakeAuthoredRoom(buildStorefront());
+const galleryHall = bakeAuthoredRoom(buildGalleryHall());
+const megaMuseum = bakeAuthoredRoom(buildMegaMuseum());
 
 /**
  * Kitchen fridge markers always get a solid E-interactable cabinet.

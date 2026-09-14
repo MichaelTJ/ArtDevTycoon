@@ -19,10 +19,10 @@ describe('studio-editor apply', () => {
 		);
 		expect(
 			overlayClientLook('corporate', { frame: 0, tint: 0x7a9cc4 }, emptyStudioEditorState())
-		).toEqual({ frame: 0, tint: 0x7a9cc4 });
+		).toEqual({ frame: 96, tint: 0x7a9cc4, spriteKey: 'tiny-dungeon-folk' });
 		expect(
 			overlayStaffLook('apprentice', { frame: 1, tint: 0xa8d4ff }, emptyStudioEditorState())
-		).toEqual({ frame: 1, tint: 0xa8d4ff });
+		).toEqual({ frame: 112, tint: 0xa8d4ff, spriteKey: 'tiny-dungeon-folk' });
 	});
 
 	it('merges a stored room draft and clamps people frames', () => {
@@ -82,9 +82,9 @@ describe('studio-editor apply', () => {
 			people: {}
 		});
 		expect(merged.furniture.find((prop) => prop.interactableId === 'storage')).toEqual(
-			expect.objectContaining({ tx: 5, ty: 4, interactableId: 'storage' })
+			expect.objectContaining({ tx: 3, ty: 5, interactableId: 'storage' })
 		);
-		expect(merged.storageAnchor).toEqual({ tx: 5, ty: 4 });
-		expect(merged.collision[4 * merged.width + 5]).toBe(1);
+		expect(merged.storageAnchor).toEqual({ tx: 3, ty: 5 });
+		expect(merged.collision[5 * merged.width + 3]).toBe(1);
 	});
 });

@@ -1,3 +1,4 @@
+import { BAKED_PERSON_LOOKS } from '$lib/studio/bakedEditorLayouts';
 import { stampKitchenFridgeProps, type RoomDef } from '$lib/studio/rooms';
 import { getPeopleSheet, sheetTileCount, type PersonSlotId } from './catalog';
 import { authoredDraft, ensureStorageOnDraft, mergeDraftOntoRoom } from './draft';
@@ -13,7 +14,8 @@ const DEFAULT_LOOKS: Record<PersonSlotId, PersonLook> = {
 	'auction-house': { sheetId: 'clients', frame: 0, tint: 0xc47878 },
 	apprentice: { sheetId: 'staff', frame: 1, tint: 0xa8d4ff },
 	'marketing-director': { sheetId: 'staff', frame: 1, tint: 0xffd4a8 },
-	curator: { sheetId: 'staff', frame: 0, tint: 0xd4c4a8 }
+	curator: { sheetId: 'staff', frame: 0, tint: 0xd4c4a8 },
+	...BAKED_PERSON_LOOKS
 };
 
 const CLIENT_TIER_SLOTS: Record<string, PersonSlotId> = {
@@ -56,11 +58,10 @@ export function resolveRoomForPlay(authored: RoomDef, state = loadStudioEditorSt
 
 export function overlayClientLook(
 	tier: string,
-	base: { frame: number; tint: number | null; spriteKey?: string },
+	_base: { frame: number; tint: number | null; spriteKey?: string },
 	state = loadStudioEditorState()
 ): { frame: number; tint: number | null; spriteKey?: string } {
 	const slot = CLIENT_TIER_SLOTS[tier] ?? 'walk-in';
-	if (!state.people[slot]) return base;
 	const look = resolvePersonLook(slot, state);
 	return { frame: look.frame, tint: look.tint, spriteKey: look.sheetId };
 }
@@ -71,7 +72,7 @@ export function overlayStaffLook(
 	state = loadStudioEditorState()
 ): { frame: number; tint: number; spriteKey?: string } {
 	const slot = STAFF_SLOTS[roleId];
-	if (!slot || !state.people[slot]) return base;
+	if (!slot) return base;
 	const look = resolvePersonLook(slot, state);
 	return {
 		frame: look.frame,

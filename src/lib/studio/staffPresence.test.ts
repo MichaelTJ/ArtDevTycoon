@@ -23,13 +23,13 @@ describe('floorStaffFromHired', () => {
 
 describe('staffAnchorForRole', () => {
 	it('places apprentice at second work spot and MD at clientWait', () => {
-		expect(staffAnchorForRole('apprentice', ROOMS['home-kitchen'])).toEqual({ tx: 4, ty: 3 });
+		expect(staffAnchorForRole('apprentice', ROOMS['home-kitchen'])).toEqual({ tx: 4, ty: 4 });
 		expect(staffAnchorForRole('marketing-director', ROOMS['home-kitchen'])).toEqual(
 			ROOMS['home-kitchen'].clientWait
 		);
 		expect(staffAnchorForRole('apprentice', getRoomForVenue('garage'))).toEqual({
 			tx: 6,
-			ty: 5
+			ty: 6
 		});
 	});
 
@@ -65,8 +65,20 @@ describe('receptionistAnchor', () => {
 
 describe('staffLookForRole', () => {
 	it('returns distinct frame/tint per floor role', () => {
-		expect(staffLookForRole('apprentice')).toEqual({ frame: 1, tint: 0xa8d4ff });
-		expect(staffLookForRole('marketing-director')).toEqual({ frame: 1, tint: 0xffd4a8 });
-		expect(staffLookForRole('curator')).toEqual({ frame: 0, tint: 0xd4c4a8 });
+		expect(staffLookForRole('apprentice')).toEqual({
+			frame: 112,
+			tint: 0xa8d4ff,
+			spriteKey: 'tiny-dungeon-folk'
+		});
+		expect(staffLookForRole('marketing-director')).toEqual({
+			frame: 84,
+			tint: 0xffd4a8,
+			spriteKey: 'tiny-dungeon-folk'
+		});
+		expect(staffLookForRole('curator')).toEqual({
+			frame: 37,
+			tint: 0xd4c4a8,
+			spriteKey: 'tiny-creatures'
+		});
 	});
 });

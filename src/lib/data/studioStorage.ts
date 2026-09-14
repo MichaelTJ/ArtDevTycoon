@@ -1,6 +1,6 @@
 /**
  * Per-venue storage object (crate / boxes / stock / archive / vault). Spec 34.
- * Kitchen crate stays at (5, 4) so it does not overlap Spec 33 cabinet tiles.
+ * Kitchen crate sits at (3, 5) under the desk — playtest layout from the studio editor.
  */
 export interface VenueStorageDef {
 	venueId: string;
@@ -25,8 +25,8 @@ export const VENUE_STORAGE: readonly VenueStorageDef[] = [
 		/** home-interior r24c1 — two-drawer dresser (Mum's rainy-day box). */
 		frame: 193,
 		sheet: 'home-interior',
-		tx: 5,
-		ty: 4
+		tx: 3,
+		ty: 5
 	},
 	{
 		venueId: 'garage',

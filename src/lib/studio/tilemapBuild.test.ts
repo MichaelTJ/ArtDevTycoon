@@ -40,22 +40,26 @@ describe('buildGroundTilemap', () => {
 		expect(keys.has('0,0')).toBe(false);
 	});
 
-	it('keeps north-band bricks on the primary dungeon sheet for every venue', () => {
+	it('keeps north-band bricks on the primary dungeon sheet for dungeon venues', () => {
 		for (const room of Object.values(ROOMS)) {
+			if (room.id === 'studio') {
+				expect(room.tilesetId).toBe(SHEET.indoor);
+				continue;
+			}
 			expect(room.tilesetId).toBe(SHEET.dungeon);
 			const { data } = buildGroundTilemap(room);
 			for (let tx = 0; tx < room.width; tx++) {
 				if (tx === room.door.tx) {
 					expect(data[0]?.[tx]).toBe(TILEMAP_EMPTY);
 					expect(data[1]?.[tx]).toBe(TILEMAP_EMPTY);
+				} else if (room.groundSheets?.[tx] || room.groundSheets?.[room.width + tx]) {
+					continue;
 				} else {
 					expect(data[0]?.[tx]).toBe(DUNGEON.wall);
 					expect(data[1]?.[tx]).toBe(DUNGEON.wall);
 				}
 			}
 			expect(data[room.height - 1]?.[0]).toBe(TILEMAP_EMPTY);
-			expect(data[2]?.[0]).toBe(TILEMAP_EMPTY);
-			expect(data[2]?.[room.width - 1]).toBe(TILEMAP_EMPTY);
 		}
 	});
 });

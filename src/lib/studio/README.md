@@ -41,10 +41,11 @@ saves stay in `$lib/game` / `$lib/stores`.
 | `mega-museum`  | `mega-museum`  | 28×16 | Atelier + gallery + foyer                                       |
 
 Phaser loads `getRoomForVenue(snapshot.activeVenueId)` on create and rebuilds when the
-venue id changes. `/studio-editor` can override the tile atlas, ground, collision,
-furniture, and markers per room via `adt.studio-editor.v2` (missing/empty v2 falls back
-to a non-empty `adt.studio-editor.v1` blob and copies it forward); `getRoomForVenue`
-applies those drafts. Person looks (player, Mum, clients, staff) overlay the same blob.
+venue id changes. Authored `ROOMS` include the playtest layouts that used to live only
+in `/studio-editor` `localStorage` (`adt.studio-editor.v2`, plus the storefront from v1).
+The editor can still override tiles, furniture, and markers on top of those defaults.
+Person looks (player, Mum, clients, staff) use the same baked defaults, then the same
+localStorage blob if the player edits them.
 
 ## Invariants
 
@@ -72,7 +73,7 @@ applies those drafts. Person looks (player, Mum, clients, staff) overlay the sam
 | Venue          | Floor slots | Kind                                                                                                    |
 | -------------- | ----------- | ------------------------------------------------------------------------------------------------------- |
 | `fridge`       | 3           | magnets on solid cabinets or wall fridge markers at (1,2), (0,2), (0,3); each cabinet is E-interactable |
-| `garage`       | 6           | 3 magnets + 3 easels                                                                                    |
+| `garage`       | 6           | wall fridge magnets from the playtest layout, then easels to fill the cap |
 | `storefront`   | 8           | easels                                                                                                  |
 | `gallery-hall` | 10          | easels                                                                                                  |
 | `mega-museum`  | 12          | easels                                                                                                  |
