@@ -1,16 +1,17 @@
 # Dev mode (Spec 23)
 
-Gated QA / content tooling. Never shown to normal production players.
+Gated QA / content tooling. Playtest builds show **Dev** by default so other game
+devs can test; `?dev=0` hides it.
 
 ## Public surface
 
-| Symbol                                               | Role                                                                                                            |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `resolveDevMode`                                     | Pure gate: `?dev=1` / `?dev=true`, `?studioDebug=1` alias, latch, Vite `import.meta.env.DEV`; `?dev=0` hard-off |
-| `loadDevLatch` / `persistDevLatch` / `clearDevLatch` | `adt.dev.v1` latch; never throws                                                                                |
+| Symbol                                                            | Role                                                                                                            |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `resolveDevMode`                                                  | Pure gate: playtest default on; `?dev=1` / `?dev=true`, `?studioDebug=1` alias, latch, Vite `import.meta.env.DEV`; `?dev=0` hard-off |
+| `loadDevLatch` / `persistDevLatch` / `clearDevLatch`              | `adt.dev.v1` latch; never throws                                                                                |
 | `clampCheatCash` / `clampCheatRep`                   | Integer clamps for economy cheats                                                                               |
-| `peekLevel1ModifierSuffix`                           | Hidden crayon suffix for **DevPanel only**                                                                      |
-| `DevCheatPort`                                       | Narrow mutator interface; GameStore implements via `dev*` methods                                               |
+| `peekLevel1ModifierSuffix`                                        | Hidden crayon suffix for **DevPanel only**                                                                      |
+| `DevCheatPort`                                                    | Narrow mutator interface; GameStore implements via `dev*` methods                                               |
 
 ## Invariants
 
@@ -21,6 +22,6 @@ Gated QA / content tooling. Never shown to normal production players.
 
 ## Deliberately unfinished
 
-- No Options-menu cheats for normal players.
+- Hide Dev again for a public release (`?dev=0` is the current off switch).
 - No server admin / feature-flag service.
 - No auto-playing commissions or bot clients.

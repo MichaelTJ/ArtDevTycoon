@@ -15,12 +15,12 @@ function params(query: string): URLSearchParams {
 describe('resolveDevMode', () => {
 	it.each([
 		{
-			name: 'production default off',
+			name: 'playtest default on',
 			viteDev: false,
 			query: '',
 			latch: null as DevLatch | null,
-			enabled: false,
-			reason: 'off' as const
+			enabled: true,
+			reason: 'playtest' as const
 		},
 		{
 			name: 'dev=1 enables via query',

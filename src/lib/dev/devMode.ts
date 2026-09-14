@@ -12,10 +12,11 @@ export const devLatchSchema = z.object({
 
 export type DevLatch = z.infer<typeof devLatchSchema>;
 
-export type DevModeReason = 'query' | 'vite' | 'latch' | 'off';
+export type DevModeReason = 'query' | 'vite' | 'latch' | 'playtest' | 'off';
 
 /**
- * Pure gate for Dev tools. Production static host + no query + no latch → off.
+ * Pure gate for Dev tools. Playtest builds show Dev by default so other game
+ * devs can cheat without `?dev=1`. `?dev=0` is still a hard off.
  * `?studioDebug=1` is a one-release alias of `?dev=1` (unless `dev=0`).
  */
 export function resolveDevMode(input: {
@@ -39,7 +40,7 @@ export function resolveDevMode(input: {
 	if (input.viteDev) {
 		return { enabled: true, reason: 'vite' };
 	}
-	return { enabled: false, reason: 'off' };
+	return { enabled: true, reason: 'playtest' };
 }
 
 /** Reads `adt.dev.v1`. Returns null on missing/invalid storage. Never throws. */
