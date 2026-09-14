@@ -112,6 +112,19 @@ test('Dev button opens Developer tools when enabled', async () => {
 	await expect.element(screen.getByText('Dev only — players never see this.')).toBeVisible();
 });
 
+test('Dev tools medium skill select snaps the store rank', async () => {
+	game.reset();
+	const screen = render(GameMenuBar, {
+		...defaultProps,
+		devEnabled: true,
+		devReason: 'query'
+	});
+	await screen.getByRole('button', { name: 'Dev' }).click();
+	await screen.getByRole('combobox', { name: 'Oil on Canvas rank' }).selectOptions('7');
+	expect(game.playerMediumSkillXp.oil).toBe(405);
+	expect(game.unlockedMediumTierIds).toContain('oil');
+});
+
 test('shows banked gains toast after collect pulse', async () => {
 	game.reset();
 	game.lastCollectedGains = {

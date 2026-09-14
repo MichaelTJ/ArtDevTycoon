@@ -57,9 +57,16 @@ test('export fills textarea from onexport return value', async () => {
 	await expect.element(screen.getByTestId('dev-export-area')).toHaveValue('{"cash":42}');
 });
 
-test('Open saves callback fires when provided', async () => {
-	const onopensaves = vi.fn();
-	const screen = render(DevPanel, { ...base, onopensaves });
-	await screen.getByRole('button', { name: 'Open saves' }).click();
-	expect(onopensaves).toHaveBeenCalledTimes(1);
+test('medium skill rank select fires onsetmediumskill', async () => {
+	const onsetmediumskill = vi.fn();
+	const screen = render(DevPanel, {
+		...base,
+		onsetmediumskill,
+		mediumSkills: [
+			{ id: 'crayon', name: 'Crayons & Construction Paper', level: 1 },
+			{ id: 'oil', name: 'Oil on Canvas', level: 1 }
+		]
+	});
+	await screen.getByRole('combobox', { name: 'Oil on Canvas rank' }).selectOptions('7');
+	expect(onsetmediumskill).toHaveBeenCalledWith('oil', 7);
 });

@@ -1846,6 +1846,20 @@ describe('GameStore Spec 23 dev cheats', () => {
 		expect(store.unlockedVenueId).toBe('mega-museum');
 	});
 
+	it('devSetMediumSkillLevel snaps XP to the rank threshold and unlocks the medium', () => {
+		const store = createStore({
+			generate: async () => fakeArtwork,
+			critique: async () => fakeDraft
+		});
+		store.devSetMediumSkillLevel('oil', 7);
+		expect(store.playerMediumSkillXp.oil).toBe(405);
+		expect(store.unlockedMediumTierIds).toContain('oil');
+		store.devSetMediumSkillLevel('pencil', 1);
+		expect(store.playerMediumSkillXp.pencil).toBe(0);
+		store.devSetMediumSkillLevel('nope', 7);
+		expect(store.playerMediumSkillXp.nope).toBeUndefined();
+	});
+
 	it('devForceIdle aborts an in-flight commission', async () => {
 		let releaseGenerate!: (art: Artwork) => void;
 		const generateGate = new Promise<Artwork>((resolve) => {

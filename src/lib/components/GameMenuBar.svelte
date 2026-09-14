@@ -7,7 +7,12 @@
 	import { MEDIUM_TIERS } from '$lib/data/mediumTiers';
 	import { getArtistCatalogEntry } from '$lib/data/artists';
 	import { STAFF_ROLES } from '$lib/data/staffRoles';
-	import { buildLevel1Prompt, computeAffordabilityBadges } from '$lib/game';
+	import {
+		buildLevel1Prompt,
+		computeAffordabilityBadges,
+		mediumSkillProgress,
+		mediumSkillXpOf
+	} from '$lib/game';
 	import { clearDevLatch, persistDevLatch, type DevModeReason } from '$lib/dev/devMode';
 	import { game } from '$lib/stores/gameState.svelte';
 	import AudioSettingsPanel from './AudioSettingsPanel.svelte';
@@ -571,6 +576,12 @@
 		onsetreputation={(n) => game.devSetReputation(n)}
 		onsetcommissions={(n) => game.devSetLifetimeCommissions(n)}
 		onunlockall={() => game.devUnlockAllProgression()}
+		mediumSkills={MEDIUM_TIERS.map((tier) => ({
+			id: tier.id,
+			name: tier.name,
+			level: mediumSkillProgress(tier.id, mediumSkillXpOf(game.playerMediumSkillXp, tier.id)).level
+		}))}
+		onsetmediumskill={(mediumId, level) => game.devSetMediumSkillLevel(mediumId, level)}
 		onforceidle={() => {
 			game.devForceIdle();
 			onafterslotchange?.();

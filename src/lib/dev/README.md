@@ -9,7 +9,7 @@ devs can test; `?dev=0` hides it.
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `resolveDevMode`                                                  | Pure gate: playtest default on; `?dev=1` / `?dev=true`, `?studioDebug=1` alias, latch, Vite `import.meta.env.DEV`; `?dev=0` hard-off |
 | `loadDevLatch` / `persistDevLatch` / `clearDevLatch`              | `adt.dev.v1` latch; never throws                                                                                |
-| `clampCheatCash` / `clampCheatRep`                   | Integer clamps for economy cheats                                                                               |
+| `clampCheatCash` / `clampCheatRep` / `clampCheatMediumSkillLevel` | Integer clamps for economy and Spec 27 rank cheats                                                              |
 | `peekLevel1ModifierSuffix`                                        | Hidden crayon suffix for **DevPanel only**                                                                      |
 | `DevCheatPort`                                                    | Narrow mutator interface; GameStore implements via `dev*` methods                                               |
 

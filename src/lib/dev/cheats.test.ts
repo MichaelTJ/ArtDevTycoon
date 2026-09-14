@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MEDIUM_TIER_ID, getMediumTier } from '$lib/data/mediumTiers';
 import { buildLevel1Prompt, mediumSkillBackground } from '$lib/game';
-import { clampCheatCash, clampCheatRep, peekLevel1ModifierSuffix } from './cheats';
+import {
+	clampCheatCash,
+	clampCheatMediumSkillLevel,
+	clampCheatRep,
+	peekLevel1ModifierSuffix
+} from './cheats';
 
 describe('clampCheatCash', () => {
 	it('truncates toward zero', () => {
@@ -27,6 +32,15 @@ describe('clampCheatRep', () => {
 		expect(clampCheatRep(12.9)).toBe(12);
 		expect(clampCheatRep(-5)).toBe(0);
 		expect(clampCheatRep(2_000_000)).toBe(1_000_000);
+	});
+});
+
+describe('clampCheatMediumSkillLevel', () => {
+	it('clamps to 1–7 and truncates', () => {
+		expect(clampCheatMediumSkillLevel(0)).toBe(1);
+		expect(clampCheatMediumSkillLevel(3.9)).toBe(3);
+		expect(clampCheatMediumSkillLevel(99)).toBe(7);
+		expect(clampCheatMediumSkillLevel(Number.NaN)).toBe(1);
 	});
 });
 

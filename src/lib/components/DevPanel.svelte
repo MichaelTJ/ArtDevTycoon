@@ -24,6 +24,9 @@
 		onclearlatch: () => void;
 		/** Spec 22: open SaveSlotsPanel without duplicating slot UI. */
 		onopensaves?: () => void;
+		/** Spec 27 ranks for every medium (cheat selectors). */
+		mediumSkills?: readonly { id: string; name: string; level: number }[];
+		onsetmediumskill?: (mediumId: string, level: number) => void;
 	}
 
 	let {
@@ -44,7 +47,9 @@
 		onimport,
 		onlatch,
 		onclearlatch,
-		onopensaves
+		onopensaves,
+		mediumSkills = [],
+		onsetmediumskill
 	}: Props = $props();
 
 	// Mount-time seed only (panel is created when Dev opens).
@@ -59,6 +64,16 @@
 		if (!Number.isFinite(n)) return;
 		apply(n);
 	}
+
+	const mediumSkillRanks = [
+		'Novice',
+		'Doodler',
+		'Student',
+		'Competent',
+		'Skilled',
+		'Expert',
+		'Master'
+	] as const;
 </script>
 
 {#if enabled}
@@ -189,6 +204,30 @@
 					Unlock all progression
 				</button>
 			</section>
+
+			{#if onsetmediumskill && mediumSkills.length > 0}
+				<section class="mt-6 space-y-3" aria-label="Medium skill">
+					<h3 class="text-sm font-semibold tracking-wide text-stone-500 uppercase">Medium skill</h3>
+					<p class="text-sm text-stone-600">
+						Sets your rank for that medium and unlocks it. Prompt style follows the selected rank.
+					</p>
+					{#each mediumSkills as skill (skill.id)}
+						<label class="block text-sm text-stone-700">
+							{skill.name}
+							<select
+								class="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2"
+								aria-label={`${skill.name} rank`}
+								value={String(skill.level)}
+								onchange={(event) => onsetmediumskill(skill.id, Number(event.currentTarget.value))}
+							>
+								{#each mediumSkillRanks as rank, index (rank)}
+									<option value={String(index + 1)}>{rank}</option>
+								{/each}
+							</select>
+						</label>
+					{/each}
+				</section>
+			{/if}
 
 			<section class="mt-6 space-y-3" aria-label="Commission">
 				<h3 class="text-sm font-semibold tracking-wide text-stone-500 uppercase">Commission</h3>

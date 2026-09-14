@@ -36,7 +36,7 @@ import {
 	STAFF_ROLES,
 	totalIncomePerSecond
 } from '$lib/data/staffRoles';
-import { clampCheatCash, clampCheatRep } from '$lib/dev/cheats';
+import { clampCheatCash, clampCheatMediumSkillLevel, clampCheatRep } from '$lib/dev/cheats';
 import { EngineError } from '$lib/engines/errors';
 import type { EngineManager } from '$lib/engines/manager';
 import { buildPrompt } from '$lib/game/promptPipeline';
@@ -118,7 +118,8 @@ import {
 	PRACTICE_MS_PER_XP,
 	applyElapsedSkillMs,
 	clampArtistSkillCatchupMs,
-	createEmptyMediumSkillXp
+	createEmptyMediumSkillXp,
+	mediumSkillXpThresholdForLevel
 } from '$lib/game/mediumSkill';
 import { DEFAULT_WORK_ESTIMATE_MS } from '$lib/studio/workProgress';
 import {
@@ -490,6 +491,20 @@ export class GameStore {
 
 	devSetLifetimeCommissions(n: number): void {
 		this.commissionsCompleted = clampCheatCash(n);
+		this.#persist();
+	}
+
+	/** Snap one medium to a Spec 27 rank and unlock it so the player can paint with it. */
+	devSetMediumSkillLevel(mediumId: string, level: number): void {
+		if (!MEDIUM_TIERS.some((tier) => tier.id === mediumId)) return;
+		const clamped = clampCheatMediumSkillLevel(level);
+		this.playerMediumSkillXp = {
+			...this.playerMediumSkillXp,
+			[mediumId]: mediumSkillXpThresholdForLevel(clamped)
+		};
+		if (!this.unlockedMediumTierIds.includes(mediumId)) {
+			this.unlockedMediumTierIds = [...this.unlockedMediumTierIds, mediumId];
+		}
 		this.#persist();
 	}
 

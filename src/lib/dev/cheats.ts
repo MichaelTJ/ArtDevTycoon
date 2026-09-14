@@ -1,4 +1,5 @@
 import { DEFAULT_MEDIUM_TIER_ID, getMediumTier } from '$lib/data/mediumTiers';
+import { MEDIUM_SKILL_LEVEL_CAP } from '$lib/game/mediumSkill';
 
 /**
  * Narrow mutator surface for Dev cheats. Implemented by GameStore `dev*` methods;
@@ -14,6 +15,8 @@ export interface DevCheatPort {
 	unlockAllVenues(): void;
 	unlockAllClientTiers(): void;
 	hireAllStaff(): void;
+	/** Set player rank 1–7 for one medium (XP snapped to that rank’s threshold). */
+	setMediumSkillLevel(mediumId: string, level: number): void;
 	/** Abort commission → idle. */
 	forceIdle(): void;
 	/** Export active SaveData JSON string (pretty). */
@@ -35,6 +38,12 @@ export function clampCheatCash(n: number): number {
 export function clampCheatRep(n: number): number {
 	if (!Number.isFinite(n)) return 0;
 	return Math.min(MAX_CHEAT_REP, Math.max(0, Math.trunc(n)));
+}
+
+/** Rank 1–7 for Dev medium-skill selectors. Non-finite → 1. */
+export function clampCheatMediumSkillLevel(n: number): number {
+	if (!Number.isFinite(n)) return 1;
+	return Math.min(MEDIUM_SKILL_LEVEL_CAP, Math.max(1, Math.trunc(n)));
 }
 
 /**
